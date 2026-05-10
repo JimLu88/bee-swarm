@@ -89,10 +89,23 @@ def sandbox_exec_status() -> dict:
 async def get_status() -> dict:
     qdrant = await check_qdrant()
     llm = await check_llm()
+    rb = llm_rag_settings.rag_backend
+    embedding_note = (
+        "placeholder_sha256_expanded_64d"
+        if rb == "qdrant"
+        else ("sqlite_fts5_no_embeddings" if rb == "local" else "builtin_chunks_only")
+    )
     return {
         "orchestration": {"backend": "langgraph", "graph": "decision_v1:triage_fanout_finalize"},
         "llm": {"provider": llm_rag_settings.llm_provider, "ok": llm.ok, "detail": llm.detail, "default_model": llm_rag_settings.litellm_default_model},
-        "rag": {"backend": llm_rag_settings.rag_backend, "ok": qdrant.ok, "detail": qdrant.detail, "qdrant_url": llm_rag_settings.qdrant_url},
+        "rag": {
+            "backend": rb,
+            "ok": qdrant.ok,
+            "detail": qdrant.detail,
+            "qdrant_url": llm_rag_settings.qdrant_url,
+            "collection_prefix": "h_semas__",
+            "embedding": embedding_note,
+        },
         "search": _search_status(),
         "sandbox_exec": sandbox_exec_status(),
     }
