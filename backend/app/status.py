@@ -104,7 +104,7 @@ async def get_status() -> dict:
         }
     )
     return {
-        "orchestration": {"backend": "langgraph", "graph": "decision_v1:triage_fanout_finalize"},
+        "orchestration": {"backend": "langgraph", "graph": "decision_v2:send_dept_worker_defer_finalize"},
         "llm": {"provider": llm_rag_settings.llm_provider, "ok": llm.ok, "detail": llm.detail, "default_model": llm_rag_settings.litellm_default_model},
         "rag": {
             "backend": rb,
