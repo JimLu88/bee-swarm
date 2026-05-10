@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     hsemas_exec_max_arg_len: int = 768
     hsemas_exec_max_output_chars: int = 65536
 
+    # Dev-only: expose GET /api/debug/graph-state/{decision_id} (LangGraph MemorySaver snapshot).
+    hsemas_expose_graph_state: bool = False
+
 
 settings = Settings()
 

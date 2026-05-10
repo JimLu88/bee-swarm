@@ -43,6 +43,25 @@ async def status() -> dict:
     return await get_status()
 
 
+@app.get("/api/debug/graph-state/{decision_id}")
+async def debug_graph_state(decision_id: str) -> dict:
+    """LangGraph MemorySaver snapshot for ``thread_id`` (= decision_id). Disabled unless HSEMAS_EXPOSE_GRAPH_STATE=true."""
+    if not settings.hsemas_expose_graph_state:
+        raise HTTPException(status_code=404, detail="graph_state_disabled")
+    from .graph_debug import sanitize_checkpoint_values
+    from .orchestration.decision_graph import get_decision_graph
+
+    g = get_decision_graph()
+    snap = await g.aget_state({"configurable": {"thread_id": decision_id}})
+    vals = snap.values
+    raw = dict(vals) if vals is not None else None
+    return {
+        "thread_id": decision_id,
+        "next": list(snap.next) if snap.next else [],
+        "values": sanitize_checkpoint_values(raw),
+    }
+
+
 @app.post("/api/sandbox/exec", response_model=None)
 async def sandbox_exec(body: SandboxExecRequest) -> dict | JSONResponse:
     """Optional Phase 3: run allow-listed binary under backend/, no shell splitting."""

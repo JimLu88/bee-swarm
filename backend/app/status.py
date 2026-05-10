@@ -109,6 +109,7 @@ async def get_status() -> dict:
             "backend": "langgraph",
             "graph": "decision_v2:send_dept_worker_defer_finalize",
             "checkpoint": "memory_saver",
+            "debug_graph_state_enabled": app_settings.hsemas_expose_graph_state,
         },
         "llm": {"provider": llm_rag_settings.llm_provider, "ok": llm.ok, "detail": llm.detail, "default_model": llm_rag_settings.litellm_default_model},
         "rag": {
