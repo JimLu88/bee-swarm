@@ -1,0 +1,8 @@
+{
+  "name": "h-semas",
+  "private": true,
+  "scripts": {
+    "verify": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/verify.ps1",
+    "verify:unix": "sh ./scripts/verify.sh"
+  }
+}
