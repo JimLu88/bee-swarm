@@ -7,6 +7,7 @@ import random
 import time
 import uuid
 from pathlib import Path
+from typing import Any
 
 from .models import DeptLeadReport, DecisionSummary, HeatmapCell, StreamEvent
 from .modes import get_mode
@@ -22,7 +23,6 @@ from .rag.trusted_weights import sort_rag_chunks_by_trusted
 from .rag.types import RagChunk
 from .search.benchmark_web import fetch_benchmark_web_chunks
 from .settings_llm_rag import llm_rag_settings
-from .dispatcher import run_dispatcher
 from .execution import build_execution_bundle
 from .stream_bus import bus
 from .vision_scope import is_vision_dept
@@ -264,68 +264,17 @@ def _alert(confidence: float, dissent: float) -> str:
     return "green"
 
 
-async def run_decision(*, decision_id: str, task: str, mode_id: str) -> DecisionSummary:
-    mode = get_mode(mode_id)
-
-    bus.publish(
-        StreamEvent(
-            type="decision_started",
-            decision_id=decision_id,
-            payload={"task": task, "mode_id": mode.mode_id, "mode_label": mode.label},
-        )
-    )
-
-    depts = list(mode.departments)
-
-    dsp = run_dispatcher(task=task, departments=depts)
-    dept_briefs = dsp.get("dept_briefs") or {}
-    brief_preview = {d: str(dept_briefs.get(d, ""))[:400] + ("…" if len(str(dept_briefs.get(d, ""))) > 400 else "") for d in depts}
-    dispatcher_payload_preview = {
-        "level": dsp.get("level"),
-        "urgency": dsp.get("urgency"),
-        "task_chars": dsp.get("task_chars"),
-        "notes": dsp.get("notes"),
-        "version": dsp.get("version"),
-        "dept_brief_preview": brief_preview,
-    }
-    bus.publish(StreamEvent(type="dispatcher_ready", decision_id=decision_id, payload=dispatcher_payload_preview))
-
-    bus.publish(
-        StreamEvent(type="fanout_started", decision_id=decision_id, payload={"depts": depts, "count": len(depts)})
-    )
-
-    dsp_meta = {
-        "level": dsp.get("level"),
-        "urgency": dsp.get("urgency"),
-        "task_chars": dsp.get("task_chars"),
-        "notes": dsp.get("notes"),
-        "version": dsp.get("version"),
-        "department_count": len(depts),
-        "dept_brief_lens": {d: len(str(dept_briefs.get(d, ""))) for d in depts},
-        # Same truncation as dispatcher_ready WebSocket; persisted for history without reading the event stream.
-        "dept_brief_preview": brief_preview,
-    }
-
-    notes = str(dsp.get("notes") or "")
-    lvl = str(dsp.get("level") or "")
-    urg = str(dsp.get("urgency") or "")
-
-    reports = await asyncio.gather(
-        *[
-            _run_dept(
-                decision_id,
-                mode.mode_id,
-                d,
-                task,
-                dispatcher_context=str(dept_briefs.get(d, "")),
-                dispatcher_notes=notes,
-                task_level=lvl,
-                task_urgency=urg,
-            )
-            for d in depts
-        ]
-    )
-
+def finalize_decision_bundle(
+    *,
+    decision_id: str,
+    task: str,
+    mode_id: str,
+    mode_label: str,
+    dsp_meta: dict[str, Any],
+    reports: list[DeptLeadReport],
+) -> DecisionSummary:
+    """CEO 汇总、执行包、落盘与 decision_done 事件（供 LangGraph finalize 节点与单测复用）。"""
+    depts = [r.dept for r in reports]
     heatmap = [
         HeatmapCell(
             dept=r.dept,
@@ -337,16 +286,14 @@ async def run_decision(*, decision_id: str, task: str, mode_id: str) -> Decision
         for r in reports
     ]
 
-    # MVP CEO: simple aggregation; later: true CEO LLM + heatmap-driven interrupt.
     red_depts = [c.dept for c in heatmap if c.alert == "red"]
     lvl = dsp_meta.get("level")
     ceo_decision = f"CEO（分诊：{lvl}）：先完成可运行链路，再按需深化；遵守各部门分诊上下文与热力图预警。"
     if red_depts:
         ceo_decision += f"（预警：{', '.join(red_depts)} 异议/信心触发红色，建议查看原始辩论日志）"
 
-    # MVP RedTeam: deterministic pseudo-risk
     random.seed(hash(task) % (2**32))
-    risks = []
+    risks: list[str] = []
     if _stable_float(f"risk:{task}", 0, 1) > 0.55:
         risks.append("红队：注意 API Key 存储与审计日志可能泄露敏感信息，Phase 1 先用 .env + 不落盘。")
 
@@ -370,6 +317,29 @@ async def run_decision(*, decision_id: str, task: str, mode_id: str) -> Decision
     )
 
     bus.publish(StreamEvent(type="decision_done", decision_id=decision_id, payload={"summary": summary.model_dump()}))
-    _memory.append_summary(mode_id=mode.mode_id, mode_label=mode.label, summary=summary.model_dump())
+    _memory.append_summary(mode_id=mode_id, mode_label=mode_label, summary=summary.model_dump())
     return summary
+
+
+async def run_decision(*, decision_id: str, task: str, mode_id: str) -> DecisionSummary:
+    """决策主链路：LangGraph 三节点编排（dispatcher → 并行部门 → finalize）。"""
+    mode = get_mode(mode_id)
+
+    bus.publish(
+        StreamEvent(
+            type="decision_started",
+            decision_id=decision_id,
+            payload={"task": task, "mode_id": mode.mode_id, "mode_label": mode.label},
+        )
+    )
+
+    from .orchestration.decision_graph import invoke_decision_graph
+
+    return await invoke_decision_graph(
+        decision_id=decision_id,
+        task=task,
+        mode_id=mode.mode_id,
+        mode_label=mode.label,
+        departments=list(mode.departments),
+    )
 

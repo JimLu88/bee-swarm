@@ -3,6 +3,7 @@
 Phase 1 goal: get an end-to-end runnable skeleton working:
 
 - FastAPI backend
+- **`/api/decision/start` → LangGraph** 主图（`triage` → `fanout` → `finalize`），与原先事件序（`dispatcher_ready` / `fanout_started` / `dept_done` / `decision_done`）一致；LiteLLM 路由仍由各科室 `_run_dept` 内完成
 - WebSocket streaming events
 - Simulated fan-out departments producing:
   - `confidence_score`
@@ -10,10 +11,10 @@ Phase 1 goal: get an end-to-end runnable skeleton working:
   - `debate_log_id`
 - Mode switch (`mode_id`) with isolated persistence per mode
 
-Next phases will replace the simulated parts with:
+Next phases will replace more of the simulated parts with:
 
-- LangGraph orchestration
-- LiteLLM provider routing + fallbacks
+- Deeper LangGraph（按部门 Send / 检查点恢复等）
+- Broader LiteLLM provider routing + fallbacks
 - Qdrant RAG
 - DSPy gene rewriting + shadow testing
 
