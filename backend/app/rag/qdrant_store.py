@@ -9,6 +9,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.http import models as qm
 
 from ..settings_llm_rag import llm_rag_settings
+from .embeddings import embed_query, embed_texts, embedding_dimension
 from .types import RagChunk
 
 
@@ -18,24 +19,6 @@ def _safe_mode(mode_id: str) -> str:
 
 def _collection_name(mode_id: str) -> str:
     return f"h_semas__{_safe_mode(mode_id)}"
-
-
-def _hash_vector(text: str, dim: int = 64) -> list[float]:
-    """
-    Deterministic placeholder embedding.
-    Phase 2.1 will replace this with real embeddings (LiteLLM embeddings).
-    """
-    h = hashlib.sha256(text.encode("utf-8")).digest()
-    out: list[float] = []
-    # expand to dim using repeated hashing
-    cur = h
-    while len(out) < dim:
-        for b in cur:
-            out.append((b / 255.0) * 2.0 - 1.0)
-            if len(out) >= dim:
-                break
-        cur = hashlib.sha256(cur).digest()
-    return out
 
 
 @dataclass(frozen=True)
@@ -55,22 +38,25 @@ class QdrantStore:
             check_compatibility=False,
         )
 
-    def ensure_collection(self, *, mode_id: str, vector_size: int = 64) -> str:
+    def ensure_collection(self, *, mode_id: str, vector_size: int | None = None) -> str:
+        vs = embedding_dimension() if vector_size is None else vector_size
         name = _collection_name(mode_id)
         existing = self._client.get_collections().collections
         if any(c.name == name for c in existing):
             return name
         self._client.create_collection(
             collection_name=name,
-            vectors_config=qm.VectorParams(size=vector_size, distance=qm.Distance.COSINE),
+            vectors_config=qm.VectorParams(size=vs, distance=qm.Distance.COSINE),
         )
         return name
 
     def upsert(self, *, mode_id: str, items: list[IngestItem]) -> int:
-        name = self.ensure_collection(mode_id=mode_id)
+        self.ensure_collection(mode_id=mode_id)
+        name = _collection_name(mode_id)
+        texts = [f"{it.title}\n{it.content}" for it in items]
+        vectors = embed_texts(texts)
         points: list[qm.PointStruct] = []
-        for it in items:
-            vec = _hash_vector(f"{it.title}\n{it.content}")
+        for it, vec in zip(items, vectors):
             meta = dict(it.meta or {})
             source_url = str(meta.get("source_url") or "")
             if source_url:
@@ -85,8 +71,9 @@ class QdrantStore:
         return len(points)
 
     def search(self, *, mode_id: str, query: str, k: int = 5) -> list[RagChunk]:
-        name = self.ensure_collection(mode_id=mode_id)
-        qv = _hash_vector(query)
+        self.ensure_collection(mode_id=mode_id)
+        name = _collection_name(mode_id)
+        qv = embed_query(query)
         hits = self._client.search(collection_name=name, query_vector=qv, limit=max(1, min(k, 20)))
         out: list[RagChunk] = []
         for h in hits:
@@ -104,4 +91,3 @@ class QdrantStore:
 
 
 store = QdrantStore()
-

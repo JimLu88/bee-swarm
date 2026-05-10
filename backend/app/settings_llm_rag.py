@@ -25,6 +25,10 @@ class LlmRagSettings(BaseSettings):
     rag_backend: str = "simulated"  # "simulated" | "qdrant" | "local"
     qdrant_url: str = "http://localhost:6333"
     qdrant_api_key: str | None = None
+    # Empty => deterministic hash vectors for Qdrant. Set when OPENAI_API_KEY (or other provider) is present.
+    litellm_embedding_model: str = ""
+    # Override vector dimension for Qdrant collection + hash expansion (optional).
+    embedding_vector_dim: int | None = None
 
     # Phase 3: Vision-layer web search for benchmark + xlab (Tavily preferred, Exa fallback)
     benchmark_web_search: bool = True

@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import httpx
 
 from .execution.safe_shell import effective_exec_cwd, sandbox_allowlist
+from .rag.embeddings import embedding_rag_status_fields
 from .settings import settings as app_settings
 from .settings_llm_rag import llm_rag_settings
 
@@ -90,10 +91,17 @@ async def get_status() -> dict:
     qdrant = await check_qdrant()
     llm = await check_llm()
     rb = llm_rag_settings.rag_backend
-    embedding_note = (
-        "placeholder_sha256_expanded_64d"
+    emb_ctx = (
+        embedding_rag_status_fields()
         if rb == "qdrant"
-        else ("sqlite_fts5_no_embeddings" if rb == "local" else "builtin_chunks_only")
+        else {
+            "embedding_mode": "n/a",
+            "embedding_model": None,
+            "embedding_dim": None,
+            "embedding_litellm_ready": False,
+            "embedding_misconfigured": False,
+            "embedding_note": "sqlite_fts5_no_embeddings" if rb == "local" else "builtin_chunks_only",
+        }
     )
     return {
         "orchestration": {"backend": "langgraph", "graph": "decision_v1:triage_fanout_finalize"},
@@ -104,7 +112,7 @@ async def get_status() -> dict:
             "detail": qdrant.detail,
             "qdrant_url": llm_rag_settings.qdrant_url,
             "collection_prefix": "h_semas__",
-            "embedding": embedding_note,
+            **emb_ctx,
         },
         "search": _search_status(),
         "sandbox_exec": sandbox_exec_status(),

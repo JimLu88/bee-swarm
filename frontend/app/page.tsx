@@ -75,7 +75,18 @@ type ModeConfig = {
 
 type BackendStatusPayload = {
   llm?: { provider?: string; ok?: boolean; detail?: string; default_model?: string };
-  rag?: { backend?: string; ok?: boolean; detail?: string; qdrant_url?: string };
+  rag?: {
+    backend?: string;
+    ok?: boolean;
+    detail?: string;
+    qdrant_url?: string;
+    collection_prefix?: string;
+    embedding_mode?: string;
+    embedding_note?: string;
+    embedding_dim?: number | null;
+    embedding_litellm_ready?: boolean;
+    embedding_misconfigured?: boolean;
+  };
   search?: {
     benchmark_web_search_enabled?: boolean;
     tavily_configured?: boolean;
@@ -438,6 +449,16 @@ export default function HomePage() {
           <div style={{ marginTop: 4, fontSize: 12, color: "#333" }}>
             RAG: {backendStatus.rag?.backend} / {backendStatus.rag?.ok ? "ok" : "not-ready"} / {backendStatus.rag?.detail}
           </div>
+          {backendStatus.rag?.backend === "qdrant" ? (
+            <div style={{ marginTop: 4, fontSize: 12, color: "#333" }}>
+              向量: {backendStatus.rag.embedding_mode ?? "—"} / dim={backendStatus.rag.embedding_dim ?? "—"} /{" "}
+              {backendStatus.rag.embedding_litellm_ready ? "LiteLLM 就绪" : "占位 hash"}
+              {backendStatus.rag.embedding_misconfigured ? (
+                <span style={{ color: "#b45309" }}> · 已配置模型名但未检测到 API Key（仍用 hash）</span>
+              ) : null}
+              <span style={{ color: "#666" }}> · {backendStatus.rag.embedding_note ?? ""}</span>
+            </div>
+          ) : null}
           {backendStatus.search ? (
             <div style={{ marginTop: 4, fontSize: 12, color: "#333" }}>
               外搜 (benchmark / xlab): {backendStatus.search.benchmark_web_search_enabled ? "开启" : "关闭"} /{" "}
