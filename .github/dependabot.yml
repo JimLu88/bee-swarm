@@ -6,6 +6,14 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    # Next 15 / ESLint 9 stack: major bumps break CI until the app is migrated (Next 16 + flat ESLint, etc.).
+    ignore:
+      - dependency-name: "next"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "eslint-config-next"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "pip"
     directory: "/backend"
