@@ -147,40 +147,12 @@ async def rag_ingest(mode_id: str, body: dict) -> dict:
 
 @app.get("/api/rag/search/{mode_id}")
 def rag_search(mode_id: str, q: str, k: int = 5, dept: str | None = None) -> list[dict]:
-    from .settings_llm_rag import llm_rag_settings
-    from .rag.local_store import LocalRagStore
-    from .rag.qdrant_store import store as qdrant_store
-    from .rag.trusted_weights import sort_chunk_dicts_by_trusted
-    from .config_store import ConfigStore
-    from .vision_scope import is_vision_dept
+    """Delegates to RagRetriever (same logic as decision pipeline: hybrid FTS optional when qdrant)."""
+    from .rag.retriever import retriever
 
-    if llm_rag_settings.rag_backend == "local":
-        base = Path(__file__).resolve().parent.parent / "data"
-        hits = LocalRagStore(base).search(mode_id=mode_id, query=q, k=k)
-        if dept and is_vision_dept(dept) and hits:
-            cfg = ConfigStore(base).get_config(mode_id=mode_id)
-            trusted = cfg.get("trusted_sources") or {}
-            dict_hits = sort_chunk_dicts_by_trusted([c.__dict__ for c in hits], trusted, k=k)
-            return dict_hits
-        return [c.__dict__ for c in hits]
-
-    if llm_rag_settings.rag_backend != "qdrant":
-        return []
-
-    base = Path(__file__).resolve().parent.parent / "data"
-    try:
-        kk = max(k, 8) if (dept and is_vision_dept(dept)) else k
-        hits = qdrant_store.search(mode_id=mode_id, query=q, k=kk)
-        dict_hits = [c.__dict__ for c in hits]
-        if dept and is_vision_dept(dept) and dict_hits:
-            cfg = ConfigStore(base).get_config(mode_id=mode_id)
-            trusted = cfg.get("trusted_sources") or {}
-            dict_hits = sort_chunk_dicts_by_trusted(dict_hits, trusted, k=k)
-        else:
-            dict_hits = dict_hits[:k]
-        return dict_hits
-    except Exception:
-        return []
+    d = dept or "finance"
+    hits = retriever.retrieve(mode_id=mode_id, dept=d, task=q, k=k)
+    return [c.__dict__ for c in hits]
 
 @app.get("/api/genes/{mode_id}/{dept}")
 def genes_get_active(mode_id: str, dept: str) -> dict:

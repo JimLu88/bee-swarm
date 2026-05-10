@@ -127,4 +127,5 @@ def embedding_rag_status_fields() -> dict[str, Any]:
         "embedding_litellm_ready": ready,
         "embedding_misconfigured": misconfigured,
         "embedding_note": note + (" (set API key for LITELLM_EMBEDDING_MODEL)" if misconfigured else ""),
+        "hybrid_local_fts": llm_rag_settings.rag_hybrid_local_fts,
     }

@@ -37,6 +37,11 @@ try {
 }
 
 Write-Host "`n[3/3] Frontend next build ..." -ForegroundColor Yellow
+$nextDir = Join-Path $root "frontend\.next"
+if (Test-Path $nextDir) {
+  Write-Host "Removing stale frontend/.next (reduces flaky Next.js ENOENT renames on Windows) ..." -ForegroundColor DarkGray
+  Remove-Item -Recurse -Force $nextDir
+}
 Push-Location (Join-Path $root "frontend")
 try {
   npm run build

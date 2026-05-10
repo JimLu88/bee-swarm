@@ -101,6 +101,7 @@ async def get_status() -> dict:
             "embedding_litellm_ready": False,
             "embedding_misconfigured": False,
             "embedding_note": "sqlite_fts5_no_embeddings" if rb == "local" else "builtin_chunks_only",
+            "hybrid_local_fts": False,
         }
     )
     return {

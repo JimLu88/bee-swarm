@@ -23,6 +23,8 @@ class LlmRagSettings(BaseSettings):
 
     # RAG (Qdrant)
     rag_backend: str = "simulated"  # "simulated" | "qdrant" | "local"
+    # When RAG_BACKEND=qdrant: also search SQLite FTS (same backend/data as RAG_BACKEND=local) and merge.
+    rag_hybrid_local_fts: bool = False
     qdrant_url: str = "http://localhost:6333"
     qdrant_api_key: str | None = None
     # Empty => deterministic hash vectors for Qdrant. Set when OPENAI_API_KEY (or other provider) is present.

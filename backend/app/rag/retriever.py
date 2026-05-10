@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from ..settings_llm_rag import llm_rag_settings
 from ..vision_scope import is_vision_dept
+from .hybrid import merge_vector_and_fts_hits
 from .qdrant_store import store as qdrant_store
 from .local_store import LocalRagStore
 from .types import RagChunk
@@ -37,12 +38,17 @@ class RagRetriever:
                 )
             ]
         if llm_rag_settings.rag_backend == "qdrant":
+            base = Path(__file__).resolve().parent.parent.parent / "data"
             try:
                 kk = max(k, 8) if is_vision_dept(dept) else k
                 hits = qdrant_store.search(mode_id=mode_id, query=task, k=kk)
+                if llm_rag_settings.rag_hybrid_local_fts:
+                    fts_k = max(kk, 12)
+                    fts_hits = LocalRagStore(base).search(mode_id=mode_id, query=task, k=fts_k)
+                    hits = merge_vector_and_fts_hits(hits, fts_hits)[:kk]
                 # Benchmark: apply trusted_sources weight decay/boost based on domain
                 if is_vision_dept(dept) and hits:
-                    cfg = ConfigStore(Path(__file__).resolve().parent.parent.parent / "data").get_config(mode_id=mode_id)
+                    cfg = ConfigStore(base).get_config(mode_id=mode_id)
                     trusted = cfg.get("trusted_sources") or {}
                     hits = sort_rag_chunks_by_trusted(hits, trusted, k=k)
                 else:
