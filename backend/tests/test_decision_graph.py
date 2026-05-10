@@ -25,3 +25,16 @@ class DecisionGraphAsyncTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(s.dept_reports[0].dept, "finance")
         self.assertTrue(s.ceo_decision)
         self.assertIsNotNone(s.dispatcher)
+
+    async def test_invoke_two_depts_reports_follow_department_order(self) -> None:
+        from app.orchestration.decision_graph import invoke_decision_graph
+
+        s = await invoke_decision_graph(
+            decision_id="dec-graph-two",
+            task="multi dept order",
+            mode_id="program_management",
+            mode_label="项目管理",
+            departments=["arch", "logic"],
+        )
+        self.assertEqual(len(s.dept_reports), 2)
+        self.assertEqual([r.dept for r in s.dept_reports], ["arch", "logic"])

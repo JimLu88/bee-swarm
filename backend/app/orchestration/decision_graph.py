@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Annotated, Any, TypedDict
 if TYPE_CHECKING:
     from ..models import DecisionSummary
 
+from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import Send
 
@@ -162,7 +163,8 @@ def _compile_graph() -> Any:
     workflow.add_conditional_edges("triage", route_depts, ["dept_worker"])
     workflow.add_edge("dept_worker", "finalize")
     workflow.add_edge("finalize", END)
-    return workflow.compile()
+    # Per-decision thread id = decision_id (future: resume / inspect checkpoint).
+    return workflow.compile(checkpointer=MemorySaver())
 
 
 def get_decision_graph() -> Any:
@@ -191,7 +193,8 @@ async def invoke_decision_graph(
             "mode_id": mode_id,
             "mode_label": mode_label,
             "departments": departments,
-        }
+        },
+        config={"configurable": {"thread_id": decision_id}},
     )
     summary_dict = out.get("summary") or {}
     return DecisionSummary(**summary_dict)
