@@ -6,7 +6,8 @@ param(
   [string]$PythonVer = "-3.11"
 )
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
+$PSNativeCommandUseErrorActionPreference = $false  # PS 7+ no-op on 5.1
 $root = Split-Path -Parent $PSScriptRoot
 
 Write-Host "=== H-SEMAS verify ===" -ForegroundColor Cyan

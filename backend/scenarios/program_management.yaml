@@ -1,0 +1,14 @@
+# Phase 4 — optional vertical overlay for an existing mode_id.
+# File name must be ``{mode_id}.yaml`` under backend/scenarios/.
+mode_id: program_management
+label: "程序管理设计（YAML 场景）"
+scenario_description: |
+  演示 YAML 模板：可覆盖展示标签、部门中文名片段、默认任务提示与 per-dept 基因种子。
+  基因种子仅作用于「尚未写入磁盘的默认 Active 基因」；已有 data/<mode>/genes/active/*.json 时不自动改写。
+default_task_hint: "梳理一个中台服务的模块边界、依赖契约与两周内可交付切片。"
+department_labels:
+  arch: "架构部（模板）"
+  benchmark: "外部对标（模板）"
+gene_seeds:
+  arch: "输出时显式列出假设、非目标、与上下游接口契约；避免空泛原则堆砌。"
+  logic: "先给出主路径与两条备选路径，再标注每条路径的失效条件。"

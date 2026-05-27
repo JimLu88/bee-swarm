@@ -23,8 +23,16 @@ class MemoryApiTests(unittest.TestCase):
         row = {
             "decision_id": _DECISION_ID,
             "task": "integration task",
+            "mode_id": _MODE,
+            "mode_label": "测试模式",
             "heatmap": [],
-            "dept_reports": [{"dept": "arch", "consensus": "long " * 50}],
+            "dept_reports": [
+                {
+                    "dept": "arch",
+                    "consensus": "long " * 50,
+                    "rag_context": [{"chunk_id": "legacy-a"}, {"chunk_id": "legacy-b"}],
+                }
+            ],
             "execution": {"qa_sandbox": {"ok": True}, "executor": {"status": "ready"}},
         }
         cls._jsonl.write_text(json.dumps(row, ensure_ascii=False) + "\n", encoding="utf-8")
@@ -47,7 +55,13 @@ class MemoryApiTests(unittest.TestCase):
         self.assertEqual(r.status_code, 200)
         body = r.json()
         self.assertEqual(body.get("decision_id"), _DECISION_ID)
+        self.assertEqual(body.get("mode_id"), _MODE)
+        self.assertEqual(body.get("mode_label"), "测试模式")
         self.assertEqual(len(body.get("dept_reports") or []), 1)
+        rag_agg = body.get("rag_aggregate")
+        self.assertIsInstance(rag_agg, dict)
+        self.assertEqual(rag_agg.get("chunks_sum_across_depts"), 2)
+        self.assertEqual(rag_agg.get("legacy_chunk_counts"), True)
 
     def test_memory_one_404(self) -> None:
         from app.main import app
@@ -69,6 +83,8 @@ class MemoryApiTests(unittest.TestCase):
         self.assertEqual(first.get("_compact"), True)
         self.assertNotIn("dept_reports", first)
         self.assertEqual(first.get("dept_reports_preview", {}).get("count"), 1)
+        self.assertEqual(first.get("mode_id"), _MODE)
+        self.assertEqual(first.get("mode_label"), "测试模式")
 
 
 if __name__ == "__main__":

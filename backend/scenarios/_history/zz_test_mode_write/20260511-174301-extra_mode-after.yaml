@@ -1,0 +1,6 @@
+mode_id: zz_test_mode_write
+label: T
+departments:
+- security
+- benchmark
+- xlab

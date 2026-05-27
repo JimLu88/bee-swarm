@@ -8,19 +8,23 @@ from .local_store import LocalRagStore
 from .types import RagChunk
 from .trusted_weights import sort_rag_chunks_by_trusted
 from ..config_store import ConfigStore
-from pathlib import Path
+from ..runtime_paths import backend_data_dir
 
 
 class RagRetriever:
     """
-    Phase 2 scaffold:
-    - Later: Qdrant/Weaviate + embeddings + per-mode collections.
-    - Now: returns a tiny fixed context so downstream shape is stable.
+    Phase 2 retrieval (production-shaped):
+
+    - ``simulated``: small built-in chunks (stable for UI / tests).
+    - ``local``: SQLite FTS5 per ``mode_id`` under ``backend/data/``.
+    - ``qdrant``: vector search via ``qdrant_store`` (hash or LiteLLM embeddings).
+    - Optional ``RAG_HYBRID_LOCAL_FTS`` when backend is ``qdrant``: merge with local FTS hits.
+    - ``benchmark`` / ``xlab`` (vision depts): trusted-source weighting when config is set.
     """
 
     def retrieve(self, *, mode_id: str, dept: str, task: str, k: int = 5) -> list[RagChunk]:
         if llm_rag_settings.rag_backend == "local":
-            base = Path(__file__).resolve().parent.parent.parent / "data"
+            base = backend_data_dir()
             hits = LocalRagStore(base).search(mode_id=mode_id, query=task, k=k)
             if is_vision_dept(dept) and hits:
                 cfg = ConfigStore(base).get_config(mode_id=mode_id)
@@ -38,7 +42,7 @@ class RagRetriever:
                 )
             ]
         if llm_rag_settings.rag_backend == "qdrant":
-            base = Path(__file__).resolve().parent.parent.parent / "data"
+            base = backend_data_dir()
             try:
                 kk = max(k, 8) if is_vision_dept(dept) else k
                 hits = qdrant_store.search(mode_id=mode_id, query=task, k=kk)

@@ -1,0 +1,7 @@
+mode_id: family_doctor
+scenario_description: |
+  家庭医生助手 YAML 场景：强调通俗解释、就医边界与免责声明。
+default_task_hint: "患者主诉头痛 2 天，无发热；请给出分诊级建议（非诊断）。"
+gene_seeds:
+  symptom: "先列 red flags 需立即就医的情形，再给居家观察清单；避免替代面诊诊断。"
+  security: "突出隐私最小化与转诊建议的合规表述。"

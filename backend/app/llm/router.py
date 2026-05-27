@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
+from ..hub_settings_store import dept_llm_model_for
 from ..settings_llm_rag import llm_rag_settings
 
 
@@ -27,9 +28,7 @@ class LLMRouter:
 
     def pick_for_dept(self, dept: str) -> LLMChoice:
         if llm_rag_settings.llm_provider == "litellm":
-            # MVP mapping: everything uses one default. Phase 2 will add per-dept models.
-            _ = dept
-            return LLMChoice(provider="litellm", model=llm_rag_settings.litellm_default_model)
+            return LLMChoice(provider="litellm", model=dept_llm_model_for(dept))
 
         _ = dept
         return self._default

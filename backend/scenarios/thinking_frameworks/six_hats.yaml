@@ -1,0 +1,9 @@
+# v1.5 / L∞ 思维范式
+id: six_hats
+name: 六顶帽子
+trigger_keywords: ["群体", "多视角", "决策"]
+when_to_use: |
+  群体决策、避免单一视角
+system_prompt: |
+  依次戴上 6 顶帽子分析: 白(事实)/红(情绪)/黑(批判)/黄(乐观)/绿(创新)/蓝(总控)
+cost_tier: low

@@ -5,6 +5,8 @@ from pathlib import Path
 import time
 from typing import Any
 
+from .rag.summary_hints import compact_rag_hint_from_dept_rows
+
 
 class DecisionMemory:
     """
@@ -57,6 +59,13 @@ class DecisionMemory:
     def get_by_decision_id(self, *, mode_id: str, decision_id: str) -> dict[str, Any] | None:
         for row in reversed(self.read_all_summaries(mode_id=mode_id)):
             if row.get("decision_id") == decision_id:
-                return row
+                out = dict(row)
+                if out.get("rag_aggregate") is None:
+                    dept_reports = out.get("dept_reports")
+                    if isinstance(dept_reports, list):
+                        agg = compact_rag_hint_from_dept_rows(dept_reports)
+                        if agg:
+                            out["rag_aggregate"] = agg
+                return out
         return None
 

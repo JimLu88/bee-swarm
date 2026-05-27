@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from .rag.summary_hints import compact_rag_hint_from_dept_rows
+
 _TASK_PREVIEW_CHARS = 180
 _CEO_PREVIEW_CHARS = 240
 
@@ -54,11 +56,16 @@ def compact_decision_row(row: dict[str, Any]) -> dict[str, Any]:
 
     dept_reports = row.get("dept_reports") if isinstance(row.get("dept_reports"), list) else []
     depts = [r.get("dept") for r in dept_reports if isinstance(r, dict)]
+    top_agg = row.get("rag_aggregate")
+    if isinstance(top_agg, dict) and len(top_agg) > 0:
+        rag_hint = top_agg
+    else:
+        rag_hint = compact_rag_hint_from_dept_rows(dept_reports)
 
     task_full = row.get("task")
     ceo_full = row.get("ceo_decision")
 
-    return {
+    out: dict[str, Any] = {
         "decision_id": row.get("decision_id"),
         "task": _trunc(task_full, max_chars=_TASK_PREVIEW_CHARS),
         "task_truncated": bool(task_full is not None and len(str(task_full)) > _TASK_PREVIEW_CHARS),
@@ -78,3 +85,6 @@ def compact_decision_row(row: dict[str, Any]) -> dict[str, Any]:
         "dept_reports_preview": {"count": len(dept_reports), "depts": depts},
         "_compact": True,
     }
+    if rag_hint:
+        out["rag_hint"] = rag_hint
+    return out

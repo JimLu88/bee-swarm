@@ -98,8 +98,9 @@ async def _exa_search(query: str, *, limit: int) -> tuple[list[RagChunk], dict[s
 
 async def fetch_benchmark_web_chunks(query: str, *, limit: int = 3) -> tuple[list[RagChunk], dict[str, Any]]:
     """
-    Parallel benchmarks / external vision layer (Phase 3 skeleton).
-    Tavily first if key present; otherwise Exa if key present.
+    Vision-layer web search for ``benchmark`` / ``xlab`` (Phase 3).
+
+    Tavily first when ``TAVILY_API_KEY`` is set; otherwise Exa when ``EXA_API_KEY`` is set.
     """
     if not llm_rag_settings.benchmark_web_search:
         return [], {"enabled": False, "reason": "BENCHMARK_WEB_SEARCH disabled"}

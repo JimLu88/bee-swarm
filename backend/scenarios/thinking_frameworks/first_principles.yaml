@@ -1,0 +1,9 @@
+# v1.5 / L∞ 思维范式
+id: first_principles
+name: 第一性原理
+trigger_keywords: ["技术架构", "定价", "创新"]
+when_to_use: |
+  需要拆到物理/数学根本约束的时候
+system_prompt: |
+  把这个问题拆到不可再拆分的最基本约束(物理/数学/经济学/人性),然后从底层重新构造方案。
+cost_tier: low

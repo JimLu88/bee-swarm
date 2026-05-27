@@ -32,17 +32,52 @@ class GeneStore:
         except Exception:
             return None
 
-    def set_active(self, *, mode_id: str, dept: str, prompt: str, version: int | None = None) -> dict[str, Any]:
+    def set_active(
+        self,
+        *,
+        mode_id: str,
+        dept: str,
+        prompt: str | None = None,
+        team: dict[str, Any] | None = None,
+        version: int | None = None,
+    ) -> dict[str, Any]:
+        """
+        Persist active gene. Either:
+        - ``team`` + optional ``prompt``: 3+1 微型团队；未传 ``prompt`` 时由 team 合并生成。
+        - 仅 ``prompt``：传统单段基因（不写 ``team`` 字段）。
+        """
+        from .gene_team import merge_team_to_prompt, normalize_team, team_has_content
+
         d = self._genes_dir(mode_id) / "active"
         d.mkdir(parents=True, exist_ok=True)
         p = d / f"{dept}.json"
-        record = {
-            "dept": dept,
-            "version": int(version or int(time.time())),
-            "prompt": prompt,
-            "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
-            "status": "active",
-        }
+        ver = int(version or int(time.time()))
+        ts = time.strftime("%Y-%m-%d %H:%M:%S")
+
+        if team is not None:
+            nt = normalize_team(team)
+            p_final = (prompt or "").strip()
+            if not p_final:
+                p_final = merge_team_to_prompt(mode_id, dept, nt) if team_has_content(nt) else ""
+            record: dict[str, Any] = {
+                "dept": dept,
+                "version": ver,
+                "prompt": p_final,
+                "team": nt,
+                "created_at": ts,
+                "status": "active",
+            }
+        else:
+            pt = (prompt or "").strip()
+            if not pt:
+                raise ValueError("prompt_or_team_required")
+            record = {
+                "dept": dept,
+                "version": ver,
+                "prompt": pt,
+                "created_at": ts,
+                "status": "active",
+            }
         p.write_text(json.dumps(record, ensure_ascii=False, indent=2), encoding="utf-8")
         return record
 

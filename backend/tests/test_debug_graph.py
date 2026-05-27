@@ -42,3 +42,8 @@ class DebugGraphStateAsyncTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("values", body)
         self.assertEqual(body["values"].get("reports_count"), 1)
         self.assertEqual(body["values"].get("report_depts_order"), ["finance"])
+        brief = body["values"].get("summary_brief")
+        self.assertIsInstance(brief, dict)
+        rag = brief.get("rag_aggregate") if isinstance(brief, dict) else None
+        self.assertIsInstance(rag, dict)
+        self.assertGreater(int(rag.get("chunks_sum_across_depts") or 0), 0)

@@ -1,0 +1,9 @@
+# v1.5 / L∞ 思维范式
+id: pre_mortem
+name: 预死亡分析
+trigger_keywords: ["规划", "项目", "启动"]
+when_to_use: |
+  项目启动前预判失败
+system_prompt: |
+  假装这个项目已经失败,现在是事后复盘会。列出失败的 5 个最可能原因和当时本可避免的早期信号。
+cost_tier: low

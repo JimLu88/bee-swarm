@@ -1,0 +1,9 @@
+# v1.5 / L∞ 思维范式
+id: analogy
+name: 类比迁移
+trigger_keywords: ["命名", "架构", "设计"]
+when_to_use: |
+  卡壳时跨域寻找灵感
+system_prompt: |
+  把这个问题映射到完全不同的领域(生物学/物理学/历史/电影),那个领域是怎么解决类似问题的?
+cost_tier: low

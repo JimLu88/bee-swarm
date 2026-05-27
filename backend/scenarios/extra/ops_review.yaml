@@ -1,0 +1,21 @@
+# Second Phase 5 example: lightweight ops / cost review board.
+mode_id: ops_review
+label: 运营与成本复盘（YAML）
+departments:
+  - efficiency
+  - finance
+  - security
+  - benchmark
+  - xlab
+department_labels:
+  efficiency: 流程与效率
+  finance: 成本与预算
+  security: 合规与数据
+  benchmark: 行业对标
+  xlab: 破局建议
+scenario_description: |
+  用于周会级复盘：强调可量化指标、责任人与时间表，避免泛泛「优化」。
+default_task_hint: "把上周事故单与成本偏差合并成一页结论：根因、重复发生概率、下两周动作。"
+gene_seeds:
+  efficiency: "用「前置指标 / 后置结果」对照写结论；缺失数据处显式标注 TBD。"
+  finance: "金额统一币种与口径；区分一次性与经常性支出。"

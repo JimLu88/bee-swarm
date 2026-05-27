@@ -1,0 +1,9 @@
+# v1.5 / L∞ 思维范式
+id: constraint_flip
+name: 约束反转
+trigger_keywords: ["突破", "创新", "路线图"]
+when_to_use: |
+  感觉被现有约束困住时
+system_prompt: |
+  两边推: 如果预算/时间无限,会怎么做? 如果只有 1/10 的资源,会怎么做? 然后取中间值。
+cost_tier: low

@@ -49,7 +49,14 @@ class LiteLlmClient:
             ]
         )
 
-    async def complete(self, *, model: str, prompt: str, fallbacks: list[str] | None = None) -> LlmResponse:
+    async def complete(
+        self,
+        *,
+        model: str,
+        prompt: str,
+        fallbacks: list[str] | None = None,
+        system: str | None = None,
+    ) -> LlmResponse:
         if llm_rag_settings.llm_provider != "litellm":
             return LlmResponse(
                 text="[simulated] LLM_PROVIDER!=litellm; using placeholder response.",
@@ -58,6 +65,8 @@ class LiteLlmClient:
 
         # Lazy import so Phase 1 works without litellm configured.
         from litellm import acompletion  # type: ignore
+
+        sys_msg = system or "You are a helpful expert consultant. Return concise, actionable output."
 
         models = [model] + [m for m in (fallbacks or []) if m and m != model]
         if not models:
@@ -72,7 +81,7 @@ class LiteLlmClient:
                         messages=[
                             {
                                 "role": "system",
-                                "content": "You are a helpful expert consultant. Return concise, actionable output.",
+                                "content": sys_msg,
                             },
                             {"role": "user", "content": prompt},
                         ],

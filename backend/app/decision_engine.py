@@ -6,19 +6,21 @@ import json
 import random
 import time
 import uuid
-from pathlib import Path
 from typing import Any
 
+from .gene_scoring import gene_score
 from .models import DeptLeadReport, DecisionSummary, HeatmapCell, StreamEvent
 from .modes import get_mode
 from .decision_memory import DecisionMemory
 from .config_store import ConfigStore
+from .gene_defaults import build_initial_gene_prompt
 from .gene_store import GeneStore
 from .shadow_testing import ShadowTester
 from .llm.litellm_client import litellm_client
 from .llm.parsing import parse_dept_output
 from .llm.router import router as llm_router
 from .rag.retriever import retriever as rag_retriever
+from .rag.summary_hints import compact_rag_hint_from_dept_rows
 from .rag.trusted_weights import sort_rag_chunks_by_trusted
 from .rag.types import RagChunk
 from .search.benchmark_web import fetch_benchmark_web_chunks
@@ -26,12 +28,14 @@ from .settings_llm_rag import llm_rag_settings
 from .execution import build_execution_bundle
 from .stream_bus import bus
 from .vision_scope import is_vision_dept
+from .runtime_paths import backend_data_dir
 
 
-_memory = DecisionMemory(Path(__file__).resolve().parent.parent / "data")
-_cfg = ConfigStore(Path(__file__).resolve().parent.parent / "data")
-_genes = GeneStore(Path(__file__).resolve().parent.parent / "data")
-_shadow = ShadowTester(Path(__file__).resolve().parent.parent / "data")
+_DATA = backend_data_dir()
+_memory = DecisionMemory(_DATA)
+_cfg = ConfigStore(_DATA)
+_genes = GeneStore(_DATA)
+_shadow = ShadowTester(_DATA)
 
 
 def _stable_float(seed: str, lo: float = 0.0, hi: float = 1.0) -> float:
@@ -45,6 +49,22 @@ def _mk_debate_log_id(dept: str) -> str:
     return f"{dept}-{time.strftime('%Y%m%d')}-{uuid.uuid4().hex[:8]}"
 
 
+def _rag_retrieval_meta(combined: list[RagChunk], web_chunks: list[RagChunk]) -> dict[str, Any]:
+    """Operator-facing summary; chunk bodies stay in ``rag_context``."""
+    hybrid_hits = sum(1 for c in combined if (c.meta or {}).get("hybrid") is True)
+    lane_counts: dict[str, int] = {}
+    for c in combined:
+        lane = str((c.meta or {}).get("rag_lane") or "unknown")
+        lane_counts[lane] = lane_counts.get(lane, 0) + 1
+    return {
+        "rag_backend": llm_rag_settings.rag_backend,
+        "total_chunks": len(combined),
+        "web_chunks": len(web_chunks),
+        "hybrid_overlap_hits": hybrid_hits,
+        "rag_lane_counts": lane_counts,
+        "hybrid_local_fts_configured": llm_rag_settings.rag_hybrid_local_fts,
+        "hybrid_merge_effective": llm_rag_settings.rag_backend == "qdrant" and llm_rag_settings.rag_hybrid_local_fts,
+    }
 
 
 async def _run_dept(
@@ -66,9 +86,11 @@ async def _run_dept(
         gene = _genes.set_active(
             mode_id=mode_id,
             dept=dept,
-            prompt=f"你是 {dept} 部门的 Lead。请给出可执行建议，并输出 confidence_score 与 dissent_intensity。",
+            prompt=build_initial_gene_prompt(mode_id, dept),
         )
-    gene_prompt = str(gene.get("prompt") or f"你是 {dept} 部门的 Lead。")
+    from .gene_team import merged_gene_prompt
+
+    gene_prompt = merged_gene_prompt(gene, mode_id, dept, f"你是 {dept} 部门的 Lead。")
     llm_choice = llm_router.pick_for_dept(dept)
 
     # Shadow gene (if any): run "in background" and score vs active.
@@ -224,24 +246,24 @@ async def _run_dept(
         debate_log_id=debate_log_id,
         dispatcher_context=dispatcher_context,
         rag_context=[c.__dict__ for c in combined],
+        rag_retrieval_meta=_rag_retrieval_meta(combined, web_chunks),
         raw_debate=raw_debate,
     )
 
     if shadow_rec and isinstance(shadow_rec.get("version"), int):
-        # MVP scoring: prefer prompts that ask for measurable outputs + structured JSON.
-        def _score(p: str) -> float:
-            p = p or ""
-            s = 0.4
-            s += 0.25 if "confidence_score" in p else 0.0
-            s += 0.25 if "dissent_intensity" in p else 0.0
-            s += 0.10 if ("json" in p.lower() or "JSON" in p) else 0.0
-            s += 0.05 if ("冲突" in p or "conflicts" in p) else 0.0
-            return min(1.0, s)
-
-        score_active = _score(gene_prompt)
-        score_shadow = _score(shadow_prompt)
+        score_active = gene_score(gene_prompt, task)
+        score_shadow = gene_score(shadow_prompt, task)
         sv = int(shadow_rec["version"])
-        _shadow.append_score(mode_id=mode_id, dept=dept, shadow_version=sv, score_active=score_active, score_shadow=score_shadow)
+        th = hashlib.sha256(task.encode("utf-8")).hexdigest()[:16]
+        _shadow.append_score(
+            mode_id=mode_id,
+            dept=dept,
+            shadow_version=sv,
+            score_active=score_active,
+            score_shadow=score_shadow,
+            task_hash=th,
+            decision_id=decision_id,
+        )
         verdict = _shadow.should_promote(mode_id=mode_id, dept=dept, shadow_version=sv)
         if verdict.promote:
             _genes.set_active(mode_id=mode_id, dept=dept, prompt=shadow_prompt, version=sv)
@@ -305,15 +327,20 @@ def finalize_decision_bundle(
         heatmap=heatmap,
     )
 
+    rag_aggregate = compact_rag_hint_from_dept_rows(list(reports))
+
     summary = DecisionSummary(
         decision_id=decision_id,
         task=task,
+        mode_id=mode_id,
+        mode_label=mode_label,
         heatmap=heatmap,
         dept_reports=reports,
         ceo_decision=ceo_decision,
         red_team_risks=risks,
         dispatcher=dsp_meta,
         execution=execution,
+        rag_aggregate=rag_aggregate,
     )
 
     bus.publish(StreamEvent(type="decision_done", decision_id=decision_id, payload={"summary": summary.model_dump()}))
@@ -321,7 +348,7 @@ def finalize_decision_bundle(
     return summary
 
 
-async def run_decision(*, decision_id: str, task: str, mode_id: str) -> DecisionSummary:
+async def run_decision(*, decision_id: str, task: str, mode_id: str, debate_rounds: int = 1, thinking_frameworks: list[str] | None = None) -> DecisionSummary:
     """决策主链路：LangGraph 三节点编排（dispatcher → 并行部门 → finalize）。"""
     mode = get_mode(mode_id)
 

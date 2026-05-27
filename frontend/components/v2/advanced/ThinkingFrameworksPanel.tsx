@@ -1,0 +1,81 @@
+﻿"use client";
+
+import type { CSSProperties } from "react";
+
+/**
+ * 8 大思维范式面板(对应 backend/app/scenarios/thinking_frameworks/*.yaml)
+ * v1.5 + L∞
+ */
+
+const FRAMEWORKS = [
+  { id: "first_principles", label: "第一性原理", emoji: "⚛️", when: "技术架构 / 定价" },
+  { id: "inversion", label: "逆向思考", emoji: "🔄", when: "风险预判 / 安全" },
+  { id: "triz", label: "TRIZ 矛盾矩阵", emoji: "🧩", when: "工程问题 / 产品" },
+  { id: "six_hats", label: "6 顶帽子", emoji: "🎩", when: "群体决策 / 创意" },
+  { id: "analogy", label: "类比迁移", emoji: "🔁", when: "架构 / UI / 命名" },
+  { id: "pre_mortem", label: "预死亡分析", emoji: "💀", when: "项目规划" },
+  { id: "constraint_flip", label: "约束反转", emoji: "🪞", when: "路线图 / 定价" },
+  { id: "scamper", label: "SCAMPER", emoji: "🔧", when: "产品迭代" },
+];
+
+const card: CSSProperties = {
+  padding: 14,
+  borderRadius: 10,
+  border: "1px solid rgba(255,255,255,0.08)",
+  background: "rgba(255,255,255,0.04)",
+};
+
+const tile: CSSProperties = {
+  padding: 10,
+  borderRadius: 6,
+  background: "rgba(0,0,0,0.2)",
+  border: "1px solid transparent",
+  fontSize: 12,
+  cursor: "pointer",
+  color: "inherit",
+  font: "inherit",
+};
+
+const tileActive: CSSProperties = {
+  ...tile,
+  borderColor: "#22d3ee",
+  background: "rgba(34,211,238,0.12)",
+};
+
+export function ThinkingFrameworksPanel({
+  enabled,
+  aiPicked,
+  onToggle,
+}: {
+  enabled: string[];
+  aiPicked: string[];
+  onToggle: (id: string) => void;
+}) {
+  return (
+    <div style={card}>
+      <div style={{ fontWeight: 600, marginBottom: 6 }}>🎭 思维范式(v1.5 / L∞)</div>
+      <div style={{ fontSize: 11, opacity: 0.6, marginBottom: 10 }}>
+        AI 自动勾选了高亮项;你可手动加减。多选一起跑能拓宽视角(但会贵)。
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: 8 }}>
+        {FRAMEWORKS.map((f) => {
+          const on = enabled.includes(f.id);
+          const ai = aiPicked.includes(f.id);
+          return (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => onToggle(f.id)}
+              style={on ? tileActive : tile}
+              title={f.when}
+            >
+              <div style={{ fontSize: 18 }}>{f.emoji}{ai && !on ? " ✨" : ""}</div>
+              <div style={{ fontWeight: 600 }}>{f.label}</div>
+              <div style={{ fontSize: 10, opacity: 0.6 }}>{f.when}</div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

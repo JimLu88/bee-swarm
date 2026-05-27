@@ -24,6 +24,18 @@ def sanitize_checkpoint_values(values: dict[str, Any] | None) -> dict[str, Any]:
             "ceo_preview": str(summary.get("ceo_decision") or "")[:240],
             "dept_reports_count": len(summary.get("dept_reports") or []),
         }
+        rag_agg = summary.get("rag_aggregate")
+        if isinstance(rag_agg, dict) and rag_agg:
+            keys = (
+                "chunks_sum_across_depts",
+                "max_chunks_in_one_dept",
+                "rag_backend",
+                "hybrid_overlap_sum_across_depts",
+                "legacy_chunk_counts",
+            )
+            slim = {k: rag_agg[k] for k in keys if k in rag_agg}
+            if slim:
+                summary_brief["rag_aggregate"] = slim
     dsp_meta = values.get("dsp_meta")
     dsp_keys = list(dsp_meta.keys()) if isinstance(dsp_meta, dict) else None
     return {

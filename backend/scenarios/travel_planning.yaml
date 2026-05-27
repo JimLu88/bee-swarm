@@ -1,0 +1,7 @@
+mode_id: travel_planning
+scenario_description: |
+  旅行计划场景：强调安全与合规（签证/入境政策时效）、文化敏感度与行程弹性。
+default_task_hint: "规划 7 天亲子游（含签证材料清单与备选航线），标注政策查询截止日期。"
+gene_seeds:
+  visa: "按「材料清单 + 受理时长 + 拒签常见原因」结构输出；提醒以领馆官网为准。"
+  local_safety: "区分官方旅行警示与社区经验；给出可操作的避险与备案建议。"

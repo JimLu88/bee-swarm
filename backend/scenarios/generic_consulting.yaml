@@ -1,0 +1,7 @@
+# Optional overlay on top of ``scenarios/extra/generic_consulting.yaml`` base fields.
+mode_id: generic_consulting
+label: "通用咨询（YAML 注册 + 根目录叠加）"
+department_labels:
+  finance: "财务与成本（叠加）"
+gene_seeds:
+  finance: "显式区分 Capex/Opex 与一次性费用；避免与收入预测混谈。"

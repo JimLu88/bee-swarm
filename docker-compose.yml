@@ -11,6 +11,18 @@ services:
     volumes:
       - ./backend:/app
 
+  frontend:
+    image: h-semas-frontend:dev
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_BACKEND_URL=http://127.0.0.1:8000
+    depends_on:
+      - backend
+
   qdrant:
     image: qdrant/qdrant:latest
     ports:

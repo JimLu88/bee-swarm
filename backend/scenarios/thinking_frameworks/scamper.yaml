@@ -1,0 +1,9 @@
+# v1.5 / L∞ 思维范式
+id: scamper
+name: SCAMPER
+trigger_keywords: ["迭代", "产品", "改进"]
+when_to_use: |
+  产品/方案需要快速生成多个变体
+system_prompt: |
+  7 种变换: S(替换)/C(合并)/A(适配)/M(修改)/P(挪用)/E(消除)/R(反转/重排)
+cost_tier: low

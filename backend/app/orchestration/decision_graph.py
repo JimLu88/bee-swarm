@@ -7,7 +7,9 @@ so it runs once after all ``dept_worker`` tasks complete.
 
 from __future__ import annotations
 
+import asyncio
 import operator
+from pathlib import Path
 from typing import TYPE_CHECKING, Annotated, Any, TypedDict
 
 if TYPE_CHECKING:
@@ -37,9 +39,25 @@ class DecisionGraphState(TypedDict, total=False):
 
 
 _compiled_graph: Any = None
+_sqlite_conn: Any = None
+_compile_lock: asyncio.Lock | None = None
 
 
-def _compile_graph() -> Any:
+def _backend_root() -> Path:
+    return Path(__file__).resolve().parent.parent.parent
+
+
+def _sqlite_checkpoint_path() -> Path:
+    from ..settings import settings
+
+    raw = settings.hsemas_graph_checkpoint_sqlite_path
+    if raw:
+        p = Path(raw)
+        return p if p.is_absolute() else _backend_root() / p
+    return _backend_root() / "data" / "langgraph_checkpoints.sqlite3"
+
+
+def _compile_graph(checkpointer: Any) -> Any:
     workflow = StateGraph(DecisionGraphState)
 
     async def node_triage(state: DecisionGraphState) -> dict[str, Any]:
@@ -163,15 +181,61 @@ def _compile_graph() -> Any:
     workflow.add_conditional_edges("triage", route_depts, ["dept_worker"])
     workflow.add_edge("dept_worker", "finalize")
     workflow.add_edge("finalize", END)
-    # Per-decision thread id = decision_id (future: resume / inspect checkpoint).
-    return workflow.compile(checkpointer=MemorySaver())
+    # Per-decision thread id = decision_id (resume / inspect checkpoint).
+    return workflow.compile(checkpointer=checkpointer)
 
 
-def get_decision_graph() -> Any:
-    global _compiled_graph
-    if _compiled_graph is None:
-        _compiled_graph = _compile_graph()
-    return _compiled_graph
+async def _make_checkpointer() -> Any:
+    from ..settings import settings
+
+    if settings.hsemas_graph_checkpoint_backend != "sqlite":
+        return MemorySaver()
+
+    import aiosqlite
+    from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+
+    global _sqlite_conn
+    path = _sqlite_checkpoint_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    conn = await aiosqlite.connect(str(path))
+    _sqlite_conn = conn
+    return AsyncSqliteSaver(conn)
+
+
+async def ensure_compiled_graph() -> Any:
+    """Compile graph once with MemorySaver or AsyncSqliteSaver (matches ``ainvoke`` async checkpoint API)."""
+    global _compiled_graph, _compile_lock
+    if _compile_lock is None:
+        _compile_lock = asyncio.Lock()
+    async with _compile_lock:
+        if _compiled_graph is not None:
+            return _compiled_graph
+        cp = await _make_checkpointer()
+        _compiled_graph = _compile_graph(cp)
+        return _compiled_graph
+
+
+async def shutdown_checkpoint_runtime() -> None:
+    """Close SQLite checkpoint connection (e.g. FastAPI lifespan); next ``ensure_compiled_graph`` reconnects."""
+    global _compiled_graph, _sqlite_conn
+    if _sqlite_conn is not None:
+        await _sqlite_conn.close()
+        _sqlite_conn = None
+    _compiled_graph = None
+
+
+def orchestration_checkpoint_path_fields() -> dict[str, Any]:
+    """Relative path hints for ``/api/status`` when SQLite checkpoints are configured (no secrets)."""
+    from ..settings import settings
+
+    if settings.hsemas_graph_checkpoint_backend != "sqlite":
+        return {}
+    p = _sqlite_checkpoint_path()
+    try:
+        rel = p.relative_to(_backend_root())
+        return {"checkpoint_sqlite_relative": rel.as_posix()}
+    except ValueError:
+        return {"checkpoint_sqlite_filename": p.name}
 
 
 async def invoke_decision_graph(
@@ -181,11 +245,11 @@ async def invoke_decision_graph(
     mode_id: str,
     mode_label: str,
     departments: list[str],
-) -> DecisionSummary:
+) -> "DecisionSummary":
     """Run compiled graph; raises if finalize did not populate ``summary``."""
     from ..models import DecisionSummary
 
-    app = get_decision_graph()
+    app = await ensure_compiled_graph()
     out = await app.ainvoke(
         {
             "decision_id": decision_id,

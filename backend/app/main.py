@@ -1,29 +1,109 @@
 from __future__ import annotations
 
+
+def _bootstrap_tiktoken_plugins() -> None:
+    """
+    PyInstaller onefile: ``pkgutil.iter_modules(tiktoken_ext.__path__)`` often returns no
+    modules, so ``tiktoken.registry`` never discovers ``tiktoken_ext.openai_public`` and
+    ``get_encoding('cl100k_base')`` raises — LiteLLM then fails to import. Merge OpenAI's
+    encoding constructors when the registry is empty or missing ``cl100k_base``.
+    """
+    try:
+        import tiktoken.registry as reg
+        import tiktoken_ext.openai_public as pub
+    except Exception:
+        return
+    with reg._lock:
+        if reg.ENCODING_CONSTRUCTORS is None:
+            try:
+                reg._find_constructors()
+            except Exception:
+                reg.ENCODING_CONSTRUCTORS = {}
+        ec = reg.ENCODING_CONSTRUCTORS
+        if ec is None:
+            reg.ENCODING_CONSTRUCTORS = {}
+            ec = reg.ENCODING_CONSTRUCTORS
+        if ec.get("cl100k_base"):
+            return
+        for name, fn in pub.ENCODING_CONSTRUCTORS.items():
+            ec.setdefault(name, fn)
+
+
+_bootstrap_tiktoken_plugins()
+
 import asyncio
 import json
+import time
 import uuid
+from contextlib import asynccontextmanager
+from typing import Any
 
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import Body, FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from .decision_engine import run_decision
+from .evolution_coordinator import coordinator_router
 from pathlib import Path
 
 from .decision_memory import DecisionMemory
 from .memory_compact import compact_decision_row
 from .config_store import ConfigStore
+from .gene_defaults import build_initial_gene_prompt
+from .gene_evolve import evolve_gene_prompt
 from .gene_store import GeneStore
-from .modes import list_modes
-from .models import DecisionStartRequest, SandboxExecRequest
+from .catalog import list_dept_names
+from .models import (
+    DecisionStartRequest,
+    DecisionEstimateRequest,
+    DecisionEstimateResponse,
+    PriceCardResponse,
+    PriceCardEntry,
+    GeneEvolveRequest,
+    GeneRegenerateSlotRequest,
+    GenesBulkSaveRequest,
+    GenesGenerateRequest,
+    GenesTeamsSaveRequest,
+    SandboxExecRequest,
+    ScenarioRollbackRequest,
+    ScenarioScaffoldRequest,
+    ScenarioValidateRequest,
+    ScenarioWriteRequest,
+)
+from .modes import list_modes, reload_mode_yaml_cache, resolve_mode
 from .settings import settings
 from .stream_bus import bus
 from .shadow_testing import ShadowTester
 from .status import get_status
+from .hub_diagnostics import run_chat_probes, run_connectivity
+from .hub_settings_store import (
+    apply_merged_file,
+    apply_stored_hub_on_startup,
+    dept_routing_for_mode,
+    hub_settings_path,
+    load_hub_file,
+    merge_put_with_existing,
+    public_hub_view,
+    save_hub_file,
+)
+from .runtime_paths import backend_data_dir
 
 
-app = FastAPI(title=settings.app_name)
+_DATA_DIR = backend_data_dir()
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    yield
+    from .orchestration.decision_graph import shutdown_checkpoint_runtime
+
+    await shutdown_checkpoint_runtime()
+
+
+app = FastAPI(title=settings.app_name, lifespan=lifespan)
+
+apply_stored_hub_on_startup()
 
 app.add_middleware(
     CORSMiddleware,
@@ -38,6 +118,61 @@ app.add_middleware(
 def health() -> dict[str, str]:
     return {"status": "ok"}
 
+
+@app.get("/api/settings/hub")
+def hub_settings_get(mode_id: str | None = None) -> dict[str, Any]:
+    """Unified hub settings (masked secrets) for the business UI."""
+    out: dict[str, Any] = {
+        "settings": public_hub_view(),
+        "persisted_file": hub_settings_path().is_file(),
+        "hub_settings_path": str(hub_settings_path().resolve()),
+    }
+    mid = (mode_id or "").strip()
+    if mid:
+        try:
+            out["dept_routing"] = dept_routing_for_mode(mid)
+        except Exception as e:
+            out["dept_routing"] = {"error": repr(e), "mode_id": mid}
+    return out
+
+
+@app.post("/api/settings/hub/diagnostics/connectivity")
+async def hub_diagnostics_connectivity() -> dict[str, Any]:
+    """Step 1: per-surface reachability (Qdrant, proxy, search, LLM key slots)."""
+    return await run_connectivity()
+
+
+@app.post("/api/settings/hub/diagnostics/chat")
+async def hub_diagnostics_chat() -> dict[str, Any]:
+    """Step 2: minimal chat completion per configured provider (may incur small cost)."""
+    return await run_chat_probes()
+
+
+@app.put("/api/settings/hub")
+def hub_settings_put(body: dict[str, Any]) -> dict[str, Any]:
+    """
+    Merge JSON body into ``data/hub_settings.json`` and reload runtime LLM/RAG settings.
+    Masked values (``***…``) are ignored so unchanged secrets stay in place.
+    """
+    if not settings.hsemas_hub_settings_write_enabled:
+        raise HTTPException(status_code=404, detail="hub_settings_write_disabled")
+    if not isinstance(body, dict):
+        raise HTTPException(status_code=422, detail="expected_json_object")
+    body = dict(body)
+    if "llm_provider" in body and body["llm_provider"] not in (None, ""):
+        lp = str(body["llm_provider"]).strip().lower()
+        if lp not in ("simulated", "litellm"):
+            raise HTTPException(
+                status_code=422,
+                detail="llm_provider 只能填写 litellm 或 simulated，不能填写店铺名、昵称或其它说明文字。",
+            )
+        body["llm_provider"] = lp
+    merged = merge_put_with_existing(body, load_hub_file())
+    save_hub_file(merged)
+    apply_merged_file(merged)
+    return {"ok": True, "settings": public_hub_view(), "hub_settings_path": str(hub_settings_path().resolve())}
+
+
 @app.get("/api/status")
 async def status() -> dict:
     return await get_status()
@@ -45,13 +180,13 @@ async def status() -> dict:
 
 @app.get("/api/debug/graph-state/{decision_id}")
 async def debug_graph_state(decision_id: str) -> dict:
-    """LangGraph MemorySaver snapshot for ``thread_id`` (= decision_id). Disabled unless HSEMAS_EXPOSE_GRAPH_STATE=true."""
+    """LangGraph checkpoint snapshot for ``thread_id`` (= decision_id). Disabled unless HSEMAS_EXPOSE_GRAPH_STATE=true."""
     if not settings.hsemas_expose_graph_state:
         raise HTTPException(status_code=404, detail="graph_state_disabled")
     from .graph_debug import sanitize_checkpoint_values
-    from .orchestration.decision_graph import get_decision_graph
+    from .orchestration.decision_graph import ensure_compiled_graph
 
-    g = get_decision_graph()
+    g = await ensure_compiled_graph()
     snap = await g.aget_state({"configurable": {"thread_id": decision_id}})
     vals = snap.values
     raw = dict(vals) if vals is not None else None
@@ -87,9 +222,193 @@ async def sandbox_exec(body: SandboxExecRequest) -> dict | JSONResponse:
 def modes() -> list[dict]:
     return [m.model_dump() for m in list_modes()]
 
+
+@app.get("/api/catalog/dept-names")
+def catalog_dept_names() -> dict:
+    """Authoring aid: valid ``DeptName`` values for ``scenarios/extra/*.yaml`` ``departments`` lists."""
+    names = list_dept_names()
+    return {"dept_names": names, "count": len(names)}
+
+@app.post("/api/scenarios/validate")
+def scenarios_validate(body: ScenarioValidateRequest) -> dict:
+    """Phase 7: validate a would-be YAML file (root overlay or extra mode) without writing to disk."""
+    from .scenario_authoring import validate_extra_mode, validate_root_overlay
+    from .modes import MODES
+
+    if body.kind == "root_overlay":
+        v = validate_root_overlay(yaml_dict=body.yaml, mode_id=body.mode_id)
+    else:
+        v = validate_extra_mode(yaml_dict=body.yaml, builtin_mode_ids=frozenset(MODES.keys()))
+    return {
+        "ok": v.ok,
+        "kind": v.kind,
+        "errors": v.errors,
+        "warnings": v.warnings,
+        "normalized": v.normalized,
+    }
+
+
+@app.post("/api/scenarios/scaffold")
+def scenarios_scaffold(body: ScenarioScaffoldRequest) -> dict:
+    """Phase 7: generate a starter YAML string for a new extra mode."""
+    from .scenario_authoring import scaffold_extra_mode_yaml
+
+    return {"mode_id": body.mode_id, "yaml": scaffold_extra_mode_yaml(mode_id=body.mode_id)}
+
+
+@app.post("/api/scenarios/write")
+def scenarios_write(body: ScenarioWriteRequest) -> dict:
+    """
+    Phase 9: validate + write YAML to disk.
+    - root_overlay -> backend/scenarios/{mode_id}.yaml
+    - extra_mode   -> backend/scenarios/extra/{mode_id}.yaml
+    Disabled unless HSEMAS_SCENARIO_WRITE_ENABLED=true.
+    """
+    if not settings.hsemas_scenario_write_enabled:
+        raise HTTPException(status_code=404, detail="scenario_write_disabled")
+
+    from .scenario_authoring import validate_extra_mode, validate_root_overlay
+    from .scenario_files import HistoryEntry, append_history_log, compute_sha, load_text_if_exists, snapshot_to_history, target_path
+    from .modes import MODES
+
+    try:
+        import yaml  # type: ignore
+    except Exception:
+        raise HTTPException(status_code=503, detail="yaml_unavailable")
+
+    parsed = yaml.safe_load(body.yaml_text)
+    if not isinstance(parsed, dict):
+        return {"ok": False, "error": "yaml_not_a_map"}
+
+    mode_id = body.mode_id
+    if body.kind == "root_overlay":
+        v = validate_root_overlay(yaml_dict=parsed, mode_id=mode_id)
+    else:
+        v = validate_extra_mode(yaml_dict=parsed, builtin_mode_ids=frozenset(MODES.keys()))
+        # For extra modes, prefer declared mode_id.
+        declared = str(parsed.get("mode_id") or "").strip()
+        if declared:
+            mode_id = declared
+
+    if not v.ok:
+        return {"ok": False, "kind": v.kind, "errors": v.errors, "warnings": v.warnings, "normalized": v.normalized}
+
+    out_path = target_path(kind=body.kind, mode_id=mode_id)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    before_text = load_text_if_exists(out_path)
+    if before_text is not None and not body.overwrite:
+        return {"ok": False, "error": "file_exists", "path": str(out_path)}
+
+    normalized_yaml = yaml.safe_dump(v.normalized, allow_unicode=True, sort_keys=False).strip() + "\n"
+    before_snap = snapshot_to_history(mode_id=mode_id, kind=body.kind, label="before", text=before_text)
+    after_snap = snapshot_to_history(mode_id=mode_id, kind=body.kind, label="after", text=normalized_yaml)
+    out_path.write_text(normalized_yaml, encoding="utf-8")
+
+    append_history_log(
+        HistoryEntry(
+            ts=time.strftime("%Y-%m-%d %H:%M:%S"),
+            mode_id=mode_id,
+            kind=body.kind,
+            action="write",
+            before_path=before_snap,
+            after_path=after_snap,
+            note=f"sha={compute_sha(normalized_yaml)}",
+        )
+    )
+
+    if body.reload_modes and settings.hsemas_modes_yaml_reload_enabled:
+        reload_mode_yaml_cache()
+
+    return {
+        "ok": True,
+        "path": str(out_path),
+        "kind": body.kind,
+        "mode_id": mode_id,
+        "sha": compute_sha(normalized_yaml),
+        "reloaded": bool(body.reload_modes and settings.hsemas_modes_yaml_reload_enabled),
+        "warnings": v.warnings,
+    }
+
+
+@app.get("/api/scenarios/history/{mode_id}")
+def scenarios_history(mode_id: str, limit: int = 50) -> dict:
+    """Phase 10: list scenario write/rollback events for one mode_id."""
+    from .scenario_files import list_history
+
+    return {"mode_id": mode_id, "items": list_history(mode_id=mode_id, limit=limit)}
+
+
+@app.post("/api/scenarios/rollback")
+def scenarios_rollback(body: ScenarioRollbackRequest) -> dict:
+    """Phase 10: rollback scenario file to a saved snapshot under backend/scenarios/_history/{mode_id}/."""
+    if not settings.hsemas_scenario_write_enabled:
+        raise HTTPException(status_code=404, detail="scenario_write_disabled")
+
+    from .scenario_files import HistoryEntry, append_history_log, compute_sha, load_text_if_exists, target_path
+
+    out_path = target_path(kind=body.kind, mode_id=body.mode_id)
+    # Only allow reading history under our history dir, and only for this mode_id.
+    hp = Path(body.history_path)
+    hist_root = Path(__file__).resolve().parent.parent / "scenarios" / "_history" / body.mode_id
+    try:
+        hp_rel = hp.resolve().relative_to(hist_root.resolve())
+    except Exception:
+        return {"ok": False, "error": "history_path_not_allowed"}
+
+    snap_text = load_text_if_exists(hist_root / hp_rel)
+    if snap_text is None:
+        return {"ok": False, "error": "history_snapshot_missing"}
+
+    before_text = load_text_if_exists(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(snap_text, encoding="utf-8")
+
+    append_history_log(
+        HistoryEntry(
+            ts=time.strftime("%Y-%m-%d %H:%M:%S"),
+            mode_id=body.mode_id,
+            kind=body.kind,
+            action="rollback",
+            before_path=str(out_path) if before_text is not None else None,
+            after_path=str(hist_root / hp_rel),
+            note=f"sha={compute_sha(snap_text)}",
+        )
+    )
+
+    if body.reload_modes and settings.hsemas_modes_yaml_reload_enabled:
+        reload_mode_yaml_cache()
+
+    return {"ok": True, "mode_id": body.mode_id, "kind": body.kind, "path": str(out_path), "sha": compute_sha(snap_text)}
+
+@app.get("/api/modes/lookup/{mode_id}")
+def modes_lookup(mode_id: str) -> dict:
+    """Resolve a ``mode_id`` and report whether it came from built-ins, YAML extras, or fallback."""
+    m, registry = resolve_mode(mode_id)
+    return {
+        "requested_mode_id": mode_id,
+        "registry": registry,
+        "fallback_to_program_management": registry == "fallback",
+        "mode": m.model_dump(),
+    }
+
+
+@app.post("/api/modes/reload")
+def modes_reload_registry() -> dict:
+    """
+    Drop in-memory extra-mode YAML cache (``scenarios/extra``). Disabled unless
+    ``HSEMAS_MODES_YAML_RELOAD_ENABLED=true`` (trusted dev / staging only).
+    """
+    if not settings.hsemas_modes_yaml_reload_enabled:
+        raise HTTPException(status_code=404, detail="modes_reload_disabled")
+    reload_mode_yaml_cache()
+    ms = list_modes()
+    return {"ok": True, "count": len(ms), "mode_ids": [m.mode_id for m in ms]}
+
+
 @app.get("/api/memory/{mode_id}")
 def memory_list(mode_id: str, limit: int = 50, compact: bool = False) -> list[dict]:
-    mem = DecisionMemory(Path(__file__).resolve().parent.parent / "data")
+    mem = DecisionMemory(_DATA_DIR)
     rows = mem.list_summaries(mode_id=mode_id, limit=limit)
     if compact:
         return [compact_decision_row(r) for r in rows]
@@ -99,7 +418,7 @@ def memory_list(mode_id: str, limit: int = 50, compact: bool = False) -> list[di
 @app.get("/api/memory/{mode_id}/decision/{decision_id}")
 def memory_one(mode_id: str, decision_id: str) -> dict:
     """Full persisted summary for one decision (loads from JSONL)."""
-    mem = DecisionMemory(Path(__file__).resolve().parent.parent / "data")
+    mem = DecisionMemory(_DATA_DIR)
     row = mem.get_by_decision_id(mode_id=mode_id, decision_id=decision_id)
     if row is None:
         raise HTTPException(status_code=404, detail="decision_not_found")
@@ -107,12 +426,12 @@ def memory_one(mode_id: str, decision_id: str) -> dict:
 
 @app.get("/api/config/{mode_id}")
 def config_get(mode_id: str) -> dict:
-    cs = ConfigStore(Path(__file__).resolve().parent.parent / "data")
+    cs = ConfigStore(_DATA_DIR)
     return cs.get_config(mode_id=mode_id)
 
 @app.post("/api/config/{mode_id}")
 async def config_set(mode_id: str, body: dict) -> dict:
-    cs = ConfigStore(Path(__file__).resolve().parent.parent / "data")
+    cs = ConfigStore(_DATA_DIR)
     return cs.set_config(mode_id=mode_id, cfg=body)
 
 @app.post("/api/rag/ingest/{mode_id}")
@@ -141,7 +460,7 @@ async def rag_ingest(mode_id: str, body: dict) -> dict:
             )
         )
     if llm_rag_settings.rag_backend == "local":
-        n = LocalRagStore(Path(__file__).resolve().parent.parent / "data").upsert(
+        n = LocalRagStore(_DATA_DIR).upsert(
             mode_id=mode_id,
             items=[
                 {"chunk_id": it.chunk_id, "title": it.title, "content": it.content, "source_url": (it.meta or {}).get("source_url"), "meta": it.meta}
@@ -173,13 +492,119 @@ def rag_search(mode_id: str, q: str, k: int = 5, dept: str | None = None) -> lis
     hits = retriever.retrieve(mode_id=mode_id, dept=d, task=q, k=k)
     return [c.__dict__ for c in hits]
 
+
+@app.get("/api/genes/{mode_id}/prompts")
+def genes_list_prompts(mode_id: str) -> dict[str, Any]:
+    """Return merged prompt + 3+1 team per department."""
+    from .gene_team import merged_gene_prompt, team_from_record
+    from .modes import get_mode
+
+    gs = GeneStore(_DATA_DIR)
+    mode = get_mode(mode_id)
+    prompts: dict[str, str] = {}
+    teams: dict[str, Any] = {}
+    for d in mode.departments:
+        rec = gs.get_active(mode_id=mode_id, dept=d)
+        teams[d] = team_from_record(rec)
+        fb = build_initial_gene_prompt(mode_id, d)
+        prompts[d] = merged_gene_prompt(rec, mode_id, d, fb) if rec else ""
+    return {"mode_id": mode_id, "prompts": prompts, "teams": teams}
+
+
+@app.get("/api/genes/{mode_id}/teams")
+def genes_list_teams(mode_id: str) -> dict[str, Any]:
+    """Convenience alias; same as ``/prompts`` (includes teams + prompts)."""
+    return genes_list_prompts(mode_id)
+
+
+@app.put("/api/genes/{mode_id}/teams")
+def genes_put_teams(mode_id: str, body: GenesTeamsSaveRequest) -> dict[str, Any]:
+    from .gene_team import merge_team_to_prompt, normalize_team, team_has_content
+    from .modes import get_mode
+
+    gs = GeneStore(_DATA_DIR)
+    mode = get_mode(mode_id)
+    allowed = set(mode.departments)
+    saved = 0
+    errors: list[str] = []
+    for dept, raw in (body.teams or {}).items():
+        if dept not in allowed:
+            errors.append(f"unknown_dept:{dept}")
+            continue
+        team = normalize_team(raw)
+        if not team_has_content(team):
+            continue
+        merged = merge_team_to_prompt(mode_id, dept, team)
+        gs.set_active(mode_id=mode_id, dept=dept, team=team, prompt=merged)
+        saved += 1
+    return {"ok": True, "saved": saved, "errors": errors}
+
+
+@app.post("/api/genes/{mode_id}/{dept}/team/regenerate")
+async def genes_regenerate_team_slot(mode_id: str, dept: str, body: GeneRegenerateSlotRequest) -> dict[str, Any]:
+    from .gene_bootstrap import regenerate_team_slot
+    from .gene_team import merge_team_to_prompt, normalize_team, team_from_record
+    from .modes import get_mode
+
+    mode = get_mode(mode_id)
+    if dept not in mode.departments:
+        raise HTTPException(status_code=422, detail={"error": "unknown_dept", "dept": dept})
+    gs = GeneStore(_DATA_DIR)
+    rec = gs.get_active(mode_id=mode_id, dept=dept)
+    cur = normalize_team(team_from_record(rec))
+    new_role = await regenerate_team_slot(
+        mode_id=mode_id,
+        dept=dept,
+        slot=body.slot,
+        preference=body.preference,
+        current_team=cur,
+    )
+    cur[body.slot] = new_role
+    merged = merge_team_to_prompt(mode_id, dept, cur)
+    out = gs.set_active(mode_id=mode_id, dept=dept, team=cur, prompt=merged)
+    return {"ok": True, "slot": body.slot, "role": new_role, "record": out}
+
+
+@app.put("/api/genes/{mode_id}/prompts")
+def genes_bulk_save(mode_id: str, body: GenesBulkSaveRequest) -> dict[str, Any]:
+    """Save multiple department prompts; skips unknown dept keys and empty strings (does not erase)."""
+    from .modes import get_mode
+
+    gs = GeneStore(_DATA_DIR)
+    mode = get_mode(mode_id)
+    allowed = set(mode.departments)
+    saved = 0
+    errors: list[str] = []
+    for dept, text in (body.prompts or {}).items():
+        if dept not in allowed:
+            errors.append(f"unknown_dept:{dept}")
+            continue
+        t = str(text or "").strip()
+        if not t:
+            continue
+        gs.set_active(mode_id=mode_id, dept=dept, prompt=t)
+        saved += 1
+    return {"ok": True, "saved": saved, "errors": errors}
+
+
+@app.post("/api/genes/{mode_id}/generate")
+async def genes_generate_all(
+    mode_id: str,
+    body: GenesGenerateRequest | None = Body(default=None),
+) -> dict[str, Any]:
+    """Use LiteLLM (per-dept routing) to generate and persist department gene prompts for this mode."""
+    from .gene_bootstrap import generate_all_dept_prompts
+
+    overwrite = True if body is None else bool(body.overwrite)
+    return await generate_all_dept_prompts(mode_id, overwrite=overwrite)
+
+
 @app.get("/api/genes/{mode_id}/{dept}")
 def genes_get_active(mode_id: str, dept: str) -> dict:
-    gs = GeneStore(Path(__file__).resolve().parent.parent / "data")
+    gs = GeneStore(_DATA_DIR)
     rec = gs.get_active(mode_id=mode_id, dept=dept)
     if rec is None:
-        # Default minimal prompt; in Phase 2 this will become per-role (A/B/C/Lead) and editable in UI.
-        rec = gs.set_active(mode_id=mode_id, dept=dept, prompt=f"你是 {dept} 部门的 Lead。请给出可执行建议，并输出 confidence_score 与 dissent_intensity。")
+        rec = gs.set_active(mode_id=mode_id, dept=dept, prompt=build_initial_gene_prompt(mode_id, dept))
     return rec
 
 @app.post("/api/genes/{mode_id}/{dept}")
@@ -187,25 +612,70 @@ async def genes_set_active(mode_id: str, dept: str, body: dict) -> dict:
     prompt = str(body.get("prompt") or "")
     if not prompt.strip():
         return {"error": "prompt_required"}
-    gs = GeneStore(Path(__file__).resolve().parent.parent / "data")
+    gs = GeneStore(_DATA_DIR)
     return gs.set_active(mode_id=mode_id, dept=dept, prompt=prompt)
+
+@app.post("/api/genes/{mode_id}/{dept}/evolve")
+async def genes_evolve_dspy_style(mode_id: str, dept: str, body: GeneEvolveRequest) -> dict:
+    """
+    Phase 4: DSPy-style meta-prompt — propose an improved gene from active + task sample;
+    optionally persist as a new shadow version for A/B scoring.
+    """
+    gs = GeneStore(_DATA_DIR)
+    active = gs.get_active(mode_id=mode_id, dept=dept)
+    if active is None:
+        active = gs.set_active(mode_id=mode_id, dept=dept, prompt=build_initial_gene_prompt(mode_id, dept))
+    from .gene_team import merged_gene_prompt
+
+    ap = merged_gene_prompt(active, mode_id, dept, str(active.get("prompt") or ""))
+    new_prompt, meta = await evolve_gene_prompt(
+        mode_id=mode_id,
+        dept=dept,
+        active_prompt=ap,
+        task_sample=body.task_sample,
+    )
+    gate: dict | None = None
+    if body.require_gate:
+        from .decision_memory import DecisionMemory
+        from .gene_scoring import delta_stats, gene_score
+
+        mem = DecisionMemory(_DATA_DIR)
+        rows = mem.list_summaries(mode_id=mode_id, limit=80)
+        tasks: list[str] = []
+        for r in reversed(rows):
+            t = r.get("task")
+            if isinstance(t, str) and t.strip() and t not in tasks:
+                tasks.append(t.strip())
+            if len(tasks) >= body.gate_trials:
+                break
+        if len(tasks) < body.gate_trials:
+            gate = {"ok": False, "reason": f"need_more_tasks({len(tasks)}/{body.gate_trials})", "n": len(tasks)}
+        else:
+            deltas = [gene_score(new_prompt, t) - gene_score(ap, t) for t in tasks[: body.gate_trials]]
+            s = delta_stats(deltas)
+            gate = {"ok": s.lb95 >= body.min_lb95_delta, "n": s.n, "mean": s.mean, "lb95": s.lb95, "min_lb95_delta": body.min_lb95_delta}
+    saved_shadow: dict | None = None
+    if body.save_shadow and new_prompt.strip() and (gate is None or gate.get("ok") is True):
+        saved_shadow = gs.add_shadow(mode_id=mode_id, dept=dept, prompt=new_prompt)
+    return {"prompt": new_prompt, "saved_shadow": saved_shadow, "meta": meta, "gate": gate}
+
 
 @app.post("/api/genes/{mode_id}/{dept}/shadow")
 async def genes_add_shadow(mode_id: str, dept: str, body: dict) -> dict:
     prompt = str(body.get("prompt") or "")
     if not prompt.strip():
         return {"error": "prompt_required"}
-    gs = GeneStore(Path(__file__).resolve().parent.parent / "data")
+    gs = GeneStore(_DATA_DIR)
     return gs.add_shadow(mode_id=mode_id, dept=dept, prompt=prompt)
 
 @app.get("/api/genes/{mode_id}/{dept}/shadow")
 def genes_list_shadow(mode_id: str, dept: str, limit: int = 20) -> list[dict]:
-    gs = GeneStore(Path(__file__).resolve().parent.parent / "data")
+    gs = GeneStore(_DATA_DIR)
     return gs.list_shadows(mode_id=mode_id, dept=dept, limit=limit)
 
 @app.get("/api/shadow/{mode_id}/{dept}/{shadow_version}")
 def shadow_status(mode_id: str, dept: str, shadow_version: int, trials: int = 3) -> dict:
-    st = ShadowTester(Path(__file__).resolve().parent.parent / "data")
+    st = ShadowTester(_DATA_DIR)
     verdict = st.should_promote(mode_id=mode_id, dept=dept, shadow_version=shadow_version, trials=trials)
     scores = st.list_scores(mode_id=mode_id, dept=dept, shadow_version=shadow_version, limit=50)
     return {"verdict": {"promote": verdict.promote, "reason": verdict.reason, "shadow_version": verdict.shadow_version}, "scores": scores}
@@ -213,11 +683,18 @@ def shadow_status(mode_id: str, dept: str, shadow_version: int, trials: int = 3)
 
 @app.post("/api/decision/start")
 async def decision_start(req: DecisionStartRequest) -> dict[str, str]:
+    if req.reject_unknown_mode:
+        _, reg = resolve_mode(req.mode_id)
+        if reg == "fallback":
+            raise HTTPException(
+                status_code=422,
+                detail={"error": "unknown_mode_id", "mode_id": req.mode_id, "hint": "Use GET /api/modes/lookup/{mode_id} or add scenarios/extra/*.yaml"},
+            )
     # Run in background so caller can connect websocket immediately.
     decision_id = "dec-" + uuid.uuid4().hex[:12]
 
     async def _bg() -> None:
-        await run_decision(decision_id=decision_id, task=req.task, mode_id=req.mode_id)
+        await run_decision(decision_id=decision_id, task=req.task, mode_id=req.mode_id, debate_rounds=req.debate_rounds, thinking_frameworks=req.thinking_frameworks)
 
     asyncio.create_task(_bg())
     return {"decision_id": decision_id}
@@ -231,4 +708,100 @@ async def decision_stream(ws: WebSocket, decision_id: str) -> None:
             await ws.send_text(json.dumps(event.model_dump(), ensure_ascii=False))
     except WebSocketDisconnect:
         return
+
+
+
+# ============================================================
+# v4-B  /api/decision/estimate  + /api/llm/price-card  (新增)
+# ============================================================
+
+@app.post("/api/decision/estimate", response_model=DecisionEstimateResponse)
+async def decision_estimate(req: DecisionEstimateRequest) -> DecisionEstimateResponse:
+    """Haiku-style 4-tier triage (v4-B). Cheap pre-flight; never spawns a real decision."""
+    text = (req.task or "").strip()
+    n = len(text)
+
+    # cheap deterministic heuristic (real Haiku call to be added later)
+    keywords = text.lower()
+    if any(k in keywords for k in ["ppt", "excel", "word", "pdf", "邮件", "截图", "翻译", "总结"]):
+        diff, ttype, reason = 1, "office", "短任务关键词 → 轻办公"
+    elif any(k in keywords for k in ["写代码", "重构", "bug", "实现", "function", "class "]):
+        diff, ttype, reason = 3, "coding", "涉及编码 → 重"
+    elif any(k in keywords for k in ["战略", "路线图", "未来", "下半年", "规划"]) and n > 80:
+        diff, ttype, reason = 4, "decision", "战略级长任务 → 极重"
+    elif n < 30:
+        diff, ttype, reason = 1, "decision", "短任务 → 轻"
+    elif n < 120:
+        diff, ttype, reason = 2, "decision", "中等任务"
+    elif n < 300:
+        diff, ttype, reason = 3, "decision", "较长任务 → 重"
+    else:
+        diff, ttype, reason = 4, "decision", "超长任务 → 极重"
+
+    # naive token / cost estimate
+    base_tok = max(500, int(n * 3))
+    multiplier = {1: 1, 2: 4, 3: 12, 4: 30}[diff] * max(1, req.debate_rounds)
+    est_tokens = base_tok * multiplier
+    # rough avg sonnet price: input ~$3/M, output ~$15/M → call it ~$8/M blended, ×7.2 fx
+    est_yuan = est_tokens / 1_000_000 * 8.0 * 7.2
+    eta = {1: 3, 2: 12, 3: 30, 4: 90}[diff]
+
+    suggested: list[str] = []
+    if ttype == "decision" and diff >= 3:
+        suggested = ["first_principles", "inversion", "pre_mortem"]
+    elif diff == 4:
+        suggested = ["first_principles", "inversion", "triz", "pre_mortem", "constraint_flip"]
+
+    return DecisionEstimateResponse(
+        difficulty=diff,
+        type=ttype,
+        confidence=0.65,
+        reason=reason,
+        estimate_tokens=est_tokens,
+        estimate_yuan=round(est_yuan, 3),
+        eta_sec=eta,
+        suggested_frameworks=suggested,
+    )
+
+
+@app.get("/api/llm/price-card", response_model=PriceCardResponse)
+def llm_price_card() -> PriceCardResponse:
+    """LiteLLM-aligned price table + ¥7.2/$ fx rate (v1.2)."""
+    fx = 7.2
+    # Curated subset; full table grows from LiteLLM registry later (v5-C model auto-discovery)
+    raw = [
+        ("claude-opus-4-5",        15.0,   75.0),
+        ("claude-sonnet-4-5",       3.0,   15.0),
+        ("claude-haiku-4-5",        1.0,    5.0),
+        ("gpt-4o",                  2.5,   10.0),
+        ("gpt-4o-mini",             0.15,   0.6),
+        ("gemini-1.5-pro",          1.25,   5.0),
+        ("gemini-1.5-flash",        0.075,  0.3),
+        ("deepseek-chat",           0.27,   1.1),
+        ("doubao-pro",              0.8,    2.0),
+        ("glm-4-air",               0.1,    0.1),
+        ("moonshot-v1-8k",          1.7,    1.7),
+        ("qwen2.5-72b",             0.4,    1.2),
+    ]
+    entries: list[PriceCardEntry] = []
+    for m, inp_usd, out_usd in raw:
+        entries.append(PriceCardEntry(
+            model=m,
+            input_per_million_usd=inp_usd,
+            output_per_million_usd=out_usd,
+            input_per_million_yuan=round(inp_usd * fx, 3),
+            output_per_million_yuan=round(out_usd * fx, 3),
+        ))
+    return PriceCardResponse(fx_rate_cny_per_usd=fx, entries=entries)
+
+app.include_router(coordinator_router, prefix="/coordinator", tags=["coordinator"])
+
+
+# Optional B2: serve exported frontend from backend process.
+# Must be mounted after all /api routes so the UI doesn't shadow them.
+from .static_site import static_ui_dir
+
+_ui_dir = static_ui_dir()
+if _ui_dir.exists() and any(_ui_dir.iterdir()):
+    app.mount("/", StaticFiles(directory=str(_ui_dir), html=True), name="ui")
 

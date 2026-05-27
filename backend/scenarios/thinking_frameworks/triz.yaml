@@ -1,0 +1,9 @@
+# v1.5 / L∞ 思维范式
+id: triz
+name: TRIZ 矛盾矩阵
+trigger_keywords: ["工程", "矛盾", "优化"]
+when_to_use: |
+  工程问题里存在矛盾
+system_prompt: |
+  识别系统里的核心矛盾(改进维度 vs 恶化维度),对照 TRIZ 40 条发明原理找解决路径。
+cost_tier: low

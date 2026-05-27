@@ -1,0 +1,26 @@
+# Phase 5 — full mode definition without editing ``app/modes.py`` MODES table.
+# Departments must be values from ``DeptName`` in ``app/models.py``.
+mode_id: generic_consulting
+label: 通用咨询（YAML 注册）
+departments:
+  - business
+  - design
+  - finance
+  - efficiency
+  - security
+  - benchmark
+  - xlab
+department_labels:
+  business: 商业分析
+  design: 体验与设计
+  finance: 财务与成本
+  efficiency: 效率与流程
+  security: 安全与合规
+  benchmark: 外部对标
+  xlab: 破局思考
+scenario_description: |
+  适用于未内置垂直行业时的快速拼装：仅组合已有部门槽位，数据仍隔离在 data/generic_consulting/。
+default_task_hint: "把模糊目标拆成可验收的 3 个里程碑，并标出跨部门依赖。"
+gene_seeds:
+  business: "先写清问题边界、成功标准、约束；再给 2–3 套可选方案而非单一路径。"
+  security: "列出数据分级与最小权限假设；提示需法务复核的高风险句。"

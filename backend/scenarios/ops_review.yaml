@@ -1,0 +1,5 @@
+# Optional root overlay for extra mode ``ops_review`` (Phase 5).
+mode_id: ops_review
+label: "运营与成本复盘（YAML + 叠加）"
+department_labels:
+  finance: "成本与预算（叠加）"

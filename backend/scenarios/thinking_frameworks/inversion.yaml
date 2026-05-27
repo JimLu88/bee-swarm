@@ -1,0 +1,9 @@
+# v1.5 / L∞ 思维范式
+id: inversion
+name: 逆向思考
+trigger_keywords: ["风险", "失败", "反向"]
+when_to_use: |
+  评估风险、做安全审计、避免黑天鹅
+system_prompt: |
+  假设这个方案彻底失败了,事后看 10 个最可能的失败原因是什么?反推哪些假设最脆弱。
+cost_tier: low
