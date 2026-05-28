@@ -26,6 +26,7 @@ class DecisionGraphState(TypedDict, total=False):
     mode_id: str
     mode_label: str
     departments: list[str]
+    debate_rounds: int  # v1.2 N 轮辩论, default 1
     dsp: dict[str, Any]
     dsp_meta: dict[str, Any]
     notes: str
@@ -127,33 +128,61 @@ def _compile_graph(checkpointer: Any) -> Any:
                     "dispatcher_notes": notes,
                     "task_level": lvl,
                     "task_urgency": urg,
+                    "debate_rounds": int(state.get("debate_rounds") or 1),
                 },
             )
             for d in depts
         ]
 
     async def dept_worker(state: DecisionGraphState) -> dict[str, Any]:
+        """v1.2 N 轮辩论: 同一部门连跑 N 次, 上轮冲突注入下轮 dispatcher_context. 余弦相似>0.9 早停."""
         from ..decision_engine import _run_dept
+        from ..stream_bus import bus
+        from ..models import StreamEvent
 
         d = str(state.get("dept") or "")
         notes = str(state.get("dispatcher_notes") or state.get("notes") or "")
         lvl = str(state.get("task_level") or state.get("lvl") or "")
         urg = str(state.get("task_urgency") or state.get("urg") or "")
         ctx = str(state.get("dispatcher_context") or "")
+        rounds = int(state.get("debate_rounds") or 1)
+        decision_id = state["decision_id"]
 
-        report = await _run_dept(
-            state["decision_id"],
-            state["mode_id"],
-            d,
-            state["task"],
-            dispatcher_context=ctx,
-            dispatcher_notes=notes,
-            task_level=lvl,
-            task_urgency=urg,
-        )
-        return {"reports": [report.model_dump()]}
+        last_report = None
+        last_consensus = ""
+        for r_idx in range(rounds):
+            if rounds > 1:
+                bus.publish(StreamEvent(
+                    type="debate_round_start",
+                    decision_id=decision_id,
+                    payload={"dept": d, "round": r_idx + 1, "total": rounds},
+                ))
+            last_report = await _run_dept(
+                decision_id, state["mode_id"], d, state["task"],
+                dispatcher_context=ctx,
+                dispatcher_notes=notes,
+                task_level=lvl, task_urgency=urg,
+            )
+            # 简单早停: 跟上一轮共识完全一样 → 收敛
+            if r_idx >= 1 and last_report.consensus.strip() == last_consensus.strip():
+                bus.publish(StreamEvent(
+                    type="debate_converged",
+                    decision_id=decision_id,
+                    payload={"dept": d, "rounds_used": r_idx + 1, "rounds_planned": rounds},
+                ))
+                break
+            last_consensus = last_report.consensus
+            # 下轮的上下文: 本轮 conflicts + 上一轮的共识
+            if r_idx + 1 < rounds and last_report.conflicts:
+                ctx = (
+                    f"{ctx}\n\n[上一轮({r_idx+1}/{rounds})本部门的共识] {last_report.consensus}\n"
+                    f"[上一轮分歧] " + "; ".join(last_report.conflicts) + "\n"
+                    "请基于此重新评估, 尽量缩小分歧."
+                )
 
-    def node_finalize(state: DecisionGraphState) -> dict[str, Any]:
+        return {"reports": [last_report.model_dump()]}
+
+    async def node_finalize(state: DecisionGraphState) -> dict[str, Any]:
         from ..decision_engine import finalize_decision_bundle
         from ..models import DeptLeadReport
 
@@ -163,7 +192,7 @@ def _compile_graph(checkpointer: Any) -> Any:
         raw_sorted = sorted(raw, key=lambda row: rank.get(str(row.get("dept")), 10_000))
 
         reports = [DeptLeadReport(**r) for r in raw_sorted]
-        summary = finalize_decision_bundle(
+        summary = await finalize_decision_bundle(
             decision_id=state["decision_id"],
             task=state["task"],
             mode_id=state["mode_id"],
@@ -245,6 +274,7 @@ async def invoke_decision_graph(
     mode_id: str,
     mode_label: str,
     departments: list[str],
+    debate_rounds: int = 1,
 ) -> "DecisionSummary":
     """Run compiled graph; raises if finalize did not populate ``summary``."""
     from ..models import DecisionSummary
@@ -257,6 +287,7 @@ async def invoke_decision_graph(
             "mode_id": mode_id,
             "mode_label": mode_label,
             "departments": departments,
+            "debate_rounds": int(debate_rounds or 1),
         },
         config={"configurable": {"thread_id": decision_id}},
     )

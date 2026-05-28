@@ -286,7 +286,7 @@ def _alert(confidence: float, dissent: float) -> str:
     return "green"
 
 
-def finalize_decision_bundle(
+async def finalize_decision_bundle(
     *,
     decision_id: str,
     task: str,
@@ -310,14 +310,70 @@ def finalize_decision_bundle(
 
     red_depts = [c.dept for c in heatmap if c.alert == "red"]
     lvl = dsp_meta.get("level")
-    ceo_decision = f"CEO（分诊：{lvl}）：先完成可运行链路，再按需深化；遵守各部门分诊上下文与热力图预警。"
-    if red_depts:
-        ceo_decision += f"（预警：{', '.join(red_depts)} 异议/信心触发红色，建议查看原始辩论日志）"
 
-    random.seed(hash(task) % (2**32))
+    # v1.2 真 LLM 综合 CEO 决策 (失败回退到模板兜底)
+    ceo_decision = ""
+    try:
+        from .llm.router import router as _ceo_router
+        ceo_choice = _ceo_router.pick_for_dept("ceo") if hasattr(_ceo_router, "pick_for_dept") else None
+        if ceo_choice and getattr(ceo_choice, "provider", "") == "litellm":
+            dept_views = "\n\n".join(
+                f"[{r.dept}] {r.consensus}" + (f"\n冲突: {'; '.join(r.conflicts)}" if r.conflicts else "")
+                for r in reports
+            )
+            ceo_prompt = (
+                f"用户任务: {task}\n\n"
+                f"以下是 {len(reports)} 个部门的独立意见:\n\n{dept_views}\n\n"
+                "你是 CEO. 直接给用户一个最终回答(简洁,中文).\n"
+                "- 如果部门意见高度一致, 综合成一段;\n"
+                "- 如果有重要冲突, 指出冲突并给推荐方案;\n"
+                "- 不要复述部门标签, 不要写 '综上所述' 这种废话, 像跟朋友说话.\n"
+            )
+            ceo_text = (await litellm_client.complete(
+                model=ceo_choice.model,
+                fallbacks=llm_router.fallbacks(),
+                prompt=ceo_prompt,
+            )).text or ""
+            ceo_decision = ceo_text.strip()
+    except Exception as _e:
+        ceo_decision = f"[CEO LLM 综合失败: {_e!r}]"
+
+    if not ceo_decision:
+        ceo_decision = f"CEO（分诊：{lvl}）：先完成可运行链路，再按需深化；遵守各部门分诊上下文与热力图预警。"
+    if red_depts:
+        ceo_decision += f"\n\n⚠ 注意:{', '.join(red_depts)} 部门有红色预警,可展开看详情。"
+
+    # v1.2 红队风险 — 真 LLM 分析任务 + 部门意见, 失败兜底
     risks: list[str] = []
-    if _stable_float(f"risk:{task}", 0, 1) > 0.55:
-        risks.append("红队：注意 API Key 存储与审计日志可能泄露敏感信息，Phase 1 先用 .env + 不落盘。")
+    try:
+        from .llm.router import router as _risk_router
+        risk_choice = _risk_router.pick_for_dept("ceo") if hasattr(_risk_router, "pick_for_dept") else None
+        if risk_choice and getattr(risk_choice, "provider", "") == "litellm":
+            dept_views_short = "\n".join(
+                f"[{r.dept}] {r.consensus[:200]}" for r in reports
+            )
+            risk_prompt = (
+                f"用户任务: {task}\n\n"
+                f"部门意见摘要:\n{dept_views_short}\n\n"
+                "扮演红队 (Red Team) 提出最值得用户警惕的 1-3 个风险点 (按重要度排序). "
+                "每个 risk 一行, 简短直接, 中文. 不要赘述, 不要客套, 不要 markdown. "
+                "如果实在没有重大风险, 输出空行即可."
+            )
+            risk_text = (await litellm_client.complete(
+                model=risk_choice.model,
+                fallbacks=llm_router.fallbacks(),
+                prompt=risk_prompt,
+            )).text or ""
+            for ln in risk_text.splitlines():
+                ln2 = ln.strip().lstrip("- *0123456789. ")
+                if len(ln2) > 8:
+                    risks.append(ln2[:300])
+            risks = risks[:3]
+    except Exception:
+        pass
+    # 实在没产出: 看是否有红色预警部门, 给个通用提示
+    if not risks and red_depts:
+        risks.append(f"{red_depts[0]} 部门有较大异议或信心较低, 建议你看下原始意见再决定.")
 
     execution = build_execution_bundle(
         expected_depts=depts,
@@ -368,5 +424,6 @@ async def run_decision(*, decision_id: str, task: str, mode_id: str, debate_roun
         mode_id=mode.mode_id,
         mode_label=mode.label,
         departments=list(mode.departments),
+        debate_rounds=debate_rounds,
     )
 

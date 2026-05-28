@@ -12,9 +12,18 @@ backend/data/
 frontend/node_modules/
 frontend/.next/
 frontend/.eslintcache
+frontend/out/
+frontend/tsconfig.tsbuildinfo
 
 
 backend/dist/
 backend/build/
 backend/_tmp_cp.db
+
+# 根目录 __pycache__ (watchdog.py 编译产物)
+__pycache__/
+*.pyc
+
+# 运行时数据 (用户决策历史快照, 不该进 git)
+backend/scenarios/_history/
 

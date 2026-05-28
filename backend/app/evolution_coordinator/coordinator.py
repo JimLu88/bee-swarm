@@ -30,7 +30,18 @@ EVOLVERS = [
     ("p10_search_evolve", "L0 搜索策略进化", "L0"),
     ("p11_paradigm_evolve","L∞ 范式进化",   "L∞"),
     ("p12_code_self_update","代码自更新(三重双保险)", "L7"),
+    ("p13_model_discovery","模型自动发现 (LMSYS/LiteLLM)", "L6"),
+    ("p14_skill_discovery","Skill/MCP 自发现 (GitHub)",   "L9"),
 ]
+
+
+# v5-F 升级日志 + 一键回滚 端点 (在末尾追加, 避免循环 import)
+def _attach_upgrade_log() -> None:
+    try:
+        from .upgrade_log import router as _ur
+        coordinator_router.include_router(_ur)
+    except Exception:
+        pass
 
 
 def _conn() -> sqlite3.Connection:
@@ -111,3 +122,11 @@ class ObservationIn(BaseModel):
 def observations(req: ObservationIn) -> dict:
     # 累积到痛点日志中,供 p12 代码自更新挖掘
     return {"received": True, "decision_id": req.decision_id}
+
+
+_attach_upgrade_log()
+
+
+# v5-F 升级日志 + 一键回滚 端点
+from .upgrade_log import router as _upgrade_router  # noqa: E402
+coordinator_router.include_router(_upgrade_router)
