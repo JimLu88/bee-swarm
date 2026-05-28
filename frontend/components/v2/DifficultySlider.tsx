@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import type { CSSProperties } from "react";
 
@@ -11,10 +11,10 @@ import type { CSSProperties } from "react";
 export type Difficulty = 1 | 2 | 3 | 4;
 
 export const DIFFICULTY_INFO: Record<Difficulty, { name: string; emoji: string; cost: string; desc: string }> = {
-  1: { name: "轻", emoji: "🟢", cost: "¥0.01-0.5", desc: "一句话/翻译/轻办公" },
-  2: { name: "中", emoji: "🟡", cost: "¥0.5-5", desc: "多步任务/RAG/2-3 步" },
-  3: { name: "重", emoji: "🔴", cost: "¥5-15", desc: "蜂群讨论/写完整功能" },
-  4: { name: "极重", emoji: "⚫", cost: "¥15-50", desc: "战略级/5 轮辩论/全员" },
+  1: { name: "简单", emoji: "🟢", cost: "约几分钱", desc: "翻译、一句话回答、做个表格" },
+  2: { name: "一般", emoji: "🟡", cost: "约 1 元以内", desc: "整理资料、写邮件、做 PPT 大纲" },
+  3: { name: "深入", emoji: "🔴", cost: "约 5-15 元", desc: "出方案、写代码、做完整 PPT" },
+  4: { name: "全力", emoji: "⚫", cost: "约 15-50 元", desc: "战略规划、长报告、大决策" },
 };
 
 type Props = {
@@ -45,7 +45,7 @@ const tier: CSSProperties = {
   cursor: "pointer",
   textAlign: "center",
   color: "inherit",
-  font: "inherit",
+  fontFamily: "inherit",
 };
 const tierActive: CSSProperties = { ...tier, borderColor: "#facc15", background: "rgba(250,204,21,0.18)" };
 const tierAi: CSSProperties = { ...tier, borderStyle: "dashed", borderColor: "#22d3ee" };

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import type { CSSProperties } from "react";
 
@@ -14,12 +14,13 @@ export type ModeOption = {
   hint: string;
 };
 
+/** v4-C: 场景卡片 - 每个有 title + hint, 鼠标悬停看更详细的说明 */
 export const BUILTIN_MODES: ModeOption[] = [
-  { mode_id: "program_management", label: "程序管理", emoji: "💻", hint: "架构/逻辑/UI/数据库" },
-  { mode_id: "family_doctor", label: "家庭医生", emoji: "🩺", hint: "症状/营养/用药/心理" },
-  { mode_id: "stock_trading", label: "股票交易", emoji: "📈", hint: "宏观/财报/技术/主力" },
-  { mode_id: "travel_planning", label: "旅行计划", emoji: "✈️", hint: "签证/性价比/安全/禁忌" },
-  { mode_id: "generic_consulting", label: "通用咨询", emoji: "💡", hint: "百搭场景" },
+  { mode_id: "program_management", label: "程序管理", emoji: "💻", hint: "做软件/写代码/搞架构" },
+  { mode_id: "family_doctor", label: "家庭医生", emoji: "🩺", hint: "看症状/营养建议/用药提醒" },
+  { mode_id: "stock_trading", label: "股票交易", emoji: "📈", hint: "盯盘/财报/资金/技术面" },
+  { mode_id: "travel_planning", label: "旅行计划", emoji: "✈️", hint: "签证/机票/安全/文化" },
+  { mode_id: "generic_consulting", label: "通用咨询", emoji: "💡", hint: "啥都能聊,不限定领域" },
 ];
 
 type Props = {
@@ -40,7 +41,7 @@ const baseCard: CSSProperties = {
   gap: 4,
   transition: "all 0.15s",
   color: "inherit",
-  font: "inherit",
+  fontFamily: "inherit",
 };
 
 const selectedCard: CSSProperties = {
@@ -73,7 +74,7 @@ export function ModePicker({ selected, onSelect, onOpenCustom }: Props) {
       >
         <div style={{ fontSize: 22 }}>＋</div>
         <div style={{ fontWeight: 600 }}>自定义场景</div>
-        <div style={{ fontSize: 11, opacity: 0.6 }}>从 YAML 加载</div>
+        <div style={{ fontSize: 11, opacity: 0.6 }}>YAML 配置自己加</div>
       </button>
     </div>
   );

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import type { CSSProperties } from "react";
 
@@ -33,7 +33,7 @@ const tile: CSSProperties = {
   fontSize: 12,
   cursor: "pointer",
   color: "inherit",
-  font: "inherit",
+  fontFamily: "inherit",
 };
 
 const tileActive: CSSProperties = {
@@ -53,9 +53,9 @@ export function ThinkingFrameworksPanel({
 }) {
   return (
     <div style={card}>
-      <div style={{ fontWeight: 600, marginBottom: 6 }}>🎭 思维范式(v1.5 / L∞)</div>
+      <div style={{ fontWeight: 600, marginBottom: 6 }}>🎭 思考方法 (帮你从不同角度看问题)</div>
       <div style={{ fontSize: 11, opacity: 0.6, marginBottom: 10 }}>
-        AI 自动勾选了高亮项;你可手动加减。多选一起跑能拓宽视角(但会贵)。
+        亮 ✨ 的是 AI 觉得你这个任务适合的方法. 多选会让答案更全面但慢一点也贵一点.
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: 8 }}>
         {FRAMEWORKS.map((f) => {

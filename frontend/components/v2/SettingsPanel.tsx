@@ -42,7 +42,7 @@ const input: CSSProperties = {
   border: "1px solid rgba(255,255,255,0.12)",
   background: "rgba(0,0,0,0.25)",
   color: "inherit",
-  font: "inherit",
+  fontFamily: "inherit",
   fontSize: 13,
   boxSizing: "border-box",
 };
@@ -115,11 +115,11 @@ export function SettingsPanel() {
         const txt = await r.text();
         throw new Error(`${r.status}: ${txt.substring(0, 200)}`);
       }
-      setMsg("✅ 已保存,后端配置已立即生效");
+      setMsg("✅ 已保存. AI 设置已经生效, 可以开始用了");
       setApiKey(""); // clear input (server now holds it)
       refresh();
     } catch (e: unknown) {
-      setMsg("❌ 保存失败: " + ((e as Error).message ?? "未知错误"));
+      setMsg("❌ 保存失败 (检查地址/密钥): " + ((e as Error).message ?? "未知错误"));
     } finally { setBusy(false); }
   };
 
@@ -127,25 +127,25 @@ export function SettingsPanel() {
     setBusy(true);
     setDiagResult("测试中…");
     try {
-      const r1 = await fetchWithTimeout(`${backendUrl}/api/settings/hub/diagnostics/connectivity`, { method: "POST" }, TIMEOUT_MS.default);
+      const r1 = await fetchWithTimeout(`${backendUrl}/api/settings/hub/diagnostics/connectivity`, { method: "POST" }, 60_000);
       const j1 = await r1.json();
-      const r2 = await fetchWithTimeout(`${backendUrl}/api/settings/hub/diagnostics/chat`, { method: "POST" }, 30_000);
+      const r2 = await fetchWithTimeout(`${backendUrl}/api/settings/hub/diagnostics/chat`, { method: "POST" }, 120_000);
       const j2 = await r2.json();
       setDiagResult(JSON.stringify({ connectivity: j1, chat: j2 }, null, 2));
     } catch (e: unknown) {
-      setDiagResult("❌ 测试失败: " + ((e as Error).message ?? ""));
+      setDiagResult("❌ 测试不通 (可能 AI 服务地址不对): " + ((e as Error).message ?? ""));
     } finally { setBusy(false); }
   };
 
   return (
     <div style={card}>
-      <div style={{ fontWeight: 600, fontSize: 16 }}>⚙ API 设置(一个 Key 通用所有模型)</div>
+      <div style={{ fontWeight: 600, fontSize: 16 }}>⚙ AI 大脑设置(填一次就行)</div>
       <div style={{ fontSize: 12, opacity: 0.7 }}>
-        填一个第三方聚合 API 的 Key,后端会用它调所有 Claude / GPT / Gemini / DeepSeek 等模型。
+        一个 Key 就能用所有 AI(GPT/Claude/Gemini 等). 找个聚合服务,填它的 Key 就够了.
       </div>
 
       <div>
-        <label style={label}>聚合服务预设</label>
+        <label style={label}>选你用的 AI 服务</label>
         <select value={presetId} onChange={(e) => applyPreset(e.target.value)} style={input}>
           {PRESETS.map((p) => (
             <option key={p.id} value={p.id}>{p.name} — {p.hint}</option>
@@ -154,7 +154,7 @@ export function SettingsPanel() {
       </div>
 
       <div>
-        <label style={label}>API Base URL</label>
+        <label style={label}>AI 服务地址</label>
         <input style={input} value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} placeholder="https://aihubmix.com/v1" />
       </div>
 
@@ -170,25 +170,25 @@ export function SettingsPanel() {
           type="password"
           value={apiKey}
           onChange={(e) => setApiKey(e.target.value)}
-          placeholder={loaded?.openai_api_key ? "留空 = 不改" : "sk-... 你的聚合 API Key"}
+          placeholder={loaded?.openai_api_key ? "留空 = 不改" : "sk-... 你聚合服务给的密钥"}
         />
       </div>
 
       <div>
-        <label style={label}>默认模型</label>
-        <input style={input} value={model} onChange={(e) => setModel(e.target.value)} placeholder="claude-sonnet-4-5 / gpt-4o-mini" />
+        <label style={label}>主用 AI 大脑</label>
+        <input style={input} value={model} onChange={(e) => setModel(e.target.value)} placeholder="格式: openai/模型名. 例: openai/claude-opus-4-7" />
       </div>
 
       <div>
-        <label style={label}>备用模型链(可选,逗号分隔,主模型挂了自动降级)</label>
-        <input style={input} value={fallback} onChange={(e) => setFallback(e.target.value)} placeholder="gpt-4o-mini,deepseek-chat" />
+        <label style={label}>备用 AI 大脑 (主用挂了自动切到备用,用逗号分隔)</label>
+        <input style={input} value={fallback} onChange={(e) => setFallback(e.target.value)} placeholder="逗号分隔, 例: openai/gpt-4o-mini,ollama_chat/deepseek-r1:8b" />
       </div>
 
       <div>
-        <label style={label}>Provider 模式</label>
+        <label style={label}>运行方式</label>
         <select value={provider} onChange={(e) => setProvider(e.target.value)} style={input}>
-          <option value="litellm">litellm(走真实 LLM,推荐)</option>
-          <option value="simulated">simulated(本地假数据,无需 Key,测 UI 用)</option>
+          <option value="litellm">正常使用(真的调 AI,推荐)</option>
+          <option value="simulated">演示模式(假数据,只看界面)</option>
         </select>
       </div>
 
@@ -207,7 +207,7 @@ export function SettingsPanel() {
             fontWeight: 600,
           }}
         >
-          {busy ? "保存中…" : "💾 保存"}
+          {busy ? "保存中,稍等..." : "💾 保存设置"}
         </button>
         <button
           type="button"
@@ -222,7 +222,7 @@ export function SettingsPanel() {
             cursor: busy ? "not-allowed" : "pointer",
           }}
         >
-          🔍 测试连接
+          🔍 测一下能用吗
         </button>
       </div>
 
@@ -230,13 +230,13 @@ export function SettingsPanel() {
 
       {diagResult && (
         <details open>
-          <summary style={{ cursor: "pointer", fontSize: 12, opacity: 0.7 }}>诊断结果(展开看详情)</summary>
+          <summary style={{ cursor: "pointer", fontSize: 12, opacity: 0.7 }}>诊断详情 (点开看每一项是不是通了)</summary>
           <pre style={{ background: "rgba(0,0,0,0.3)", padding: 10, borderRadius: 6, fontSize: 11, overflow: "auto", maxHeight: 300 }}>{diagResult}</pre>
         </details>
       )}
 
       <div style={{ fontSize: 11, opacity: 0.5, borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 8 }}>
-        Key 落盘位置:<code>backend/data/hub_settings.json</code>(本地,不上云)
+        密钥保存在: <code>backend/data/hub_settings.json</code>本地, 永远不会上传
       </div>
     </div>
   );

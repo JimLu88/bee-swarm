@@ -22,6 +22,7 @@ import { ThinkingFrameworksPanel } from "./advanced/ThinkingFrameworksPanel";
 import { SandboxPanel } from "./engineer/SandboxPanel";
 import { ShadowABPanel } from "./engineer/ShadowABPanel";
 import { CoordinatorPanel } from "./engineer/CoordinatorPanel";
+import { Onboarding } from "./Onboarding";
 import { SettingsPanel } from "./SettingsPanel";
 
 /**
@@ -31,7 +32,7 @@ import { SettingsPanel } from "./SettingsPanel";
  *   - 顶部: 5+1 场景卡片
  *   - 中部: 任务输入 + 4 档难度滑块(AI 建议高亮)
  *   - 下部: 结果区 + 历史
- *   - 右上: ⚙ 设置 / 🐝 蜂群面板 / 📊 记账
+ *   - 右上: ⚙ AI 设置 / 🐝 看 AI 怎么干活 / 📊 记账
  *   - 三档视图: 用户(默认) / 高级 / 工程
  */
 
@@ -122,7 +123,7 @@ export function BeeSwarmShell() {
 
   // --- 启动决策 ---
   const startDecision = useCallback(async () => {
-    if (!task.trim()) { setError("请先输入任务"); return; }
+    if (!task.trim()) { setError("先在上面写一句话告诉我你要什么"); return; }
     setError(null);
     setBusy(true);
     setSummary(null);
@@ -147,7 +148,7 @@ export function BeeSwarmShell() {
       if (!res.ok) throw new Error(`decision/start ${res.status}`);
       const j = await res.json();
       const decisionId: string | undefined = j?.decision_id;
-      if (!decisionId) throw new Error("缺少 decision_id");
+      if (!decisionId) throw new Error("AI 服务暂时没响应, 等一下再试");
 
       // listen WebSocket
       const ws = new WebSocket(`${wsBase}/api/decision/stream/${decisionId}`);
@@ -166,7 +167,8 @@ export function BeeSwarmShell() {
             setProgress((p) => Math.min(95, p + 8));
           } else if (e.type === "decision_done") {
             setProgress(100);
-            setSummary(e.payload as DecisionSummary);
+            const _sum = (e.payload as { summary?: DecisionSummary }).summary ?? (e.payload as DecisionSummary);
+            setSummary(_sum);
             setBusy(false);
             refreshHistory();
             ws.close();
@@ -177,10 +179,10 @@ export function BeeSwarmShell() {
           }
         } catch { /* ignore */ }
       };
-      ws.onerror = () => { setError("WebSocket 异常"); setBusy(false); };
+      ws.onerror = () => { setError("和 AI 的连接断了, 刷新一下重试"); setBusy(false); };
       ws.onclose = () => { /* ok */ };
     } catch (e: unknown) {
-      setError((e as Error).message ?? "未知错误");
+      setError((e as Error).message ?? "出了点小问题, 等一下重试");
       setBusy(false);
     }
   }, [task, mode, difficulty, frameworks, backendUrl, wsBase, refreshHistory]);
@@ -193,7 +195,7 @@ export function BeeSwarmShell() {
       const j = await res.json();
       setSummary(j as DecisionSummary);
     } catch (e: unknown) {
-      setError((e as Error).message ?? "拉取详情失败");
+      setError((e as Error).message ?? "读历史记录出问题了");
     }
   }, [backendUrl, mode]);
 
@@ -210,15 +212,15 @@ export function BeeSwarmShell() {
   }, [aiFrameworks, frameworks.length]);
 
   return (
-    <div style={{ maxWidth: 1200, margin: "0 auto", padding: "20px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
+    <><Onboarding /><div style={{ maxWidth: 1200, margin: "0 auto", padding: "20px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
       {/* Header */}
       <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: 22 }}>🐝 蜂群</h1>
-          <div style={{ fontSize: 12, opacity: 0.6 }}>你好,今天想做什么?</div>
+          <h1 style={{ margin: 0, fontSize: 22 }}>🐝 我的 AI 智囊团</h1>
+          <div style={{ fontSize: 12, opacity: 0.6 }}>有问题? 让 6 位 AI 顾问一起帮你想.</div>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button type="button" onClick={() => setDashOpen(true)} style={iconBtn}>🐝 蜂群面板</button>
+          <button type="button" onClick={() => setDashOpen(true)} style={iconBtn}>🐝 看 AI 怎么干活</button>
         </div>
       </header>
 
@@ -227,7 +229,7 @@ export function BeeSwarmShell() {
       {/* 用户视图 (默认) */}
       {view === "user" && (
         <>
-          <ModePicker selected={mode} onSelect={setMode} onOpenCustom={() => alert("自定义场景: 见高级视图 → ScenarioYamlAuthor")} />
+          <ModePicker selected={mode} onSelect={setMode} onOpenCustom={() => alert("自定义场景需要写 YAML 配置. 切到 进阶 视图 → 自定义场景 YAML 那个面板.")} />
           <TaskInput value={task} onChange={setTask} />
           <DifficultySlider
             value={difficulty}
@@ -252,7 +254,7 @@ export function BeeSwarmShell() {
                 cursor: busy ? "not-allowed" : "pointer",
               }}
             >
-              {busy ? "🐝 正在讨论中…" : "🚀 开始"}
+              {busy ? "🐝 AI 顾问们在讨论, 请稍等..." : "🚀 开始让 AI 帮忙"}
             </button>
             {error && <span style={{ marginLeft: 12, color: "#f87171", fontSize: 13 }}>{error}</span>}
           </div>
@@ -273,7 +275,7 @@ export function BeeSwarmShell() {
           <ScenarioYamlAuthor />
           <div>
             <button type="button" onClick={startDecision} disabled={busy || !task.trim()} style={{ padding: "10px 20px", borderRadius: 8, border: "1px solid #facc15", background: "rgba(250,204,21,0.18)", color: "inherit", cursor: busy ? "not-allowed" : "pointer" }}>
-              {busy ? "🐝 讨论中…" : "🚀 开始(高级)"}
+              {busy ? "🐝 讨论中, 等等..." : "🚀 开始让 AI 帮忙(高级)"}
             </button>
           </div>
           <ResultPanel summary={summary} />
@@ -284,7 +286,7 @@ export function BeeSwarmShell() {
       {view === "engineer" && (
         <>
           <div style={{ padding: 12, borderRadius: 10, background: "rgba(250,204,21,0.06)", border: "1px solid rgba(250,204,21,0.2)", fontSize: 12 }}>
-            ⚙️ 工程视图保留了完整的 legacy DecisionHub 组件入口(<code>/?legacy=1</code>),以及 Sandbox / Shadow / Coordinator 三个面板。
+            🔧 技术视图 - 给会写代码的人看的. 沙箱跑命令 / AI 自我学习对比 / 系统升级状态 三件套.
           </div>
           <SandboxPanel />
           <ShadowABPanel />
@@ -297,10 +299,9 @@ export function BeeSwarmShell() {
         onClose={() => setDashOpen(false)}
         heats={heats}
         progressPct={progress > 0 ? progress : undefined}
-        flowText={"用户输入 → 分诊 → 部门并行 → CEO 终审 → 输出"}
+        flowText={"你的任务 → AI 分析需要哪些顾问 → 6 位顾问同时思考 → 综合给你答案"}
       />
-    </div>
-  );
+    </div></>);
 }
 
 const iconBtn = {
@@ -310,6 +311,6 @@ const iconBtn = {
   background: "rgba(255,255,255,0.05)",
   cursor: "pointer",
   color: "inherit",
-  font: "inherit",
+  fontFamily: "inherit",
   fontSize: 12,
 };

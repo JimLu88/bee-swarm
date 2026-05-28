@@ -1,13 +1,13 @@
-﻿"use client";
+"use client";
 
 import type { CSSProperties, ReactNode } from "react";
 
 export type ViewMode = "user" | "advanced" | "engineer";
 
 const VIEWS: { id: ViewMode; label: string; emoji: string }[] = [
-  { id: "user", label: "用户", emoji: "👤" },
-  { id: "advanced", label: "高级", emoji: "⚙️" },
-  { id: "engineer", label: "工程", emoji: "🔧" },
+  { id: "user", label: "日常", emoji: "🌱" },
+  { id: "advanced", label: "进阶", emoji: "⚙️" },
+  { id: "engineer", label: "技术", emoji: "🔧" },
 ];
 
 const tabRow: CSSProperties = {
@@ -26,7 +26,7 @@ const tab: CSSProperties = {
   background: "transparent",
   cursor: "pointer",
   color: "inherit",
-  font: "inherit",
+  fontFamily: "inherit",
   fontSize: 12,
   opacity: 0.7,
 };

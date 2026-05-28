@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import type { CSSProperties } from "react";
 
@@ -76,7 +76,7 @@ export function SwarmDashboardModal({
     <div style={overlay} onClick={onClose}>
       <div style={modal} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-          <h2 style={{ margin: 0, fontSize: 18 }}>🐝 蜂群实时状态</h2>
+          <h2 style={{ margin: 0, fontSize: 18 }}>🐝 AI 顾问们在干什么 (实时)</h2>
           <button
             type="button"
             onClick={onClose}
@@ -88,9 +88,9 @@ export function SwarmDashboardModal({
 
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div style={section}>
-            <div style={{ fontWeight: 600, marginBottom: 8, fontSize: 13 }}>━━━ 部门热力图 ━━━</div>
+            <div style={{ fontWeight: 600, marginBottom: 8, fontSize: 13 }}>━━━ 哪几位 AI 顾问在忙 ━━━</div>
             {heats.length === 0 ? (
-              <div style={{ opacity: 0.5, fontSize: 12 }}>(暂无活动)</div>
+              <div style={{ opacity: 0.5, fontSize: 12 }}>(还没开始任务)</div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {heats.map((h) => (
@@ -105,9 +105,9 @@ export function SwarmDashboardModal({
           </div>
 
           <div style={section}>
-            <div style={{ fontWeight: 600, marginBottom: 8, fontSize: 13 }}>━━━ 各部门实时观点摘要 ━━━</div>
+            <div style={{ fontWeight: 600, marginBottom: 8, fontSize: 13 }}>━━━ 顾问们的实时想法 ━━━</div>
             {heats.filter((h) => h.opinion).length === 0 ? (
-              <div style={{ opacity: 0.5, fontSize: 12 }}>(等待发言)</div>
+              <div style={{ opacity: 0.5, fontSize: 12 }}>(等顾问开始说话)</div>
             ) : (
               <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12 }}>
                 {heats.filter((h) => h.opinion).map((h) => (
@@ -121,7 +121,7 @@ export function SwarmDashboardModal({
 
           {flowText && (
             <div style={section}>
-              <div style={{ fontWeight: 600, marginBottom: 8, fontSize: 13 }}>━━━ 决策流程图 ━━━</div>
+              <div style={{ fontWeight: 600, marginBottom: 8, fontSize: 13 }}>━━━ 整体流程 ━━━</div>
               <pre style={{ margin: 0, fontSize: 11, whiteSpace: "pre-wrap" }}>{flowText}</pre>
             </div>
           )}
@@ -129,7 +129,7 @@ export function SwarmDashboardModal({
           {progressPct !== undefined && (
             <div style={section}>
               <div style={{ marginBottom: 6, fontSize: 12 }}>
-                总进度: {progressPct}% {etaSec ? `· 预计 ${etaSec} 秒后完成` : ""}
+                总进度: {progressPct}% {etaSec ? `· 大约还有 ${etaSec} 秒` : ""}
               </div>
               <HeatBar heat={progressPct / 100} />
             </div>

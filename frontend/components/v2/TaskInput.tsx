@@ -1,7 +1,7 @@
-﻿"use client";
+"use client";
 
 import type { CSSProperties } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type Props = {
   value: string;
@@ -32,18 +32,25 @@ const btn: CSSProperties = {
   background: "rgba(255,255,255,0.05)",
   cursor: "pointer",
   color: "inherit",
-  font: "inherit",
+  fontFamily: "inherit",
 };
 
 const HINTS = [
-  "试试: 帮我整理本周的销售数据",
-  "试试: 明天演讲的 PPT,主题是公司年度规划",
-  "试试: 把这个截图里的文字提出来",
-  "试试: 我下半年应该做什么业务",
+  "比如: 写一篇产品推广文案,卖点是省心",
+  "比如: 帮我看看这周该买哪只股票",
+  "比如: 我下半年的人生应该怎么规划",
+  "比如: 解释一下 Docker 是什么",
+  "比如: 给我推荐一个 5 道菜的家庭晚餐",
+  "比如: 整理本周销售数据,做个 PPT",
+  "比如: 帮我写一份周报模板",
 ];
 
 export function TaskInput({ value, onChange, placeholder, onVoiceClick, onScreenshotClick, onUploadClick }: Props) {
-  const [hint] = useState(() => HINTS[Math.floor(Math.random() * HINTS.length)]);
+  const [hint, setHint] = useState(HINTS[0]);
+  useEffect(() => {
+    // 仅在客户端水合后随机, 避免 SSR/CSR placeholder 不一致触发 hydration warning
+    setHint(HINTS[Math.floor(Math.random() * HINTS.length)]);
+  }, []);
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       <textarea
@@ -53,9 +60,9 @@ export function TaskInput({ value, onChange, placeholder, onVoiceClick, onScreen
         style={box}
       />
       <div style={{ display: "flex", gap: 8 }}>
-        <button type="button" style={btn} onClick={onVoiceClick} title="语音输入 (faster-whisper)">🎤 录音</button>
-        <button type="button" style={btn} onClick={onScreenshotClick} title="截图 / 上传图片 (Claude Vision)">📷 截图</button>
-        <button type="button" style={btn} onClick={onUploadClick} title="上传文件">📎 文件</button>
+        <button type="button" style={btn} onClick={onVoiceClick} title="录一段话(语音转文字)">🎤 录音</button>
+        <button type="button" style={btn} onClick={onScreenshotClick} title="截屏或上传图片让 AI 看">📷 截图</button>
+        <button type="button" style={btn} onClick={onUploadClick} title="附件 (文档/PDF/Excel)">📎 文件</button>
       </div>
     </div>
   );
