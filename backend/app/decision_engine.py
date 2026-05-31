@@ -193,6 +193,9 @@ async def _run_dept(
             "conflicts 请写主流方案可能忽略的早期信号或第二类错误。\n"
         )
 
+    # v8: 按场景注入"列全本专科可能性"要求 (避免各部门只挑最相关的说, 漏掉低概率可能).
+    differential_brief = build_differential_brief(mode_id, dept)
+
     # v6-D 真工具: 把 BeeServiceClient 工具清单露给 LLM, 让它可选择性 tool_calls
     bee_tools_safe = list_bee_tools(include_sensitive=False)
     tools_brief = "\n".join(
@@ -229,6 +232,7 @@ async def _run_dept(
                     prompt=(
                         f"部门={dept}\n"
                         f"{xlab_brief}"
+                        f"{differential_brief}"
                         f"战术/战略分级={task_level or 'unknown'} 时效={task_urgency or 'unknown'}\n"
                         f"分诊官摘要={dispatcher_notes or '（无）'}\n"
                         f"用户完整任务=\n{task[:4000]}\n\n"
@@ -400,6 +404,34 @@ async def _run_dept(
         )
     )
     return report
+
+
+# v8: 鉴别诊断/全可能性要求 — 按场景定制 (医疗强制全列, 其它轻量, 避免啰嗦).
+# 医疗类: 每个专科必须列出本专科所有可能引起该症状的病因 (含低概率), 标可能性高/中/低.
+_MEDICAL_MODES = {"family_doctor", "chronic_disease", "health_checkup"}
+# 其它"需要穷举可能性"的专业场景 (轻量提示)
+_DIFFERENTIAL_MODES = {
+    "legal_consulting", "tax_insurance", "stock_trading",
+    "purchase_decision", "startup_advisory",
+}
+
+
+def build_differential_brief(mode_id: str, dept: str) -> str:
+    """返回注入 prompt 的"列全本专科可能性"要求. 不适用场景返回空串."""
+    if mode_id in _MEDICAL_MODES:
+        return (
+            "【鉴别诊断要求 (本专科必做)】你必须站在本专科角度, 列出**所有**可能引起"
+            "患者症状的本专科病因——哪怕概率很低、哪怕本次主诉看起来不像本专科问题, "
+            "只要本专科有可能解释该症状, 就要列出。每条标注可能性 [高/中/低] + 一句依据/排除点。"
+            "consensus 里设一个'本专科鉴别诊断清单'段落完整列出。"
+            "注意: 这是你个人专科意见, 最终由分诊官(CEO)综合取舍; 但你这里绝不能因为'可能性小'就省略不写。\n"
+        )
+    if mode_id in _DIFFERENTIAL_MODES:
+        return (
+            "【穷举要求】请从本部门专业角度, 把所有相关的可能性/风险/选项都列出来 (含小概率但有影响的), "
+            "每条标注重要性 [高/中/低]。宁可多列, 由 CEO 最后取舍, 不要因为'可能性小'就漏掉。\n"
+        )
+    return ""
 
 
 def _alert(confidence: float, dissent: float) -> str:

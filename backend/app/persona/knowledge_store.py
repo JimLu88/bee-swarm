@@ -105,8 +105,9 @@ def add_knowledge(
 
 
 def _per_layer_k(layer: str) -> int:
-    """层级分配: books 2, cases 3, pitfalls 2, standards 2, 其余 1."""
-    alloc = {"book": 2, "case": 3, "pitfall": 2, "standard": 2}
+    """层级分配 (单次召回每层取几条). book 给最多 (人设读的几十本书是主力知识源),
+    activation 打分会从该 persona 全部书里选最相关/最重要的几本进 prompt."""
+    alloc = {"book": 6, "case": 3, "pitfall": 3, "standard": 3}
     return alloc.get(layer, 1)
 
 
@@ -132,13 +133,18 @@ def recall_for_persona(
     all_items: list[dict[str, Any]] = []
     for layer in layers:
         try:
+            # 服务端按 persona_id 过滤 (领域硬隔离, 截断前过滤) + activation 打分排序.
+            # 注意: 不把整句 task 当 content LIKE (多词整串几乎命中不了→恒空); 知识召回靠
+            # persona_id 圈定该专家的书库 + v3-D activation(重要度/新近/频率)选最相关 top-k.
             resp = _get(
-                f"/memory/recall?query={quote(query)}"
-                f"&kind=knowledge_{layer}&k={_per_layer_k(layer)}&strategy={strategy}"
+                f"/memory/recall"
+                f"?kind=knowledge_{layer}&k={max(_per_layer_k(layer) * 4, 8)}"
+                f"&strategy={strategy}&persona_id={quote(persona_id)}"
             )
             items = resp.get("items") or []
         except Exception:
             items = []
+        kept = 0
         for it in items:
             meta_str = it.get("meta") or "{}"
             try:
@@ -146,10 +152,13 @@ def recall_for_persona(
             except Exception:
                 meta = {}
             if str(meta.get("persona_id")) != persona_id:
-                continue
+                continue  # 双保险: 服务端已过滤, 这里再校验一次
             it["_layer"] = layer
             it["_meta_parsed"] = meta
             all_items.append(it)
+            kept += 1
+            if kept >= _per_layer_k(layer):
+                break
     all_items.sort(
         key=lambda x: (int(x.get("importance") or 0), int(x.get("recall_count") or 0)),
         reverse=True,
