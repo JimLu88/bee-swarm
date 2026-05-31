@@ -557,6 +557,9 @@ export function BeeSwarmShell() {
         busy={busy}
         error={error}
         attachSlot={attachSlot}
+        frameworks={frameworks}
+        aiFrameworks={aiFrameworks}
+        onToggleFramework={toggleFramework}
       />
       <div style={{ display: "flex", justifyContent: "center", marginTop: 8 }}>
         <button
