@@ -9,6 +9,7 @@ import { fetchWithTimeout, TIMEOUT_MS } from "../../lib/http";
 
 import { BUILTIN_MODES, type ModeOption } from "./ModePicker";
 import { ImageStrip } from "./ImageStrip";
+import { RoutePlanner, type RunParams } from "./RoutePlanner";
 import { type Difficulty } from "./DifficultySlider";
 import { ResultPanel, type DecisionSummary } from "./ResultPanel";
 import { type HistoryRow } from "./HistoryPanel";
@@ -16,7 +17,6 @@ import { SettingsDrawer } from "./SettingsDrawer";
 import { SwarmDashboardModal, type DeptHeat } from "./SwarmDashboardModal";
 import { Onboarding } from "./Onboarding";
 import { NotificationBell } from "./NotificationBell";
-import { LogsPanel } from "./LogsPanel";
 import { PendingChangesDrawer } from "./PendingChangesDrawer";
 import { CommandPalette } from "./CommandPalette";
 import { useAutosave } from "../../lib/useAutosave";
@@ -88,6 +88,10 @@ export function BeeSwarmShell() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryRow[]>([]);
+  // 部门 id → 中文名 (当前场景), 用于把 internal_med 等英文 id 显示成中文 + 防溢出
+  const [deptLabels, setDeptLabels] = useState<Record<string, string>>({});
+  // 用户「我来挑部门/路线」展开 RoutePlanner
+  const [showRoute, setShowRoute] = useState(false);
 
   // settings drawer
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -264,6 +268,21 @@ export function BeeSwarmShell() {
   }, [backendUrl, mode]);
   useEffect(() => { refreshHistory(); }, [refreshHistory]);
 
+  // 拉当前场景的部门中文名映射 (department_labels)
+  useEffect(() => {
+    let aborted = false;
+    (async () => {
+      try {
+        const res = await fetchWithTimeout(`${backendUrl}/api/modes/lookup/${mode}`, undefined, TIMEOUT_MS.default);
+        if (!res.ok) return;
+        const j = await res.json();
+        const labels = (j?.department_labels ?? j?.mode?.department_labels) as Record<string, string> | undefined;
+        if (!aborted && labels && typeof labels === "object") setDeptLabels(labels);
+      } catch { /* 没有就回退英文 id */ }
+    })();
+    return () => { aborted = true; };
+  }, [backendUrl, mode]);
+
   // --- WebSocket 流 → 更新 live turn ---
   const attachStream = useCallback((decisionId: string, turnId: string) => {
     setCurrentDecisionId(decisionId);
@@ -364,6 +383,59 @@ export function BeeSwarmShell() {
 
   const onComposerSend = useCallback(() => { submitTask(task); }, [submitTask, task]);
 
+  // RoutePlanner「我来挑部门/路线」→ 按指定 route/部门/轮数发起
+  const runWithRoute = useCallback((p: RunParams) => {
+    const t = task.trim();
+    if (!t) { setError("先写一句话告诉我你要什么"); return; }
+    if (busy) return;
+    setError(null);
+    setShowRoute(false);
+
+    const turnId = makeId();
+    const curImages = images;
+    const curDocs = docFiles;
+    const effGuess: Difficulty = p.rounds >= 3 ? 4 : p.rounds === 2 ? 3 : p.route === "ceo_only" ? 1 : 2;
+
+    setTurns((prev) => [...prev, {
+      id: turnId, user: t, effort: effGuess, status: "running", summary: null, rounds: p.rounds,
+      images: curImages.length ? curImages : undefined,
+      docNames: curDocs.length ? curDocs.map((d) => d.name) : undefined,
+    }]);
+    setView("thread");
+    setActiveId(turnId);
+    setBusy(true); setHeats([]); setProgress(0);
+    setRunMeta({ route: p.route, rounds_band: p.rounds_band, difficulty: p.difficulty });
+
+    (async () => {
+      try {
+        const res = await fetchWithTimeout(
+          `${backendUrl}/api/decision/start`,
+          {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              task: t, mode_id: mode,
+              debate_rounds: Math.max(p.rounds, 1),
+              thinking_frameworks: frameworks.length > 0 ? frameworks : undefined,
+              tier, images: curImages, files: curDocs,
+              route: p.route, departments_override: p.departments, difficulty_bucket: p.difficulty,
+            }),
+          },
+          TIMEOUT_MS.decisionStart,
+        );
+        if (!res.ok) throw new Error(`decision/start ${res.status}`);
+        const j = await res.json();
+        const decisionId: string | undefined = j?.decision_id;
+        if (!decisionId) throw new Error("AI 服务暂时没响应, 等一下再试");
+        clearTaskBackup(); setImages([]); setDocFiles([]);
+        attachStream(decisionId, turnId);
+      } catch (e: unknown) {
+        setError((e as Error).message ?? "出了点小问题, 等一下重试");
+        setBusy(false);
+        setTurns((prev) => prev.map((tt) => tt.id === turnId ? { ...tt, status: "error" } : tt));
+      }
+    })();
+  }, [task, busy, images, docFiles, mode, frameworks, tier, backendUrl, clearTaskBackup, attachStream]);
+
   // 反馈 → bandit
   const sendFeedback = useCallback(async (reward: number) => {
     if (!currentDecisionId || !runMeta) return;
@@ -461,17 +533,47 @@ export function BeeSwarmShell() {
   ) : null;
 
   const composer = (
-    <Composer
-      value={task}
-      onChange={setTask}
-      effort={difficulty}
-      onEffortChange={setDifficulty}
-      onSend={onComposerSend}
-      onAttach={openFilePicker}
-      busy={busy}
-      error={error}
-      attachSlot={attachSlot}
-    />
+    <>
+      {showRoute && (
+        <div style={{ marginBottom: 10 }}>
+          <RoutePlanner
+            backendUrl={backendUrl}
+            task={task}
+            modeId={mode}
+            images={images}
+            docFiles={docFiles}
+            busy={busy}
+            onRun={runWithRoute}
+          />
+        </div>
+      )}
+      <Composer
+        value={task}
+        onChange={setTask}
+        effort={difficulty}
+        onEffortChange={setDifficulty}
+        onSend={onComposerSend}
+        onAttach={openFilePicker}
+        busy={busy}
+        error={error}
+        attachSlot={attachSlot}
+      />
+      <div style={{ display: "flex", justifyContent: "center", marginTop: 8 }}>
+        <button
+          type="button"
+          onClick={() => setShowRoute((v) => !v)}
+          style={{
+            display: "flex", alignItems: "center", gap: 6,
+            border: "none", background: "transparent", color: "var(--fg-3)",
+            font: "500 12px var(--font-sans)", padding: "4px 10px", borderRadius: "var(--radius-pill)",
+          }}
+        >
+          <Icon name="tune" size={15} />
+          {showRoute ? "收起" : "我来挑部门 / 路线"}
+          <Icon name={showRoute ? "expand_less" : "expand_more"} size={15} />
+        </button>
+      </div>
+    </>
   );
 
   return (
@@ -512,7 +614,6 @@ export function BeeSwarmShell() {
               <Icon name={theme === "dark" ? "light_mode" : "dark_mode"} />
             </button>
             <NotificationBell backendUrl={backendUrl} />
-            <LogsPanel backendUrl={backendUrl} />
             <PendingChangesDrawer backendUrl={backendUrl} />
             <button type="button" className="ghost-btn" onClick={() => setDashOpen(true)} title="看顾问怎么协作" aria-label="帮助">
               <Icon name="help" />
@@ -572,6 +673,7 @@ export function BeeSwarmShell() {
                           done={turn.status === "done"}
                           rounds={turn.rounds || 2}
                           progress={liveThis ? progress : 100}
+                          labels={deptLabels}
                         />
                         {turn.status === "error" && (
                           <div className="callout warn">
@@ -610,7 +712,7 @@ export function BeeSwarmShell() {
         onClose={() => setDashOpen(false)}
         heats={heats}
         progressPct={progress > 0 ? progress : undefined}
-        flowText={"你的任务 → AI 分析需要哪些顾问 → 顾问们同时思考 → 红队挑刺 → 综合给你答案"}
+        labels={deptLabels}
       />
 
       <SettingsDrawer

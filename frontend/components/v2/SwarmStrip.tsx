@@ -17,11 +17,20 @@ type Props = {
   advisorCount?: number;
   /** progress 0-100, 用于推断红队步骤 */
   progress?: number;
+  /** 部门 id → 中文名 (来自 /api/modes department_labels), 没有则回退 dept id */
+  labels?: Record<string, string>;
 };
+
+/** 中文标签取「括号前」的短名: "内科 (常见病/慢病)" → "内科" */
+function shortLabel(name: string): string {
+  const cut = name.split(/[\s(（]/)[0];
+  return cut || name;
+}
 
 type StepDef = { text: ReactNode; done: boolean };
 
-export function SwarmStrip({ heats, running, done, rounds = 2, advisorCount, progress = 0 }: Props) {
+export function SwarmStrip({ heats, running, done, rounds = 2, advisorCount, progress = 0, labels = {} }: Props) {
+  const nameOf = (h: DeptHeat): string => shortLabel(h.label ?? labels[h.dept] ?? h.dept);
   const [open, setOpen] = useState(done);
   useEffect(() => { if (done) setOpen(true); }, [done]);
 
@@ -69,7 +78,7 @@ export function SwarmStrip({ heats, running, done, rounds = 2, advisorCount, pro
               const cls = isThinking ? "thinking" : !isDone && h.status === "idle" ? "idle" : "";
               const conf = h.confidence != null ? h.confidence : isDone ? h.heat : 0;
               const pct = Math.round(Math.max(0, Math.min(1, conf)) * 100);
-              const name = h.label ?? h.dept;
+              const name = nameOf(h);
               return (
                 <div key={h.dept + i} className={`adv ${cls}`}>
                   <span className="adv-av" style={{ background: avBg(i) }}>{initial(name)}</span>

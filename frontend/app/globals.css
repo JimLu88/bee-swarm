@@ -263,9 +263,9 @@ body.rail-collapsed .rail { width: 0; margin-left: -1px; overflow: hidden; }
   background: var(--bg-surface-2); color: var(--fg-3); margin-top: 1px; }
 .conv.active .conv-ico { background: var(--accent); color: #fff; }
 .conv-ico .material-symbols-rounded { font-size: 16px; }
-.conv-body { min-width: 0; flex: 1; }
-.conv-title { font: 500 13.5px/1.35 var(--font-sans); color: var(--fg-1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.conv-meta { font: 400 11px/1.3 var(--font-sans); color: var(--fg-3); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.conv-body { min-width: 0; flex: 1; overflow: hidden; }
+.conv-title { display: block; max-width: 100%; font: 500 13.5px/1.35 var(--font-sans); color: var(--fg-1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.conv-meta { display: block; max-width: 100%; font: 400 11px/1.3 var(--font-sans); color: var(--fg-3); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .rail-foot { border-top: 1px solid var(--divider); padding: 8px 10px 12px; display: flex; flex-direction: column; gap: 1px; }
 .foot-item { display: flex; align-items: center; gap: 11px; padding: 9px 12px; border-radius: var(--radius-md);
@@ -366,8 +366,8 @@ body.rail-collapsed .rail { width: 0; margin-left: -1px; overflow: hidden; }
   background: var(--bg-surface-2); border: 1px solid var(--border-1); transition: all var(--dur) var(--ease-out); }
 .adv-av { width: 28px; height: 28px; border-radius: 99px; flex: none; display: flex; align-items: center; justify-content: center;
   font: 600 12px var(--font-sans); color: #fff; }
-.adv-info { min-width: 0; flex: 1; }
-.adv-name { font: 600 12.5px var(--font-sans); color: var(--fg-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.adv-info { min-width: 0; flex: 1; overflow: hidden; }
+.adv-name { display: block; min-width: 0; max-width: 100%; font: 600 12.5px var(--font-sans); color: var(--fg-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .adv-bar { height: 4px; border-radius: 99px; background: var(--bg-active); margin-top: 5px; overflow: hidden; }
 .adv-bar i { display: block; height: 100%; border-radius: 99px; background: var(--accent); width: 0; transition: width 0.7s var(--ease-out); }
 .adv-state { font: 500 10.5px var(--font-sans); color: var(--fg-3); margin-left: auto; flex: none; }
