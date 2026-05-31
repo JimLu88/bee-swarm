@@ -1,99 +1,120 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ClipboardEvent as ReactClipboardEvent, type DragEvent as ReactDragEvent } from "react";
 import {
-  HSEMAS_BACKEND_STORAGE_KEY,
-  httpToWsOrigin,
-  normalizeBackendUrl,
-  resolveBackendHttpBase,
-} from "../../lib/backend";
+  useCallback, useEffect, useMemo, useRef, useState,
+  type ClipboardEvent as ReactClipboardEvent, type DragEvent as ReactDragEvent,
+} from "react";
+import { httpToWsOrigin, resolveBackendHttpBase } from "../../lib/backend";
 import { fetchWithTimeout, TIMEOUT_MS } from "../../lib/http";
 
-import { ModePicker, BUILTIN_MODES, type ModeOption } from "./ModePicker";
-import { TeamPanel } from "./TeamPanel";
-import { TaskInput } from "./TaskInput";
+import { BUILTIN_MODES, type ModeOption } from "./ModePicker";
 import { ImageStrip } from "./ImageStrip";
-import { RoutePlanner } from "./RoutePlanner";
-import { ScenarioDropdown } from "./ScenarioDropdown";
-import { ModelBadgeBar } from "./ModelBadgeBar";
-import { DifficultySlider, DIFFICULTY_INFO, type Difficulty } from "./DifficultySlider";
+import { type Difficulty } from "./DifficultySlider";
 import { ResultPanel, type DecisionSummary } from "./ResultPanel";
-import { HistoryPanel, type HistoryRow } from "./HistoryPanel";
-import { ViewTabs, type ViewMode } from "./ViewTabs";  // 保留 import 防其它地方引用
+import { type HistoryRow } from "./HistoryPanel";
 import { SettingsDrawer } from "./SettingsDrawer";
 import { SwarmDashboardModal, type DeptHeat } from "./SwarmDashboardModal";
-import { GeneEditor } from "./advanced/GeneEditor";
-import { ScenarioYamlAuthor } from "./advanced/ScenarioYamlAuthor";
-import { ThinkingFrameworksPanel } from "./advanced/ThinkingFrameworksPanel";
-import { SandboxPanel } from "./engineer/SandboxPanel";
-import { ShadowABPanel } from "./engineer/ShadowABPanel";
-import { CoordinatorPanel } from "./engineer/CoordinatorPanel";
 import { Onboarding } from "./Onboarding";
-import { SettingsPanel } from "./SettingsPanel";
-import { ReviewPanel } from "./ReviewPanel";
-import { BackupConfigPanel } from "./BackupConfigPanel";
-import { UpgradeLogPanel } from "./UpgradeLogPanel";
 import { NotificationBell } from "./NotificationBell";
 import { LogsPanel } from "./LogsPanel";
-import { ClarifyAndPlanModal, type Plan } from "./ClarifyAndPlanModal";
 import { PendingChangesDrawer } from "./PendingChangesDrawer";
-import { TodayOverviewCard } from "./TodayOverviewCard";
 import { CommandPalette } from "./CommandPalette";
 import { useAutosave } from "../../lib/useAutosave";
 
+import { Icon } from "./Icon";
+import { Sidebar } from "./Sidebar";
+import { SceneSwitcher } from "./SceneSwitcher";
+import { Composer } from "./Composer";
+import { SwarmStrip } from "./SwarmStrip";
+import { sceneSuggestions } from "../../lib/scenes";
+
 /**
- * BeeSwarmShell — 新版 v4 主壳
- *
- * 布局:
- *   - 顶部: 5+1 场景卡片
- *   - 中部: 任务输入 + 4 档难度滑块(AI 建议高亮)
- *   - 下部: 结果区 + 历史
- *   - 右上: ⚙ AI 设置 / 🐝 看 AI 怎么干活 / 📊 记账
- *   - 三档视图: 用户(默认) / 高级 / 工程
+ * BeeSwarmShell — v8 Jim Clear + Gemini 对话式主壳.
+ * 侧栏(Sidebar) + 顶栏(SceneSwitcher) + 居中对话流(turns) + 底部 Composer.
+ * 决策链路(WebSocket / REST / bandit)完全沿用, 仅重排 UI.
  */
 
-const DIFFICULTY_TO_ROUNDS: Record<Difficulty, number> = { 1: 1, 2: 2, 3: 3, 4: 5 };
+type View = "welcome" | "thread";
+
+type Turn = {
+  id: string;
+  user: string;
+  images?: string[];
+  docNames?: string[];
+  effort: Difficulty;
+  summary?: DecisionSummary | null;
+  status: "running" | "done" | "error";
+  decisionId?: string;
+  rounds: number;
+};
+
+const EFFORT_MAP: Record<Difficulty, { route: string; rounds: number; band: string; diff: string }> = {
+  1: { route: "ceo_only", rounds: 0, band: "light", diff: "light" },
+  2: { route: "all", rounds: 1, band: "light", diff: "medium" },
+  3: { route: "all", rounds: 2, band: "medium", diff: "medium" },
+  4: { route: "all", rounds: 3, band: "heavy", diff: "heavy" },
+};
+
+function makeId(): string {
+  try {
+    if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+  } catch { /* ignore */ }
+  return "t" + Date.now() + "-" + Math.floor(Math.random() * 1e6);
+}
+
+/** 完成态/历史的 turn → 由 dept_reports 反推 heats (全 done) */
+function deriveHeats(summary?: DecisionSummary | null): DeptHeat[] {
+  const reports = summary?.dept_reports ?? [];
+  return reports.map((r) => ({
+    dept: r.dept ?? "?",
+    heat: 1,
+    status: "done" as const,
+    confidence: r.confidence_score,
+    opinion: r.consensus,
+  }));
+}
 
 export function BeeSwarmShell() {
-  // --- core state ---
-  const [view, setView] = useState<ViewMode>("user");  // 兼容; 主页固定 user
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [mode, setMode] = useState<string>("program_management");
-  // v6-S10 task 自动备份 — 刷新/崩溃不丢
-  const { value: task, setValue: setTask, clear: clearTaskBackup, restored: taskRestored } = useAutosave<string>("task-input", "");
-  const [difficulty, setDifficulty] = useState<Difficulty>(2);
-  const [aiSuggested, setAiSuggested] = useState<Difficulty | undefined>();
-  const [aiReason, setAiReason] = useState<string | undefined>();
-  const [estimateText, setEstimateText] = useState<string | undefined>();
-  const [busy, setBusy] = useState(false);
-  const [summary, setSummary] = useState<DecisionSummary | null>(null);
-  const [history, setHistory] = useState<HistoryRow[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  // --- shell state ---
+  const [view, setView] = useState<View>("welcome");
+  const [turns, setTurns] = useState<Turn[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [railCollapsed, setRailCollapsed] = useState(false);
 
-  // v6-S/C SettingsDrawer 默认 tab (TodayOverviewCard 点"复习"切到 memory)
+  // --- core decision state ---
+  const [mode, setMode] = useState<string>("program_management");
+  const { value: task, setValue: setTask, clear: clearTaskBackup } = useAutosave<string>("task-input", "");
+  const [difficulty, setDifficulty] = useState<Difficulty>(3);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [history, setHistory] = useState<HistoryRow[]>([]);
+
+  // settings drawer
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsInitialTab, setSettingsInitialTab] = useState<"scenario" | "ai" | "memory" | "advanced" | "tech" | undefined>(undefined);
 
-  // v6-W 3 档降级: A=高档旗舰 / B=中档便宜云 / C=离线本地
-  // 初值固定 "A" 与 SSR 一致; localStorage 读取放 mount 后 useEffect,
-  // 否则首屏 hydration 时 server("A") vs client(saved) 不一致 → hydration error (见 v6-Z-fix).
+  // tier A/B/C (SSR-safe)
   const [tier, setTierState] = useState<"A" | "B" | "C">("A");
   useEffect(() => {
     if (typeof window === "undefined") return;
     const saved = window.localStorage.getItem("h-semas:tier") as "A" | "B" | "C" | null;
     if (saved === "B" || saved === "C") setTierState(saved);
   }, []);
-  const setTier = (t: "A" | "B" | "C") => {
-    setTierState(t);
-    if (typeof window !== "undefined") {
-      try { window.localStorage.setItem("h-semas:tier", t); } catch { /* ignore */ }
-    }
-  };
+  const cycleTier = useCallback(() => {
+    setTierState((prev) => {
+      const next = prev === "A" ? "B" : prev === "B" ? "C" : "A";
+      if (typeof window !== "undefined") {
+        try { window.localStorage.setItem("h-semas:tier", next); } catch { /* ignore */ }
+      }
+      return next;
+    });
+  }, []);
 
-  // v6-X 图片: data URL, 最多 4 张, 单张 <= 6MB (走视觉模型)
+  // attachments
   const [images, setImages] = useState<string[]>([]);
-  // v6-Y 文档: xlsx/pdf/docx/pptx/csv/txt, 最多 5 个, 单个 <= 15MB (进程内解析成文字)
   const [docFiles, setDocFiles] = useState<{ name: string; content_b64: string }[]>([]);
   const [attachWarn, setAttachWarn] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const readAsDataUrl = (file: File): Promise<string> => new Promise((resolve, reject) => {
     const r = new FileReader();
@@ -102,7 +123,6 @@ export function BeeSwarmShell() {
     r.readAsDataURL(file);
   });
 
-  // 统一入口: 图片走 images, 其余走 docFiles
   const addAttachment = useCallback(async (file: File): Promise<void> => {
     const isImage = file.type.startsWith("image/");
     if (isImage) {
@@ -115,7 +135,6 @@ export function BeeSwarmShell() {
       });
       return;
     }
-    // 文档
     if (file.size > 15 * 1024 * 1024) { setAttachWarn(`文件太大 (>15MB): ${file.name}`); return; }
     const dataUrl = await readAsDataUrl(file);
     const b64 = dataUrl.includes(",") ? dataUrl.split(",", 2)[1] : dataUrl;
@@ -149,70 +168,92 @@ export function BeeSwarmShell() {
     for (const f of files) void addAttachment(f);
   }, [addAttachment]);
   const onDragOver = useCallback((e: ReactDragEvent) => { e.preventDefault(); }, []);
+  const openFilePicker = useCallback(() => fileInputRef.current?.click(), []);
+  const onFilePicked = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    for (const f of files) void addAttachment(f);
+    e.target.value = "";
+  }, [addAttachment]);
 
-  // dashboard
-  const [dashOpen, setDashOpen] = useState(false);
+  // live deliberation state (single active decision)
   const [heats, setHeats] = useState<DeptHeat[]>([]);
   const [progress, setProgress] = useState<number>(0);
+  const [dashOpen, setDashOpen] = useState(false);
 
-  // v6-S6/S7 决策开始时间 + 重跑中部门
   const decisionStartRef = useRef<number | null>(null);
   const [rerunningDept, setRerunningDept] = useState<string | null>(null);
   const [currentDecisionId, setCurrentDecisionId] = useState<string | null>(null);
+  const [runMeta, setRunMeta] = useState<{ route: string; rounds_band: string; difficulty: string } | null>(null);
 
-  // thinking frameworks
+  // thinking frameworks (AI 自动选; SettingsDrawer 可手动改)
   const [frameworks, setFrameworks] = useState<string[]>([]);
   const [aiFrameworks, setAiFrameworks] = useState<string[]>([]);
 
-  // --- backend URL ---
+  // backend URL
   const backendUrl = useMemo(() => resolveBackendHttpBase(), []);
   const wsBase = useMemo(() => httpToWsOrigin(backendUrl), [backendUrl]);
 
-  // --- AI 自动判断难度(防抖,task 改动 1 秒后调用 /estimate) ---
+  // 主题: 默认 light (与设计稿一致), SSR-safe
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const saved = window.localStorage.getItem("h-semas:theme");
+    const t = saved === "dark" ? "dark" : "light";
+    setTheme(t);
+    document.documentElement.dataset.theme = t;
+  }, []);
+  const toggleTheme = useCallback(() => {
+    setTheme((prev) => {
+      const next = prev === "dark" ? "light" : "dark";
+      if (typeof window !== "undefined") {
+        document.documentElement.dataset.theme = next;
+        try { window.localStorage.setItem("h-semas:theme", next); } catch { /* ignore */ }
+      }
+      return next;
+    });
+  }, []);
+
+  // rail collapse → body class (CSS 控制)
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.body.classList.toggle("rail-collapsed", railCollapsed);
+  }, [railCollapsed]);
+
+  // --- AI 自动判断思考方法 (防抖); 仅用于 framework 建议 ---
   const estTimer = useRef<number | null>(null);
   useEffect(() => {
-    if (!task.trim()) {
-      setAiSuggested(undefined);
-      setAiReason(undefined);
-      setEstimateText(undefined);
-      return;
-    }
+    if (!task.trim()) { setAiFrameworks([]); return; }
     if (estTimer.current) window.clearTimeout(estTimer.current);
     estTimer.current = window.setTimeout(async () => {
       try {
         const res = await fetchWithTimeout(
           `${backendUrl}/api/decision/estimate`,
           {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ task, mode_id: mode, debate_rounds: DIFFICULTY_TO_ROUNDS[difficulty] }),
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ task, mode_id: mode, debate_rounds: EFFORT_MAP[difficulty].rounds || 1 }),
           },
           TIMEOUT_MS.default,
         );
-        if (!res.ok) throw new Error(`estimate ${res.status}`);
+        if (!res.ok) return;
         const j = await res.json();
-        if (j.difficulty) {
-          setAiSuggested(j.difficulty as Difficulty);
-          setAiReason(j.reason ?? undefined);
-        }
-        if (j.estimate_yuan != null) {
-          setEstimateText(`约 ¥${Number(j.estimate_yuan).toFixed(2)} · ${j.estimate_tokens ?? "?"} tokens · ${j.eta_sec ?? "?"} 秒`);
-        }
-        if (Array.isArray(j.suggested_frameworks)) {
-          setAiFrameworks(j.suggested_frameworks);
-        }
-      } catch {
-        // backend not yet supports /estimate → silent fallback
-        setEstimateText(undefined);
-      }
+        if (Array.isArray(j.suggested_frameworks)) setAiFrameworks(j.suggested_frameworks);
+      } catch { /* silent */ }
     }, 700) as unknown as number;
     return () => { if (estTimer.current) window.clearTimeout(estTimer.current); };
   }, [task, mode, difficulty, backendUrl]);
 
-  // --- 拉历史 ---
+  useEffect(() => {
+    if (frameworks.length === 0 && aiFrameworks.length > 0) setFrameworks(aiFrameworks);
+  }, [aiFrameworks, frameworks.length]);
+
+  const toggleFramework = useCallback((id: string) => {
+    setFrameworks((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+  }, []);
+
+  // --- 历史 ---
   const refreshHistory = useCallback(async () => {
     try {
-      const res = await fetchWithTimeout(`${backendUrl}/api/memory/${mode}?limit=20&compact=1`, undefined, TIMEOUT_MS.default);
+      const res = await fetchWithTimeout(`${backendUrl}/api/memory/${mode}?limit=30&compact=1`, undefined, TIMEOUT_MS.default);
       if (!res.ok) throw new Error(`memory ${res.status}`);
       const j = await res.json();
       const rows: HistoryRow[] = Array.isArray(j?.items) ? j.items : Array.isArray(j) ? j : [];
@@ -221,23 +262,10 @@ export function BeeSwarmShell() {
       setHistory([]);
     }
   }, [backendUrl, mode]);
-
   useEffect(() => { refreshHistory(); }, [refreshHistory]);
 
-  // v6-F 决策计划 modal 状态
-  const [clarifyOpen, setClarifyOpen] = useState(false);
-  // v6-Z 本次决策的路线元数据 (供 ResultPanel 👍👎 回填 bandit)
-  const [runMeta, setRunMeta] = useState<{ route: string; rounds_band: string; difficulty: string } | null>(null);
-
-  // 用户点 "开跑" → 先打开 ClarifyAndPlanModal; modal onConfirm 才真调 /decision/start
-  const openClarifyPlan = useCallback(() => {
-    if (!task.trim()) { setError("先在上面写一句话告诉我你要什么"); return; }
-    setError(null);
-    setClarifyOpen(true);
-  }, [task]);
-
-  // v6-Z 共享: 连 WebSocket 流式接收决策事件 (route 路径与 modal 路径复用)
-  const attachStream = useCallback((decisionId: string) => {
+  // --- WebSocket 流 → 更新 live turn ---
+  const attachStream = useCallback((decisionId: string, turnId: string) => {
     setCurrentDecisionId(decisionId);
     decisionStartRef.current = Date.now();
     const ws = new WebSocket(`${wsBase}/api/decision/stream/${decisionId}`);
@@ -249,18 +277,22 @@ export function BeeSwarmShell() {
         } else if (e.type === "fanout_started") {
           setProgress(20);
           const depts: string[] = Array.isArray(e.payload?.depts) ? e.payload.depts : [];
-          setHeats(depts.map((d) => ({ dept: d, heat: 0, status: "idle" })));
+          setHeats(depts.map((d) => ({ dept: d, heat: 0, status: "running" as const })));
         } else if (e.type === "dept_done") {
           const d = String(e.payload?.dept ?? "");
-          setHeats((prev) => prev.map((h) => h.dept === d ? { ...h, heat: 1, status: "done", callCount: (h.callCount ?? 0) + 1, opinion: e.payload?.consensus } : h));
+          const conf = e.payload?.confidence;
+          setHeats((prev) => prev.map((h) => h.dept === d
+            ? { ...h, heat: 1, status: "done", confidence: typeof conf === "number" ? conf : h.confidence, callCount: (h.callCount ?? 0) + 1, opinion: e.payload?.consensus }
+            : h));
           setProgress((p) => Math.min(95, p + 8));
         } else if (e.type === "decision_done") {
           setProgress(100);
           const _sum = (e.payload as { summary?: DecisionSummary }).summary ?? (e.payload as DecisionSummary);
-          if (decisionStartRef.current) {
-            _sum.elapsed_sec = (Date.now() - decisionStartRef.current) / 1000;
-          }
-          setSummary(_sum);
+          if (decisionStartRef.current) _sum.elapsed_sec = (Date.now() - decisionStartRef.current) / 1000;
+          setTurns((prev) => prev.map((t) => t.id === turnId
+            ? { ...t, summary: _sum, status: "done", decisionId: _sum.decision_id ?? decisionId }
+            : t));
+          if (_sum.decision_id) setActiveId(_sum.decision_id);
           setBusy(false);
           refreshHistory();
           ws.close();
@@ -269,77 +301,70 @@ export function BeeSwarmShell() {
         }
       } catch { /* ignore */ }
     };
-    ws.onerror = () => { setError("和 AI 的连接断了, 刷新一下重试"); setBusy(false); };
+    ws.onerror = () => {
+      setError("和 AI 的连接断了, 刷新一下重试");
+      setBusy(false);
+      setTurns((prev) => prev.map((t) => t.id === turnId && t.status === "running" ? { ...t, status: "error" } : t));
+    };
     ws.onclose = () => { /* ok */ };
   }, [wsBase, refreshHistory]);
 
-  // 真启动决策 (modal onConfirm 调用) — 走 route=all 兼容路径
-  const runDecisionWith = useCallback(async (finalTask: string, plan: Plan) => {
-    setClarifyOpen(false);
-    setError(null); setBusy(true); setSummary(null); setHeats([]); setProgress(0);
-    decisionStartRef.current = Date.now();
-    setRunMeta({ route: "all", rounds_band: "medium", difficulty: "medium" });
-    try {
-      const res = await fetchWithTimeout(
-        `${backendUrl}/api/decision/start`,
-        {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            task: finalTask, mode_id: mode,
-            debate_rounds: Math.max(plan.rounds, 1),
-            thinking_frameworks: frameworks.length > 0 ? frameworks : undefined,
-            tier, images, files: docFiles,
-          }),
-        },
-        TIMEOUT_MS.decisionStart,
-      );
-      if (!res.ok) throw new Error(`decision/start ${res.status}`);
-      const j = await res.json();
-      const decisionId: string | undefined = j?.decision_id;
-      if (!decisionId) throw new Error("AI 服务暂时没响应, 等一下再试");
-      clearTaskBackup(); setImages([]); setDocFiles([]);
-      attachStream(decisionId);
-    } catch (e: unknown) {
-      setError((e as Error).message ?? "出了点小问题, 等一下重试");
-      setBusy(false);
-    }
-  }, [mode, frameworks, backendUrl, clearTaskBackup, tier, images, docFiles, attachStream]);
+  // --- 发起咨询 (Composer 发送 / 建议卡片 / 重新生成) ---
+  const submitTask = useCallback((text: string) => {
+    const t = text.trim();
+    if (!t) { setError("先写一句话告诉我你要什么"); return; }
+    if (busy) return;
+    setError(null);
 
-  // v6-Z RoutePlanner "生成执行命令" → 按选定路线+轮数启动
-  const runWithRoute = useCallback(async (p: { route: string; departments: string[]; rounds: number; rounds_band: string; difficulty: string }) => {
-    setError(null); setBusy(true); setSummary(null); setHeats([]); setProgress(0);
-    decisionStartRef.current = Date.now();
-    setRunMeta({ route: p.route, rounds_band: p.rounds_band, difficulty: p.difficulty });
-    try {
-      const res = await fetchWithTimeout(
-        `${backendUrl}/api/decision/start`,
-        {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            task, mode_id: mode,
-            debate_rounds: Math.max(p.rounds, 1),
-            thinking_frameworks: frameworks.length > 0 ? frameworks : undefined,
-            tier, images, files: docFiles,
-            route: p.route,
-            departments_override: p.departments,
-            difficulty_bucket: p.difficulty,
-          }),
-        },
-        TIMEOUT_MS.decisionStart,
-      );
-      if (!res.ok) throw new Error(`decision/start ${res.status}`);
-      const j = await res.json();
-      const decisionId: string | undefined = j?.decision_id;
-      if (!decisionId) throw new Error("AI 服务暂时没响应, 等一下再试");
-      clearTaskBackup(); setImages([]); setDocFiles([]);
-      attachStream(decisionId);
-    } catch (e: unknown) {
-      setError((e as Error).message ?? "出了点小问题, 等一下重试");
-      setBusy(false);
-    }
-  }, [task, mode, frameworks, backendUrl, clearTaskBackup, tier, images, docFiles, attachStream]);
+    const eff = difficulty;
+    const m = EFFORT_MAP[eff];
+    const turnId = makeId();
+    const curImages = images;
+    const curDocs = docFiles;
 
-  // v6-Z 👍👎 反馈 → bandit 学习
+    setTurns((prev) => [...prev, {
+      id: turnId, user: t, effort: eff, status: "running", summary: null, rounds: m.rounds,
+      images: curImages.length ? curImages : undefined,
+      docNames: curDocs.length ? curDocs.map((d) => d.name) : undefined,
+    }]);
+    setView("thread");
+    setActiveId(turnId);
+    setBusy(true); setHeats([]); setProgress(0);
+    setRunMeta({ route: m.route, rounds_band: m.band, difficulty: m.diff });
+
+    (async () => {
+      try {
+        const res = await fetchWithTimeout(
+          `${backendUrl}/api/decision/start`,
+          {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              task: t, mode_id: mode,
+              debate_rounds: Math.max(m.rounds, 1),
+              thinking_frameworks: frameworks.length > 0 ? frameworks : undefined,
+              tier, images: curImages, files: curDocs,
+              route: m.route, departments_override: [], difficulty_bucket: m.diff,
+            }),
+          },
+          TIMEOUT_MS.decisionStart,
+        );
+        if (!res.ok) throw new Error(`decision/start ${res.status}`);
+        const j = await res.json();
+        const decisionId: string | undefined = j?.decision_id;
+        if (!decisionId) throw new Error("AI 服务暂时没响应, 等一下再试");
+        clearTaskBackup(); setImages([]); setDocFiles([]);
+        attachStream(decisionId, turnId);
+      } catch (e: unknown) {
+        setError((e as Error).message ?? "出了点小问题, 等一下重试");
+        setBusy(false);
+        setTurns((prev) => prev.map((tt) => tt.id === turnId ? { ...tt, status: "error" } : tt));
+      }
+    })();
+  }, [busy, difficulty, images, docFiles, mode, frameworks, tier, backendUrl, clearTaskBackup, attachStream]);
+
+  const onComposerSend = useCallback(() => { submitTask(task); }, [submitTask, task]);
+
+  // 反馈 → bandit
   const sendFeedback = useCallback(async (reward: number) => {
     if (!currentDecisionId || !runMeta) return;
     try {
@@ -357,46 +382,7 @@ export function BeeSwarmShell() {
     } catch { /* silent */ }
   }, [backendUrl, currentDecisionId, runMeta, mode]);
 
-  // 旧 startDecision 接口的兼容包装 (TaskInput 等组件仍调它; 实质走新流程)
-  const startDecision = openClarifyPlan;
-
-  // v7 主题开关 (Wave1 占位; Wave2 接 CSS 令牌). 默认 dark, SSR-safe.
-  const [theme, setTheme] = useState<"light" | "dark">("dark");
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const saved = window.localStorage.getItem("h-semas:theme");
-    const t = saved === "light" ? "light" : "dark";
-    setTheme(t);
-    document.documentElement.dataset.theme = t;
-  }, []);
-  const toggleTheme = useCallback(() => {
-    setTheme((prev) => {
-      const next = prev === "dark" ? "light" : "dark";
-      if (typeof window !== "undefined") {
-        document.documentElement.dataset.theme = next;
-        try { window.localStorage.setItem("h-semas:theme", next); } catch { /* ignore */ }
-      }
-      return next;
-    });
-  }, []);
-
-  // v7 ⚙更多设置: 展开精细路线×轮数 (RoutePlanner)
-  const [moreSettings, setMoreSettings] = useState(false);
-
-  // v7 努力程度(difficulty 1-4) → (route, rounds). 简单=CEO单答, 全力=全部门深辩.
-  const runByEffort = useCallback(() => {
-    if (!task.trim()) { setError("先在上面写一句话告诉我你要什么"); return; }
-    const MAP: Record<Difficulty, { route: string; rounds: number; band: string; diff: string }> = {
-      1: { route: "ceo_only", rounds: 0, band: "light", diff: "light" },
-      2: { route: "all", rounds: 1, band: "light", diff: "medium" },
-      3: { route: "all", rounds: 2, band: "medium", diff: "medium" },
-      4: { route: "all", rounds: 3, band: "heavy", diff: "heavy" },
-    };
-    const m = MAP[difficulty];
-    void runWithRoute({ route: m.route, departments: [], rounds: m.rounds, rounds_band: m.band, difficulty: m.diff });
-  }, [task, difficulty, runWithRoute]);
-
-  // v6-S6 重跑某个部门 (后端有 /api/decision/rerun-dept 时生效)
+  // 重跑某部门
   const rerunDept = useCallback(async (deptId: string) => {
     if (!currentDecisionId) { setError("没有正在显示的决策"); return; }
     setRerunningDept(deptId);
@@ -408,17 +394,14 @@ export function BeeSwarmShell() {
         { method: "POST" }, TIMEOUT_MS.decisionStart,
       );
       if (!res.ok) {
-        if (res.status === 404) {
-          setError("后端还没装重跑端点 — 暂时用左上角 ⚙️ 设置 → 重生该部门 prompt 后重新提问");
-        } else {
-          throw new Error(`rerun-dept ${res.status}`);
-        }
+        if (res.status === 404) setError("后端还没装重跑端点 — 暂时在 ⚙ 设置里重生该部门 prompt 后重新提问");
+        else throw new Error(`rerun-dept ${res.status}`);
         return;
       }
       const j = await res.json();
       const newSum: DecisionSummary = j.summary ?? j;
       newSum.elapsed_sec = (Date.now() - t0) / 1000;
-      setSummary(newSum);
+      setTurns((prev) => prev.map((t) => t.decisionId === currentDecisionId ? { ...t, summary: newSum } : t));
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -426,323 +409,208 @@ export function BeeSwarmShell() {
     }
   }, [backendUrl, currentDecisionId]);
 
-  // --- 历史详情 ---
+  // --- 历史详情 → 单 turn 展示 ---
   const pickHistory = useCallback(async (decisionId: string) => {
     try {
       const res = await fetchWithTimeout(`${backendUrl}/api/memory/${mode}/decision/${decisionId}`, undefined, TIMEOUT_MS.default);
       if (!res.ok) throw new Error(`detail ${res.status}`);
-      const j = await res.json();
-      setSummary(j as DecisionSummary);
+      const j = await res.json() as DecisionSummary;
       setCurrentDecisionId(decisionId);
+      setRunMeta(null);
+      setTurns([{
+        id: makeId(), user: j.task ?? "(历史咨询)", effort: 3, status: "done",
+        summary: j, decisionId, rounds: 2,
+      }]);
+      setActiveId(decisionId);
+      setView("thread");
     } catch (e: unknown) {
       setError((e as Error).message ?? "读历史记录出问题了");
     }
   }, [backendUrl, mode]);
 
-  // --- 范式 toggle ---
-  const toggleFramework = useCallback((id: string) => {
-    setFrameworks((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+  // 新咨询
+  const newConsult = useCallback(() => {
+    setTurns([]);
+    setActiveId(null);
+    setView("welcome");
+    setError(null);
+    setHeats([]); setProgress(0);
+    setCurrentDecisionId(null);
   }, []);
 
-  // 当 AI 建议范式变化,自动同步勾选(用户没手动改时)
-  useEffect(() => {
-    if (frameworks.length === 0 && aiFrameworks.length > 0) {
-      setFrameworks(aiFrameworks);
-    }
-  }, [aiFrameworks, frameworks.length]);
+  const openSettings = useCallback((tab?: "scenario" | "ai" | "memory" | "advanced" | "tech") => {
+    setSettingsInitialTab(tab);
+    setSettingsOpen(true);
+  }, []);
+
+  const suggestions = useMemo(() => sceneSuggestions(mode), [mode]);
+
+  // 附件预览 slot (Composer 上方)
+  const attachSlot = (images.length > 0 || docFiles.length > 0 || attachWarn) ? (
+    <div style={{ marginBottom: 8 }}>
+      <ImageStrip
+        images={images}
+        docFiles={docFiles}
+        onAdd={addAttachment}
+        onRemove={removeImageAt}
+        onRemoveDoc={removeDocAt}
+        warn={attachWarn}
+        max={10}
+      />
+    </div>
+  ) : null;
+
+  const composer = (
+    <Composer
+      value={task}
+      onChange={setTask}
+      effort={difficulty}
+      onEffortChange={setDifficulty}
+      onSend={onComposerSend}
+      onAttach={openFilePicker}
+      busy={busy}
+      error={error}
+      attachSlot={attachSlot}
+    />
+  );
 
   return (
-    <><Onboarding /><div style={{ maxWidth: 1200, margin: "0 auto", padding: "20px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
-      {/* Header */}
-      <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: 22 }}>🐝 我的 AI 智囊团</h1>
-          <div style={{ fontSize: 12, opacity: 0.6 }}>有问题? 让 6 位 AI 顾问一起帮你想.</div>
-        </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          {/* v7 档位(高/中/本地)已移到「⚙更多设置」展开区, 首页只留努力程度 */}
-          {/* v7 主题深/浅切换 (成本/预算环已删) */}
-          <button type="button" onClick={toggleTheme} title="深色/浅色切换"
-            style={{
-              padding: "6px 10px", fontSize: 14, borderRadius: 6, cursor: "pointer",
-              border: "1px solid var(--border)", background: "var(--bg-subtle)", color: "inherit",
-            }}>
-            {theme === "dark" ? "🌙" : "☀️"}
-          </button>
-          {/* 通知类按钮带 badge, 必须外露 */}
-          <LogsPanel backendUrl={backendUrl} />
-          <PendingChangesDrawer backendUrl={backendUrl} />
-          <NotificationBell backendUrl={backendUrl} />
-          {/* 无状态的次要功能收进 ⋯ 菜单 */}
-          <MoreMenu onSeeAI={() => setDashOpen(true)} />
-          {/* 主操作: 设置 (黄色高亮) */}
-          <button
-            type="button"
-            onClick={() => setSettingsOpen(true)}
-            style={{
-              ...iconBtn,
-              borderColor: "var(--accent)",
-              background: "var(--accent-bg)",
-              color: "var(--accent)",
-              fontWeight: 700,
-            }}
-            title="AI 配置 / 记忆 / 高级 / 技术 都在这里"
-          >⚙️ 设置</button>
-        </div>
-      </header>
+    <div className="app" onPaste={onPaste} onDrop={onDrop} onDragOver={onDragOver}>
+      <Onboarding />
+      <input ref={fileInputRef} type="file" multiple onChange={onFilePicked} style={{ display: "none" }} />
 
-      {/* v6-R: 删 ViewTabs, 主页只剩日常视图; 进阶/技术内容都进 SettingsDrawer */}
-      {/* <ViewTabs value={view} onChange={setView} /> */}
-
-      {/* v6-S1 首屏今天概览 */}
-      <TodayOverviewCard
-        backendUrl={backendUrl}
-        onClickReview={() => { setSettingsInitialTab("memory"); setSettingsOpen(true); }}
+      <Sidebar
+        history={history}
+        activeId={activeId}
+        onNewConsult={newConsult}
+        onPickHistory={pickHistory}
+        onOpenScenario={() => openSettings("scenario")}
+        onOpenSwarm={() => setDashOpen(true)}
+        onOpenSettings={() => openSettings(undefined)}
+        onCollapse={() => setRailCollapsed(true)}
+        tier={tier}
+        onUserClick={cycleTier}
       />
 
-      {/* v6-S10 草稿恢复提示 */}
-      {taskRestored && (
-        <div style={{
-          padding: "8px 12px", borderRadius: 6, fontSize: 12,
-          background: "rgba(76,175,80,0.10)",
-          borderWidth: 1, borderStyle: "solid", borderColor: "rgba(76,175,80,0.30)",
-          color: "#a5d6a7", display: "flex", justifyContent: "space-between", alignItems: "center",
-        }}>
-          <span>♻️ 已恢复你上次没提交的任务草稿</span>
-          <button type="button" onClick={() => { setTask(""); clearTaskBackup(); }}
-                  style={{
-                    padding: "2px 8px", fontSize: 11, borderRadius: 3, cursor: "pointer",
-                    borderWidth: 1, borderStyle: "solid", borderColor: "var(--border)",
-                    background: "transparent", color: "var(--text-dim)",
-                  }}>清掉</button>
-        </div>
-      )}
-
-      {/* 用户视图 (默认) */}
-      {view === "user" && (
-        <>
-          {/* v7 场景下拉 (输入框上方) — 完整场景/顾问团管理已移到 ⚙设置→场景 tab */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            <ScenarioDropdown
+      <div className="main">
+        <header className="topbar">
+          <div className="topbar-l">
+            {railCollapsed && (
+              <button type="button" className="ghost-btn" onClick={() => setRailCollapsed(false)} title="展开侧栏" aria-label="展开侧栏">
+                <Icon name="menu" />
+              </button>
+            )}
+            <SceneSwitcher
               selected={mode}
               onSelect={setMode}
-              onManage={() => { setSettingsInitialTab("scenario"); setSettingsOpen(true); }}
+              onManage={() => openSettings("scenario")}
               backendUrl={backendUrl}
             />
-            <span style={{ fontSize: 11, opacity: 0.5 }}>切换场景 = 换一套专科顾问团</span>
           </div>
-
-          {/* v7 输入框置顶 */}
-          <div onPaste={onPaste} onDrop={onDrop} onDragOver={onDragOver}>
-            <TaskInput value={task} onChange={setTask} />
-            <ImageStrip
-              images={images}
-              docFiles={docFiles}
-              onAdd={addAttachment}
-              onRemove={removeImageAt}
-              onRemoveDoc={removeDocAt}
-              warn={attachWarn}
-              max={10}
-            />
-          </div>
-
-          {/* v7 努力程度滑块 (方案C) */}
-          <DifficultySlider
-            value={difficulty}
-            aiSuggested={aiSuggested}
-            aiReason={aiReason}
-            onChange={setDifficulty}
-          />
-
-          {/* v7 开始 + ⚙更多设置(展开精细路线) */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            <button
-              type="button"
-              onClick={runByEffort}
-              disabled={busy || !task.trim()}
-              style={{
-                padding: "12px 24px", fontSize: 16, fontWeight: 600, borderRadius: 8, border: "none",
-                background: busy ? "var(--accent-bg)" : "var(--accent)", color: "#000",
-                cursor: busy ? "not-allowed" : "pointer",
-              }}
-            >
-              {busy ? "🐝 顾问们在讨论, 请稍等..." : "🚀 开始"}
+          <div className="topbar-r">
+            <button type="button" className="ghost-btn" onClick={toggleTheme} title="深色 / 浅色" aria-label="切换主题">
+              <Icon name={theme === "dark" ? "light_mode" : "dark_mode"} />
             </button>
-            <button type="button" onClick={() => setMoreSettings((v) => !v)}
-              style={{
-                padding: "10px 14px", fontSize: 13, borderRadius: 8,
-                border: "1px solid var(--border-strong)", background: "var(--bg-subtle)",
-                color: "inherit", cursor: "pointer",
-              }}>
-              ⚙ 更多设置 {moreSettings ? "▴" : "▾"}
+            <NotificationBell backendUrl={backendUrl} />
+            <LogsPanel backendUrl={backendUrl} />
+            <PendingChangesDrawer backendUrl={backendUrl} />
+            <button type="button" className="ghost-btn" onClick={() => setDashOpen(true)} title="看顾问怎么协作" aria-label="帮助">
+              <Icon name="help" />
             </button>
-            {error && <span style={{ color: "#f87171", fontSize: 13 }}>{error}</span>}
           </div>
+        </header>
 
-          {/* v7 ⚙更多设置展开: 档位 + CEO 预分析 + 5路线×3轮数 精细控制 */}
-          {moreSettings && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {/* 档位 高/中/本地 — 带费用说明 (用户要直观) */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <span style={{ fontSize: 12, opacity: 0.7 }}>🧠 用多好的脑子 (默认高档; 想省钱/离线再调):</span>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {([
-                    { t: "A", emoji: "🟡", name: "高档", desc: "旗舰最准", cost: "约 ¥1/次", color: "var(--accent)" },
-                    { t: "B", emoji: "🔵", name: "中档", desc: "便宜云够用", cost: "约 ¥0.1/次", color: "var(--info)" },
-                    { t: "C", emoji: "⚪", name: "本地", desc: "离线·慢", cost: "免费", color: "#a0a0a0" },
-                  ] as const).map((o) => {
-                    const active = tier === o.t;
-                    return (
-                      <button key={o.t} type="button" onClick={() => setTier(o.t as "A" | "B" | "C")}
-                        style={{
-                          flex: "1 1 130px", minWidth: 120, padding: "8px 12px", borderRadius: 8, cursor: "pointer",
-                          textAlign: "left", color: "inherit",
-                          borderWidth: active ? 2 : 1, borderStyle: "solid",
-                          borderColor: active ? o.color : "var(--border)",
-                          background: active ? "var(--bg-hover)" : "var(--bg-subtle)",
-                        }}>
-                        <div style={{ fontSize: 13, fontWeight: 600 }}>{o.emoji} {o.name}</div>
-                        <div style={{ fontSize: 11, opacity: 0.6 }}>{o.desc}</div>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: o.color, marginTop: 2 }}>{o.cost}</div>
-                      </button>
-                    );
-                  })}
-                </div>
+        <div className="scroll app-scroll">
+          {view === "welcome" ? (
+            <section className="welcome">
+              <h1 className="greet">你好，<span className="grad">今天想解决什么？</span></h1>
+              <p className="greet-sub">
+                把你正在纠结的事写下来。我会先分诊，再请这套场景里最合适的几位顾问一起讨论，给你一个能落地的答案。
+              </p>
+              <div className="sugs">
+                {suggestions.map((s, i) => (
+                  <button key={i} type="button" className="sug" onClick={() => submitTask(s.text)}>
+                    <Icon name={s.icon} />
+                    <span className="t">{s.text}</span>
+                  </button>
+                ))}
               </div>
-              <RoutePlanner
-                backendUrl={backendUrl}
-                task={task}
-                modeId={mode}
-                images={images}
-                docFiles={docFiles}
-                busy={busy}
-                onRun={runWithRoute}
-              />
-            </div>
+              <div className="composer-inline">{composer}</div>
+            </section>
+          ) : (
+            <section className="thread">
+              {turns.map((turn, ti) => {
+                const isLast = ti === turns.length - 1;
+                const liveThis = turn.status === "running";
+                const turnHeats = liveThis ? heats : deriveHeats(turn.summary);
+                return (
+                  <div key={turn.id} className="turn fade-up">
+                    {/* 用户气泡 */}
+                    <div className="user-row">
+                      <div className="user-bubble">
+                        {turn.user}
+                        {(turn.images?.length || turn.docNames?.length) ? (
+                          <div className="user-atts">
+                            {turn.images?.map((_, ii) => (
+                              <span key={"img" + ii} className="att-chip"><Icon name="image" />图片 {ii + 1}</span>
+                            ))}
+                            {turn.docNames?.map((n, ii) => (
+                              <span key={"doc" + ii} className="att-chip"><Icon name="description" />{n}</span>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    {/* AI 回答 */}
+                    <div className="ai-row">
+                      <div className="spark"><Icon name="auto_awesome" fill /></div>
+                      <div className="ai-body">
+                        <SwarmStrip
+                          heats={turnHeats}
+                          running={liveThis}
+                          done={turn.status === "done"}
+                          rounds={turn.rounds || 2}
+                          progress={liveThis ? progress : 100}
+                        />
+                        {turn.status === "error" && (
+                          <div className="callout warn">
+                            <div className="callout-h"><Icon name="error" />出了点问题</div>
+                            <div className="risk"><Icon name="chevron_right" /><span className="rt">{error ?? "AI 服务暂时没响应, 换个说法或稍后重试"}</span></div>
+                          </div>
+                        )}
+                        {turn.status === "done" && turn.summary && (
+                          <ResultPanel
+                            summary={turn.summary}
+                            effort={turn.effort}
+                            onRerunDept={isLast ? rerunDept : undefined}
+                            rerunningDept={rerunningDept}
+                            onFeedback={isLast && runMeta ? sendFeedback : undefined}
+                            onRegenerate={isLast ? () => submitTask(turn.user) : undefined}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </section>
           )}
+        </div>
 
-          <ResultPanel summary={summary} onRerunDept={rerunDept} rerunningDept={rerunningDept} onFeedback={sendFeedback} />
-          <HistoryPanel rows={history} onPick={pickHistory} backendUrl={backendUrl} />
-        </>
-      )}
+        {/* 底部常驻 composer (thread 态) */}
+        {view === "thread" && (
+          <div className="composer-wrap">{composer}</div>
+        )}
+      </div>
 
-      {/* v6-R 高级视图已迁移到 SettingsDrawer; 这里整段被注释掉 */}
-      {false && view === "advanced" && (
-        <>
-          <ModePicker selected={mode} onSelect={setMode} onOpenCustom={() => {}} />
-          <TaskInput value={task} onChange={setTask} />
-          <DifficultySlider value={difficulty} aiSuggested={aiSuggested} aiReason={aiReason} estimateText={estimateText} onChange={setDifficulty} />
-          <SettingsPanel />
-          {/* v6 修脱节: 把后端做好却没 UI 露出的功能挂在这里 */}
-          <ReviewPanel backendUrl={backendUrl} />
-          <BackupConfigPanel backendUrl={backendUrl} />
-          <UpgradeLogPanel backendUrl={backendUrl} />
-          {/* v6-P 3 个专家工具折叠 + 加说明; 多数人不用点 */}
-          <details style={{
-            padding: 12, borderRadius: 8,
-            background: "var(--bg-subtle)",
-            borderWidth: 1, borderStyle: "solid",
-            borderColor: "var(--border)",
-          }}>
-            <summary style={{
-              cursor: "pointer", fontSize: 13, fontWeight: 600, color: "var(--info)",
-            }}>
-              🧠 思考方法 (默认 AI 自己选, 一般不用动)
-            </summary>
-            <div style={{
-              fontSize: 11, color: "var(--text-dim)", marginTop: 8, marginBottom: 10,
-              lineHeight: 1.6, padding: 8, borderRadius: 4,
-              background: "var(--info-bg)",
-            }}>
-              <b>这是什么:</b> 8 套思考方法 (Chain-of-Thought / Tree-of-Thoughts / Self-Ask / Reflexion ...).
-              AI 分诊官会根据你的任务自动选 0-2 个最合适的, 不需要你操心.
-              <br/><b>什么时候动手:</b> 你想强制让 AI 用某个特定方法时 (例如 "我就要它走 ToT"); 否则保持默认.
-            </div>
-            <ThinkingFrameworksPanel enabled={frameworks} aiPicked={aiFrameworks} onToggle={toggleFramework} />
-          </details>
-
-          <details style={{
-            padding: 12, borderRadius: 8,
-            background: "var(--bg-subtle)",
-            borderWidth: 1, borderStyle: "solid",
-            borderColor: "var(--border)",
-          }}>
-            <summary style={{
-              cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#ffb300",
-            }}>
-              🧬 基因编辑器 (高级 / 给开发者: 直接编辑某部门的 system prompt 模板)
-            </summary>
-            <div style={{
-              fontSize: 11, color: "var(--text-dim)", marginTop: 8, marginBottom: 10,
-              lineHeight: 1.6, padding: 8, borderRadius: 4,
-              background: "rgba(255,179,0,0.06)",
-            }}>
-              <b>这是什么:</b> "基因" = 某个部门的底层 system prompt + 方法论.
-              蜂群每天会自演化 (p4 / p8 / p15), 你也可以人工改.
-              <br/><b>什么时候动手:</b> 你看了某部门多次给出离谱回答, 想直接覆盖它的 prompt 时;
-              建议先用 "👤 团队管理" 里的 "重生成 persona" 试一次, 还不行才来这里.
-            </div>
-            <GeneEditor />
-          </details>
-
-          <details style={{
-            padding: 12, borderRadius: 8,
-            background: "var(--bg-subtle)",
-            borderWidth: 1, borderStyle: "solid",
-            borderColor: "var(--border)",
-          }}>
-            <summary style={{
-              cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#ce93d8",
-            }}>
-              📝 自定义场景 YAML (高级 / 给开发者: 写一个新场景)
-            </summary>
-            <div style={{
-              fontSize: 11, color: "var(--text-dim)", marginTop: 8, marginBottom: 10,
-              lineHeight: 1.6, padding: 8, borderRadius: 4,
-              background: "rgba(206,147,216,0.06)",
-            }}>
-              <b>这是什么:</b> 现有 14 个内置场景 (家庭医生 / 法律 / 创业...) 如果不满足你的需求,
-              你可以在这里写 YAML 加新场景 (mode_id + 部门列表 + 默认 prompt 种子).
-              <br/><b>什么时候动手:</b> 14 个场景里没有你想要的; 否则保持默认.
-            </div>
-            <ScenarioYamlAuthor />
-          </details>
-          <div>
-            <button type="button" onClick={startDecision} disabled={busy || !task.trim()} style={{ padding: "10px 20px", borderRadius: 8, border: "1px solid #facc15", background: "var(--accent-bg)", color: "inherit", cursor: busy ? "not-allowed" : "pointer" }}>
-              {busy ? "🐝 讨论中, 等等..." : "🚀 开始让 AI 帮忙(高级)"}
-            </button>
-          </div>
-          <ResultPanel summary={summary} onRerunDept={rerunDept} rerunningDept={rerunningDept} />
-        </>
-      )}
-
-      {/* v6-R 工程视图已迁移到 SettingsDrawer; 这里整段被注释掉 */}
-      {false && view === "engineer" && (
-        <>
-          <div style={{ padding: 12, borderRadius: 10, background: "var(--accent-bg)", border: "1px solid var(--accent-bg)", fontSize: 12 }}>
-            🔧 技术视图 - 给会写代码的人看的. 沙箱跑命令 / AI 自我学习对比 / 系统升级状态 三件套.
-          </div>
-          <SandboxPanel />
-          <ShadowABPanel />
-          <CoordinatorPanel />
-        </>
-      )}
-
+      {/* --- 弹层 / 抽屉 (逻辑不动) --- */}
       <SwarmDashboardModal
         open={dashOpen}
         onClose={() => setDashOpen(false)}
         heats={heats}
         progressPct={progress > 0 ? progress : undefined}
-        flowText={"你的任务 → AI 分析需要哪些顾问 → 6 位顾问同时思考 → 综合给你答案"}
-      />
-
-      <ClarifyAndPlanModal
-        backendUrl={backendUrl}
-        task={task}
-        modeId={mode}
-        open={clarifyOpen}
-        onCancel={() => setClarifyOpen(false)}
-        onConfirm={runDecisionWith}
+        flowText={"你的任务 → AI 分析需要哪些顾问 → 顾问们同时思考 → 红队挑刺 → 综合给你答案"}
       />
 
       <SettingsDrawer
@@ -753,9 +621,10 @@ export function BeeSwarmShell() {
         aiFrameworks={aiFrameworks}
         onToggleFramework={toggleFramework}
         initialTab={settingsInitialTab}
+        mode={mode}
+        onSelectMode={setMode}
       />
 
-      {/* v6-S2 全局快捷搜索 Cmd/Ctrl+K */}
       <CommandPalette
         backendUrl={backendUrl}
         modes={BUILTIN_MODES.map((m: ModeOption) => ({ mode_id: m.mode_id, label: m.label }))}
@@ -763,52 +632,6 @@ export function BeeSwarmShell() {
         onPickDecision={(did, mid) => { setMode(mid); setTimeout(() => pickHistory(did), 50); }}
         onOpenSettings={() => setSettingsOpen(true)}
       />
-    </div></>);
-}
-
-const iconBtn = {
-  padding: "8px 12px",
-  borderRadius: 6,
-  border: "1px solid var(--border)",
-  background: "var(--bg-subtle)",
-  cursor: "pointer",
-  color: "inherit",
-  fontFamily: "inherit",
-  fontSize: 12,
-};
-
-/** v6-S/E 把无状态次要按钮收进一个 ⋯ 菜单 (趋势 / 看 AI 干活) */
-function MoreMenu({ onSeeAI }: { onSeeAI: () => void }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div style={{ position: "relative" }}>
-      <button type="button" onClick={() => setOpen((v) => !v)}
-        title="更多工具" style={{ ...iconBtn, padding: "8px 10px" }}>⋯ 更多</button>
-      {open && (
-        <>
-          <div onClick={() => setOpen(false)}
-               style={{ position: "fixed", inset: 0, zIndex: 200 }} />
-          <div style={{
-            position: "absolute", top: "calc(100% + 4px)", right: 0,
-            minWidth: 200, padding: 6, borderRadius: 8, zIndex: 201,
-            background: "var(--bg-card)",
-            borderWidth: 1, borderStyle: "solid", borderColor: "var(--border-strong)",
-            boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
-            display: "flex", flexDirection: "column", gap: 2,
-          }}>
-            <button type="button" onClick={() => { onSeeAI(); setOpen(false); }}
-              style={menuItemStyle}>🐝 看 AI 怎么干活</button>
-            <a href="/trends" onClick={() => setOpen(false)}
-              style={{ ...menuItemStyle, textDecoration: "none" }}>🌍 全球 AI 趋势</a>
-          </div>
-        </>
-      )}
     </div>
   );
 }
-
-const menuItemStyle: CSSProperties = {
-  padding: "8px 12px", fontSize: 13, borderRadius: 4, cursor: "pointer",
-  background: "transparent", color: "var(--text)", textAlign: "left",
-  border: "none", display: "block",
-};

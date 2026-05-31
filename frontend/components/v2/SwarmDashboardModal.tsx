@@ -10,6 +10,8 @@ export type DeptHeat = {
   model?: string;
   status?: "idle" | "running" | "done";
   opinion?: string;
+  /** v8 协作条: 该顾问的自信度 (dept_done 事件携带), 用于进度条充能 */
+  confidence?: number;
 };
 
 const overlay: CSSProperties = {

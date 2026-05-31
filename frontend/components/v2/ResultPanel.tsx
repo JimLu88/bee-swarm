@@ -1,12 +1,10 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
-import { KPICard, KPIRow } from "./viz/KPICard";
-import { MiniBarChart, type BarDatum } from "./viz/MiniBarChart";
-import { Timeline } from "./viz/Timeline";
-import { DecisionFlowDAG } from "./viz/DecisionFlowDAG";
+import { useState } from "react";
+import { Icon } from "./Icon";
 import { SmartResultRenderer } from "./viz/SmartResultRenderer";
 import { InfoFeed, type MediaCard } from "./viz/InfoFeed";
+import { avBg, confColor, confBg, initial, EFFORT_LABELS } from "../../lib/scenes";
 
 export type DeptReport = {
   dept?: string;
@@ -25,11 +23,9 @@ export type DecisionSummary = {
   dept_reports?: DeptReport[];
   ceo_decision?: string;
   red_team_risks?: string[];
-  /** v6-S7 成本可见 */
   total_tokens?: number;
   total_cost_yuan?: number;
   elapsed_sec?: number;
-  /** v7 W3 爬虫图文聚合卡 (信息流) */
   media_cards?: MediaCard[];
 };
 
@@ -40,236 +36,193 @@ type Props = {
   rerunningDept?: string | null;
   /** v6-Z 👍👎 反馈 → bandit 学习 (reward: 1=好 / 0=差) */
   onFeedback?: (reward: number) => void;
+  /** 重新生成整次决策 */
+  onRegenerate?: () => void;
+  /** 操作条元信息: 努力程度 1-4 */
+  effort?: number;
 };
-
-const card: CSSProperties = {
-  padding: 14,
-  borderRadius: 10,
-  borderWidth: 1, borderStyle: "solid",
-  borderColor: "var(--border)",
-  background: "var(--bg-subtle)",
-};
-const h: CSSProperties = { margin: "0 0 10px 0", fontSize: 14, fontWeight: 700, color: "var(--text)" };
 
 function avg(arr: number[]): number {
   if (arr.length === 0) return 0;
   return arr.reduce((s, v) => s + v, 0) / arr.length;
 }
 
-function FeedbackBar({ onFeedback }: { onFeedback: (reward: number) => void }) {
-  const [done, setDone] = useState<null | "up" | "down">(null);
-  const pill = (active: boolean): CSSProperties => ({
-    padding: "5px 14px", fontSize: 13, borderRadius: 20, cursor: done ? "default" : "pointer",
-    borderWidth: 1, borderStyle: "solid", borderColor: active ? "var(--accent)" : "var(--border-strong)",
-    background: active ? "var(--accent-bg)" : "var(--bg-subtle)", color: "inherit",
-  });
-  return (
-    <div style={{
-      display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", borderRadius: 8,
-      background: "var(--info-bg)", borderWidth: 1, borderStyle: "solid",
-      borderColor: "var(--info-bg)", fontSize: 12,
-    }}>
-      <span style={{ opacity: 0.7 }}>这次的路线/轮数选得怎么样?</span>
-      <button type="button" disabled={!!done} style={pill(done === "up")}
-        onClick={() => { if (!done) { setDone("up"); onFeedback(1); } }}>👍 好</button>
-      <button type="button" disabled={!!done} style={pill(done === "down")}
-        onClick={() => { if (!done) { setDone("down"); onFeedback(0); } }}>👎 差</button>
-      {done && <span style={{ color: "#86efac" }}>✓ 已记录, CEO 下次会参考 (但仍保留探索)</span>}
-    </div>
-  );
+function dissentLabel(v: number): string {
+  return v >= 0.7 ? "高" : v >= 0.4 ? "中" : "低";
 }
 
-export function ResultPanel({ summary, onRerunDept, rerunningDept, onFeedback }: Props) {
-  if (!summary) {
-    return (
-      <div style={{ ...card, color: "var(--text-dim)", textAlign: "center", padding: "28px 12px" }}>
-        🐝 上面写点东西然后点 「开始」, 我让 6 个顾问 AI 一起帮你想
-      </div>
-    );
-  }
+export function ResultPanel({ summary, onRerunDept, rerunningDept, onFeedback, onRegenerate, effort }: Props) {
+  const [acOpen, setAcOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [fb, setFb] = useState<null | "up" | "down">(null);
+
+  if (!summary) return null;
 
   const reports = summary.dept_reports ?? [];
-  const confidences = reports.map(r => Number(r.confidence_score ?? 0));
-  const dissents = reports.map(r => Number(r.dissent_intensity ?? 0));
+  const confidences = reports.map((r) => Number(r.confidence_score ?? 0));
+  const dissents = reports.map((r) => Number(r.dissent_intensity ?? 0));
   const avgConf = avg(confidences);
   const avgDis = avg(dissents);
   const deptCount = reports.length;
-  const riskCount = summary.red_team_risks?.length ?? 0;
+  const risks = summary.red_team_risks ?? [];
+  const riskCount = risks.length;
+  const mediaCards = summary.media_cards ?? [];
 
-  const confBars: BarDatum[] = reports.map(r => ({
-    label: r.dept ?? "?",
-    value: Number(r.confidence_score ?? 0),
-    rightLabel: (r.confidence_score ?? 0).toFixed(2),
-  }));
-
-  const dagDepts = reports.map(r => ({
-    dept: r.dept ?? "?",
-    confidence: r.confidence_score,
-    status: (r.confidence_score ?? 1) < 0.5 ? "bad" as const
-          : (r.confidence_score ?? 1) < 0.7 ? "warn" as const
-          : "ok" as const,
-  }));
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(summary.ceo_decision ?? "");
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    } catch { /* ignore */ }
+  };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      {/* v6-Z 👍👎 评分 — bandit 学习信号 (这次路线/轮数选得好不好) */}
-      {onFeedback && <FeedbackBar onFeedback={onFeedback} />}
-
-      {/* v7 成本不显示; 仅保留耗时 */}
-      {summary.elapsed_sec != null && (
-        <div style={{
-          fontSize: 11, color: "var(--text-faint)", textAlign: "right",
-          display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap",
-        }}>
-          <span>⏱ {summary.elapsed_sec.toFixed(1)}s</span>
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {/* 建议正文 — 排版容器 .answer, 正文交给 SmartResultRenderer */}
+      {summary.ceo_decision && (
+        <div className="answer">
+          <SmartResultRenderer text={summary.ceo_decision} />
         </div>
       )}
 
+      {/* KPI 指标条 */}
       {deptCount > 0 && (
-        <KPIRow>
-          <KPICard
-            label="平均自信度" icon="🎯"
-            value={`${(avgConf * 100).toFixed(0)}%`}
-            tone={avgConf >= 0.75 ? "good" : avgConf >= 0.5 ? "neutral" : "bad"}
-            hint={`${deptCount} 位顾问`}
-          />
-          <KPICard
-            label="平均分歧度" icon="⚡"
-            value={`${(avgDis * 100).toFixed(0)}%`}
-            tone={avgDis >= 0.7 ? "bad" : avgDis >= 0.4 ? "warn" : "good"}
-            hint={avgDis >= 0.5 ? "意见分歧明显" : "意见相对一致"}
-          />
-          <KPICard
-            label="红队风险" icon="⚠️"
-            value={String(riskCount)}
-            tone={riskCount >= 3 ? "bad" : riskCount >= 1 ? "warn" : "good"}
-            hint={riskCount > 0 ? "见下方风险清单" : "无明显风险"}
-          />
-          <KPICard
-            label="场景" icon="🎬"
-            value={summary.mode_label ?? summary.mode_id ?? "—"}
-            tone="neutral"
-            hint={`ID: ${summary.decision_id?.slice(0, 12) ?? "—"}`}
-          />
-        </KPIRow>
-      )}
-
-      <div style={card}>
-        <div style={h}>🎯 我的建议</div>
-        {summary.ceo_decision
-          ? <SmartResultRenderer text={summary.ceo_decision} />
-          : <div style={{ fontSize: 13, color: "var(--text-dim)" }}>(等待中…)</div>
-        }
-      </div>
-
-      {summary.red_team_risks && summary.red_team_risks.length > 0 && (
-        <div style={{
-          ...card,
-          background: "rgba(255,82,82,0.06)",
-          borderColor: "rgba(255,82,82,0.4)",
-        }}>
-          <div style={{ ...h, color: "#ff8a80" }}>⚠️ 要小心的地方</div>
-          <Timeline
-            items={summary.red_team_risks.map((r, i) => ({
-              title: `风险 ${i + 1}`,
-              body: r,
-              tone: "bad",
-            }))}
-          />
+        <div className="kpis">
+          <div className="kpi tone-accent">
+            <Icon name="groups" />
+            <span className="kcol"><span className="kv">{deptCount}</span><span className="kl">位顾问参与</span></span>
+          </div>
+          <div className={`kpi ${avgConf >= 0.75 ? "tone-good" : avgConf >= 0.5 ? "tone-warn" : "tone-bad"}`}>
+            <Icon name="handshake" />
+            <span className="kcol"><span className="kv">{(avgConf * 100).toFixed(0)}%</span><span className="kl">平均共识度</span></span>
+          </div>
+          <div className={`kpi ${avgDis >= 0.7 ? "tone-bad" : avgDis >= 0.4 ? "tone-warn" : "tone-good"}`}>
+            <Icon name="flash_on" />
+            <span className="kcol"><span className="kv">{dissentLabel(avgDis)}</span><span className="kl">意见分歧</span></span>
+          </div>
+          <div className={`kpi ${riskCount >= 3 ? "tone-bad" : riskCount >= 1 ? "tone-warn" : "tone-good"}`}>
+            <Icon name="shield" />
+            <span className="kcol"><span className="kv">{riskCount}</span><span className="kl">红队风险</span></span>
+          </div>
         </div>
       )}
 
-      {confBars.length > 0 && (
-        <div style={card}>
-          <div style={h}>📊 各部门自信度</div>
-          <MiniBarChart items={confBars} max={1} />
-        </div>
-      )}
-
-      {dagDepts.length > 0 && (
-        <DecisionFlowDAG task={summary.task} depts={dagDepts} />
-      )}
-
-      {/* v7 W3 📎 展开更多: 部门原话 + 爬虫图文聚合 信息流 */}
-      {(reports.length > 0 || (summary.media_cards && summary.media_cards.length > 0)) && (
-        <div style={card}>
-          <details>
-            <summary style={{ cursor: "pointer", color: "var(--info)", fontSize: 12, fontWeight: 600 }}>
-              📎 展开更多 (信息流: 各部门原话 + 相关图文资料)
-            </summary>
-            <div style={{ marginTop: 12 }}>
-              <InfoFeed
-                deptQuotes={reports.map((r) => ({ dept: r.dept ?? "?", consensus: r.consensus, conflicts: r.conflicts }))}
-                mediaCards={summary.media_cards ?? []}
-              />
+      {/* 红队风险提示 */}
+      {riskCount > 0 && (
+        <div className="callout warn">
+          <div className="callout-h"><Icon name="gpp_maybe" />红队提醒：这些地方要小心</div>
+          {risks.map((r, i) => (
+            <div key={i} className="risk">
+              <Icon name="chevron_right" />
+              <span className="rt">{r}</span>
             </div>
-          </details>
+          ))}
         </div>
       )}
 
-      {reports.length > 0 && (
-        <div style={card}>
-          <div style={h}>🗣️ 各部门具体怎么说</div>
-          <details>
-            <summary style={{ cursor: "pointer", color: "var(--info)", fontSize: 12 }}>
-              展开看看 {reports.length} 位顾问的原话
-            </summary>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 10 }}>
-              {reports.map((r, i) => (
-                <div key={i} style={{
-                  padding: "10px 12px", borderRadius: 8,
-                  background: "var(--bg-subtle)",
-                  borderWidth: 1, borderStyle: "solid",
-                  borderColor: "var(--border)",
-                }}>
-                  <div style={{
-                    fontSize: 11, color: "var(--good)", fontWeight: 700,
-                    marginBottom: 6, display: "flex", justifyContent: "space-between",
-                    alignItems: "center", gap: 8,
-                  }}>
-                    <span>{r.dept}</span>
-                    <span style={{ color: "var(--text-dim)", display: "flex", gap: 8, alignItems: "center" }}>
-                      自信 {(r.confidence_score ?? 0).toFixed(2)} ·
-                      分歧 {(r.dissent_intensity ?? 0).toFixed(2)}
-                      {onRerunDept && r.dept && (
-                        <button type="button"
-                          disabled={rerunningDept === r.dept}
-                          onClick={() => onRerunDept(r.dept!)}
-                          title="只重跑这个部门, 不动其它"
-                          style={{
-                            padding: "2px 8px", fontSize: 10, borderRadius: 3, cursor: "pointer",
-                            borderWidth: 1, borderStyle: "solid",
-                            borderColor: rerunningDept === r.dept ? "#7f8c8d" : "var(--info)",
-                            background: rerunningDept === r.dept ? "rgba(127,140,141,0.10)" : "var(--info-bg)",
-                            color: rerunningDept === r.dept ? "#7f8c8d" : "var(--info)",
-                          }}>
-                          {rerunningDept === r.dept ? "重跑中…" : "🔄 重跑此部门"}
-                        </button>
-                      )}
+      {/* 各顾问发言折叠 */}
+      {deptCount > 0 && (
+        <div className={`accord${acOpen ? " open" : ""}`}>
+          <button type="button" className="accord-head" onClick={() => setAcOpen((v) => !v)}>
+            <Icon name="forum" className="lead-i" />
+            <span className="t">各顾问具体怎么说</span>
+            <span className="c">{deptCount} 份发言</span>
+            <Icon name="expand_more" className="chev" />
+          </button>
+          <div className="accord-body">
+            {reports.map((r, i) => {
+              const conf = Number(r.confidence_score ?? 0);
+              const name = r.dept ?? "?";
+              return (
+                <div key={i} className="dept">
+                  <div className="dept-top">
+                    <span className="adv-av" style={{ background: avBg(i) }}>{initial(name)}</span>
+                    <span className="dept-name">{name}</span>
+                    <span className="dept-conf">
+                      <span className="conf-pill" style={{ background: confBg(conf), color: confColor(conf) }}>
+                        {(conf * 100).toFixed(0)}%
+                      </span>
+                      自信度
                     </span>
                   </div>
-                  <div style={{ fontSize: 12, color: "var(--text)", lineHeight: 1.55 }}>
+                  <div className="dept-say">
                     <SmartResultRenderer text={r.consensus ?? ""} />
                   </div>
                   {r.conflicts && r.conflicts.length > 0 && (
-                    <div style={{ marginTop: 8, paddingTop: 8,
-                      borderTopWidth: 1, borderTopStyle: "solid",
-                      borderTopColor: "var(--bg-hover)",
-                    }}>
-                      <div style={{ fontSize: 10, color: "#ffb300", fontWeight: 700, marginBottom: 4 }}>
-                        ⚡ 部门内冲突
-                      </div>
-                      <ul style={{ margin: 0, paddingLeft: 18, fontSize: 11, color: "var(--text-dim)" }}>
-                        {r.conflicts.map((c, k) => <li key={k}>{c}</li>)}
-                      </ul>
+                    <div className="dept-conflict">
+                      <b>⚡ 分歧：</b>{r.conflicts.join("；")}
                     </div>
                   )}
+                  {onRerunDept && r.dept && (
+                    <button
+                      type="button"
+                      className="dept-rerun"
+                      disabled={rerunningDept === r.dept}
+                      onClick={() => onRerunDept(r.dept!)}
+                      title="只重跑这个部门, 不动其它"
+                    >
+                      {rerunningDept === r.dept ? "重跑中…" : "重跑此部门"}
+                    </button>
+                  )}
                 </div>
-              ))}
-            </div>
-          </details>
+              );
+            })}
+          </div>
         </div>
       )}
+
+      {/* 相关图文资料 (爬虫信息流, 有才显示) */}
+      {mediaCards.length > 0 && (
+        <div className="accord">
+          <div className="accord-head" style={{ cursor: "default" }}>
+            <Icon name="auto_stories" className="lead-i" />
+            <span className="t">相关图文资料</span>
+            <span className="c">{mediaCards.length} 条</span>
+          </div>
+          <div className="accord-body" style={{ display: "flex" }}>
+            <InfoFeed deptQuotes={[]} mediaCards={mediaCards} />
+          </div>
+        </div>
+      )}
+
+      {/* 操作条 */}
+      <div className="actions">
+        <button type="button" className="act" onClick={copy} title={copied ? "已复制" : "复制"} aria-label="复制">
+          <Icon name={copied ? "done" : "content_copy"} />
+        </button>
+        {onRegenerate && (
+          <button type="button" className="act" onClick={onRegenerate} title="重新生成" aria-label="重新生成">
+            <Icon name="refresh" />
+          </button>
+        )}
+        {onFeedback && (
+          <>
+            <span className="act-div" />
+            <button
+              type="button"
+              className={`act${fb === "up" ? " on-up" : ""}`}
+              disabled={!!fb}
+              onClick={() => { if (!fb) { setFb("up"); onFeedback(1); } }}
+              title="有帮助" aria-label="有帮助"
+            >
+              <Icon name="thumb_up" />
+            </button>
+            <button
+              type="button"
+              className={`act${fb === "down" ? " on-down" : ""}`}
+              disabled={!!fb}
+              onClick={() => { if (!fb) { setFb("down"); onFeedback(0); } }}
+              title="没帮上" aria-label="没帮上"
+            >
+              <Icon name="thumb_down" />
+            </button>
+          </>
+        )}
+        <span className="act-meta">
+          {summary.elapsed_sec != null && <><Icon name="schedule" />{summary.elapsed_sec.toFixed(1)}s</>}
+          {effort != null && EFFORT_LABELS[effort] ? <span>· 努力程度 {EFFORT_LABELS[effort]}</span> : null}
+        </span>
+      </div>
     </div>
   );
 }
