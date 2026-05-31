@@ -535,6 +535,14 @@ async def finalize_decision_bundle(
 
     rag_aggregate = compact_rag_hint_from_dept_rows(list(reports))
 
+    # v8 信息流: 聚合爬虫/web 搜索结果成 media_cards 给前端 InfoFeed (best-effort, 失败返回 []).
+    media_cards: list[dict[str, Any]] = []
+    try:
+        from .media_aggregator import gather_media_cards
+        media_cards = await gather_media_cards(task, mode_id)
+    except Exception:
+        media_cards = []
+
     # v6-B ELO 信号: 从 team.yaml 提取本次决策实际用了的 head + staff
     team_personas_used: list[dict[str, Any]] = []
     try:
@@ -579,6 +587,7 @@ async def finalize_decision_bundle(
         execution=execution,
         rag_aggregate=rag_aggregate,
         team_personas_used=team_personas_used,
+        media_cards=media_cards,
     )
 
     bus.publish(StreamEvent(type="decision_done", decision_id=decision_id, payload={"summary": summary.model_dump()}))
