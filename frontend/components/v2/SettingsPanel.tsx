@@ -22,6 +22,8 @@ type HubSettings = {
   openai_api_key?: string;        // server returns masked (***...)
   litellm_default_model?: string;
   litellm_fallback_models?: string;
+  tavily_api_key?: string;        // server returns masked (***...)
+  exa_api_key?: string;           // server returns masked (***...)
 };
 
 const card: CSSProperties = {
@@ -176,6 +178,8 @@ export function SettingsPanel() {
   const [apiKey, setApiKey] = useState("");
   const [model, setModel] = useState("");
   const [fallback, setFallback] = useState("");
+  const [tavilyKey, setTavilyKey] = useState("");
+  const [exaKey, setExaKey] = useState("");
   const [presetId, setPresetId] = useState("aihubmix");
   const [msg, setMsg] = useState<string | null>(null);
   const [diagResult, setDiagResult] = useState<{
@@ -196,7 +200,7 @@ export function SettingsPanel() {
       setBaseUrl(s.litellm_base_url ?? "");
       setModel(s.litellm_default_model ?? "");
       setFallback(s.litellm_fallback_models ?? "");
-      // openai_api_key returns masked ***...; don't overwrite the input
+      // openai_api_key / tavily_api_key / exa_api_key return masked ***...; don't overwrite the inputs
     } finally { setBusy(false); }
   }, [backendUrl]);
 
@@ -222,6 +226,8 @@ export function SettingsPanel() {
         litellm_fallback_models: fallback,
       };
       if (apiKey && !apiKey.startsWith("***")) body.openai_api_key = apiKey;
+      if (tavilyKey && !tavilyKey.startsWith("***")) body.tavily_api_key = tavilyKey.trim();
+      if (exaKey && !exaKey.startsWith("***")) body.exa_api_key = exaKey.trim();
       const r = await fetchWithTimeout(`${backendUrl}/api/settings/hub`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -231,8 +237,10 @@ export function SettingsPanel() {
         const txt = await r.text();
         throw new Error(`${r.status}: ${txt.substring(0, 200)}`);
       }
-      setMsg("✅ 已保存. AI 设置已经生效, 可以开始用了");
+      setMsg("✅ 已保存. AI 设置已经生效, 可以开始用了 (搜索 Key 改动需重启 bee-scraper 8003 生效)");
       setApiKey(""); // clear input (server now holds it)
+      setTavilyKey("");
+      setExaKey("");
       refresh();
     } catch (e: unknown) {
       setMsg("❌ 保存失败 (检查地址/密钥): " + ((e as Error).message ?? "未知错误"));
@@ -382,6 +390,52 @@ export function SettingsPanel() {
           onChange={(e) => setApiKey(e.target.value)}
           placeholder={loaded?.openai_api_key ? "留空 = 不改" : "sk-... 你聚合服务给的密钥"}
         />
+      </div>
+
+      <div style={{
+        padding: 12, borderRadius: 8, display: "flex", flexDirection: "column", gap: 10,
+        borderWidth: 1, borderStyle: "solid", borderColor: "var(--border)",
+        background: "var(--bg)",
+      }}>
+        <div style={{ fontSize: 13, fontWeight: 600 }}>🔍 联网搜索 Key (可选, 但强烈建议配)</div>
+        <div style={{ fontSize: 11, color: "var(--text-dim)", lineHeight: 1.6 }}>
+          配了之后: 顾问能联网查资料 + 首页"信息流"才有内容 (小红书/知乎/各平台图文卡片).
+          不配则只靠模型旧知识、信息流为空.
+          <br />Tavily 免费额度约 1000 次/月, 在 <code>tavily.com</code> 注册即得 <code>tvly-</code> 开头的 key.
+        </div>
+        <div>
+          <label style={label}>
+            Tavily API Key
+            {loaded?.tavily_api_key && loaded.tavily_api_key.startsWith("***") && (
+              <span style={{ marginLeft: 8, opacity: 0.55 }}>(已保存:{loaded.tavily_api_key})</span>
+            )}
+          </label>
+          <input
+            style={input}
+            type="password"
+            value={tavilyKey}
+            onChange={(e) => setTavilyKey(e.target.value)}
+            placeholder={loaded?.tavily_api_key ? "留空 = 不改" : "tvly-xxxxxxxxxxxxxxxx"}
+          />
+        </div>
+        <div>
+          <label style={label}>
+            Exa API Key (可选, 学术/语义搜索备用)
+            {loaded?.exa_api_key && loaded.exa_api_key.startsWith("***") && (
+              <span style={{ marginLeft: 8, opacity: 0.55 }}>(已保存:{loaded.exa_api_key})</span>
+            )}
+          </label>
+          <input
+            style={input}
+            type="password"
+            value={exaKey}
+            onChange={(e) => setExaKey(e.target.value)}
+            placeholder={loaded?.exa_api_key ? "留空 = 不改" : "不填也行"}
+          />
+        </div>
+        <div style={{ fontSize: 11, color: "#ffb300" }}>
+          ⚠ 搜索 Key 保存后, 需到托盘重启 <b>数据爬虫 (8003)</b> 才会真正生效.
+        </div>
       </div>
 
       <div>
