@@ -24,6 +24,7 @@ type HubSettings = {
   litellm_fallback_models?: string;
   tavily_api_key?: string;        // server returns masked (***...)
   exa_api_key?: string;           // server returns masked (***...)
+  brave_api_key?: string;         // server returns masked (***...)
 };
 
 const card: CSSProperties = {
@@ -180,6 +181,7 @@ export function SettingsPanel() {
   const [fallback, setFallback] = useState("");
   const [tavilyKey, setTavilyKey] = useState("");
   const [exaKey, setExaKey] = useState("");
+  const [braveKey, setBraveKey] = useState("");
   const [presetId, setPresetId] = useState("aihubmix");
   const [msg, setMsg] = useState<string | null>(null);
   const [diagResult, setDiagResult] = useState<{
@@ -228,6 +230,7 @@ export function SettingsPanel() {
       if (apiKey && !apiKey.startsWith("***")) body.openai_api_key = apiKey;
       if (tavilyKey && !tavilyKey.startsWith("***")) body.tavily_api_key = tavilyKey.trim();
       if (exaKey && !exaKey.startsWith("***")) body.exa_api_key = exaKey.trim();
+      if (braveKey && !braveKey.startsWith("***")) body.brave_api_key = braveKey.trim();
       const r = await fetchWithTimeout(`${backendUrl}/api/settings/hub`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -241,6 +244,7 @@ export function SettingsPanel() {
       setApiKey(""); // clear input (server now holds it)
       setTavilyKey("");
       setExaKey("");
+      setBraveKey("");
       refresh();
     } catch (e: unknown) {
       setMsg("❌ 保存失败 (检查地址/密钥): " + ((e as Error).message ?? "未知错误"));
@@ -431,6 +435,21 @@ export function SettingsPanel() {
             value={exaKey}
             onChange={(e) => setExaKey(e.target.value)}
             placeholder={loaded?.exa_api_key ? "留空 = 不改" : "不填也行"}
+          />
+        </div>
+        <div>
+          <label style={label}>
+            Brave Search API Key (可选, 通用网页搜索备用)
+            {loaded?.brave_api_key && loaded.brave_api_key.startsWith("***") && (
+              <span style={{ marginLeft: 8, opacity: 0.55 }}>(已保存:{loaded.brave_api_key})</span>
+            )}
+          </label>
+          <input
+            style={input}
+            type="password"
+            value={braveKey}
+            onChange={(e) => setBraveKey(e.target.value)}
+            placeholder={loaded?.brave_api_key ? "留空 = 不改" : "BSA... (api.search.brave.com)"}
           />
         </div>
         <div style={{ fontSize: 11, color: "#ffb300" }}>
