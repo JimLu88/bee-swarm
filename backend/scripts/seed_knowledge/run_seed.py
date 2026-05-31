@@ -32,7 +32,12 @@ def _load_libs() -> dict[str, dict]:
         libs["family_doctor"] = fd
     except Exception as e:
         print(f"[warn] family_doctor 书库加载失败: {e!r}")
-    # 后续场景书库在这里追加: libs["nutrition_fitness"] = ...
+    try:
+        from .lib_nutrition_fitness import LIBRARIES as nf
+        libs["nutrition_fitness"] = nf
+    except Exception as e:
+        print(f"[warn] nutrition_fitness 书库加载失败: {e!r}")
+    # 后续场景书库在这里追加: libs["<mode>"] = ...
     return libs
 
 
