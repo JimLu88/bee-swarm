@@ -104,6 +104,31 @@ def add_knowledge(
         return {"error": str(e), "fallback": "local_only"}
 
 
+import re as _re
+
+
+def _task_ngrams(task: str, lengths: tuple[int, ...] = (2, 3, 4)) -> set[str]:
+    """把任务切成 2-4 字 n-gram 关键词集 (中文无需分词库的轻量相关性匹配).
+    去掉空白与标点; 限长防止 gram 爆炸."""
+    t = _re.sub(r"[\s,，。.;；:：!！?？、()（）\[\]【】\"'`]+", "", task or "")[:200]
+    grams: set[str] = set()
+    for k in lengths:
+        for i in range(len(t) - k + 1):
+            grams.add(t[i:i + k])
+    return grams
+
+
+def _relevance(grams: set[str], text: str) -> int:
+    """书的 (标题+正文) 命中多少个任务 n-gram → 相关性分. grams 空则恒 0 (回退重要度)."""
+    if not grams or not text:
+        return 0
+    hit = 0
+    for g in grams:
+        if g in text:
+            hit += 1
+    return hit
+
+
 def _per_layer_k(layer: str) -> int:
     """层级分配 (单次召回每层取几条). book 给最多 (人设读的几十本书是主力知识源),
     activation 打分会从该 persona 全部书里选最相关/最重要的几本进 prompt."""
@@ -130,21 +155,24 @@ def recall_for_persona(
     if layers is None:
         layers = ["book", "case", "pitfall", "standard", "history"]
 
+    # v8: 相关性匹配. 把整句任务切成 n-gram, 按"和这本书内容的重叠度"重排,
+    # 让冷门但相关的书也能被精准调出 (而非只看重要度). query 空 → grams 空 → 回退重要度.
+    grams = _task_ngrams(query)
+
     all_items: list[dict[str, Any]] = []
     for layer in layers:
         try:
-            # 服务端按 persona_id 过滤 (领域硬隔离, 截断前过滤) + activation 打分排序.
-            # 注意: 不把整句 task 当 content LIKE (多词整串几乎命中不了→恒空); 知识召回靠
-            # persona_id 圈定该专家的书库 + v3-D activation(重要度/新近/频率)选最相关 top-k.
+            # 服务端按 persona_id 过滤 (领域硬隔离) + activation 排序; 这里多取一些(该人设的书<=80,
+            # 取 60 基本是全量), 拿回来后用相关性在客户端重排, 避免相关书被 activation 预截断.
             resp = _get(
                 f"/memory/recall"
-                f"?kind=knowledge_{layer}&k={max(_per_layer_k(layer) * 4, 8)}"
+                f"?kind=knowledge_{layer}&k=60"
                 f"&strategy={strategy}&persona_id={quote(persona_id)}"
             )
             items = resp.get("items") or []
         except Exception:
             items = []
-        kept = 0
+        cand: list[dict[str, Any]] = []
         for it in items:
             meta_str = it.get("meta") or "{}"
             try:
@@ -155,12 +183,23 @@ def recall_for_persona(
                 continue  # 双保险: 服务端已过滤, 这里再校验一次
             it["_layer"] = layer
             it["_meta_parsed"] = meta
-            all_items.append(it)
-            kept += 1
-            if kept >= _per_layer_k(layer):
-                break
+            it["_relevance"] = _relevance(
+                grams, str(it.get("content") or "") + str(meta.get("title") or "")
+            )
+            cand.append(it)
+        # 本层内: 先相关性, 再重要度, 再频率; 取该层配额
+        cand.sort(
+            key=lambda x: (int(x.get("_relevance") or 0),
+                           int(x.get("importance") or 0),
+                           int(x.get("recall_count") or 0)),
+            reverse=True,
+        )
+        all_items.extend(cand[:_per_layer_k(layer)])
+    # 跨层汇总同样: 相关性优先, 其次重要度
     all_items.sort(
-        key=lambda x: (int(x.get("importance") or 0), int(x.get("recall_count") or 0)),
+        key=lambda x: (int(x.get("_relevance") or 0),
+                       int(x.get("importance") or 0),
+                       int(x.get("recall_count") or 0)),
         reverse=True,
     )
     return all_items[:k]
