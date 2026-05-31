@@ -1,12 +1,21 @@
 from __future__ import annotations
 
 import asyncio
+import contextvars
 import hashlib
 import json
 import random
 import time
 import uuid
 from typing import Any
+
+from .thinking_frameworks import build_framework_brief
+
+# v8 思维框架: run_decision 把用户显式选的框架放进 contextvar, _run_dept/finalize 读出来;
+# 没显式选则按 task 关键词自动选 (见 thinking_frameworks.select_framework_ids).
+_active_frameworks: contextvars.ContextVar[list[str]] = contextvars.ContextVar(
+    "active_frameworks", default=[]
+)
 
 from .gene_scoring import gene_score
 from .models import DeptLeadReport, DecisionSummary, HeatmapCell, StreamEvent
@@ -196,6 +205,9 @@ async def _run_dept(
     # v8: 按场景注入"列全本专科可能性"要求 (避免各部门只挑最相关的说, 漏掉低概率可能).
     differential_brief = build_differential_brief(mode_id, dept)
 
+    # v8: 思维框架 (第一性原理/逆向/六顶帽 等) 真注入. 用户显式选优先, 否则按 task 关键词自动选.
+    framework_brief = build_framework_brief(task, _active_frameworks.get() or None)
+
     # v6-D 真工具: 把 BeeServiceClient 工具清单露给 LLM, 让它可选择性 tool_calls
     bee_tools_safe = list_bee_tools(include_sensitive=False)
     tools_brief = "\n".join(
@@ -233,6 +245,7 @@ async def _run_dept(
                         f"部门={dept}\n"
                         f"{xlab_brief}"
                         f"{differential_brief}"
+                        f"{framework_brief}"
                         f"战术/战略分级={task_level or 'unknown'} 时效={task_urgency or 'unknown'}\n"
                         f"分诊官摘要={dispatcher_notes or '（无）'}\n"
                         f"用户完整任务=\n{task[:4000]}\n\n"
@@ -502,8 +515,10 @@ async def finalize_decision_bundle(
             except Exception:
                 sop_section = ""
 
+            ceo_framework_brief = build_framework_brief(task, _active_frameworks.get() or None)
             ceo_prompt = (
                 (sop_section + "\n---\n\n" if sop_section else "")
+                + (ceo_framework_brief + "\n" if ceo_framework_brief else "")
                 + f"用户任务: {task}\n\n"
                 + f"以下是 {len(reports)} 个部门的独立意见:\n\n{dept_views}\n\n"
                 + "现在按上面 SOP, 直接输出最终回答 (中文, markdown 可用).\n"
@@ -800,6 +815,10 @@ async def run_decision(*, decision_id: str, task: str, mode_id: str, debate_roun
     v6-Z: route 决定跑哪些部门 — all=全部 / multi|key|single=部门子集(departments_override) / ceo_only=不跑部门直接CEO答.
     """
     mode = get_mode(mode_id)
+
+    # v8: 把用户显式选的思维框架放进 contextvar, 供 _run_dept/finalize 注入 prompt;
+    # 空列表时 _run_dept 会按 task 关键词自动选 (trigger_keywords).
+    _active_frameworks.set(list(thinking_frameworks or []))
 
     # v6-Y 文档附件: 解析成文字拼到 task 前面 (内部 task 字符串无 20k 限制).
     if files:
