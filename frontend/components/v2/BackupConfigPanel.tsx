@@ -27,11 +27,11 @@ const poolRow: CSSProperties = {
 };
 
 const POOLS = [
-  { id: "gist", label: "GitHub Gist", envKey: "GITHUB_GIST_TOKENS", hint: "多账号逗号分隔" },
-  { id: "r2", label: "Cloudflare R2", envKey: "R2_ACCESS_KEY", hint: "需要 R2_ACCOUNT_ID / R2_SECRET / R2_BUCKET" },
-  { id: "notion", label: "Notion", envKey: "NOTION_TOKEN", hint: "需要 NOTION_DATABASE_ID" },
-  { id: "aliyun", label: "阿里云盘", envKey: "ALIYUN_DRIVE_TOKEN", hint: "OAuth refresh 较复杂" },
-  { id: "gdrive", label: "Google Drive", envKey: "GOOGLE_DRIVE_TOKEN", hint: "GOOGLE_DRIVE_FOLDER 可选" },
+  { id: "gist", label: "GitHub Gist", envKey: "GITHUB_GIST_TOKENS", hint: "多账号逗号分隔 (国内时通时不通)" },
+  { id: "webdav", label: "坚果云 WebDAV", envKey: "WEBDAV_URL", hint: "国内直连·最简单。需 WEBDAV_USER / WEBDAV_PASS(应用密码)" },
+  { id: "notion", label: "Notion", envKey: "NOTION_TOKEN", hint: "需要 NOTION_DATABASE_ID (国内需梯子)" },
+  { id: "qiniu", label: "七牛云 Kodo", envKey: "QINIU_AK", hint: "国内直连·10G免费。需 QINIU_SK / QINIU_BUCKET / QINIU_DOMAIN" },
+  { id: "gdrive", label: "Google Drive", envKey: "GOOGLE_DRIVE_SA_JSON", hint: "服务账号 JSON (国内需梯子)" },
 ];
 
 // v6-O 5 池 Key 输入器 — 直接在 UI 配, 写到 bee-memory/data/pool_config.json
@@ -49,12 +49,18 @@ const KEY_FIELDS: { group: string; help: string; fields: { key: string; placehol
     fields: [{ key: "GITHUB_GIST_TOKENS", placeholder: "ghp_xxxx 或 ghp_xxxx,ghp_yyyy", secret: true }],
   },
   {
-    group: "Cloudflare R2", help: "在 dash.cloudflare.com R2 → 创建 API token + bucket",
+    group: "坚果云 WebDAV (推荐·国内直连·最简单)",
+    help: "📋 步骤 (打开 jianguoyun.com):\n" +
+          "1) 登录坚果云网页版 → 右上头像 → 账户信息 → 安全选项\n" +
+          "2) 找到「第三方应用管理」→ 添加应用 → 名字写 bee-memory → 生成「应用密码」\n" +
+          "   (这串才是 WEBDAV_PASS, 不是你的登录密码!)\n" +
+          "3) WEBDAV_URL 填: https://dav.jianguoyun.com/dav/bee-memory/  (结尾的 / 不能少, 目录会自动创建)\n" +
+          "4) WEBDAV_USER 填你的坚果云登录邮箱\n" +
+          "💡 也支持任意 WebDAV (Nextcloud/TeraCLOUD), 改 URL 即可",
     fields: [
-      { key: "R2_ACCOUNT_ID", placeholder: "abc123def456" },
-      { key: "R2_ACCESS_KEY", placeholder: "AKIA...", secret: true },
-      { key: "R2_SECRET", placeholder: "secret...", secret: true },
-      { key: "R2_BUCKET", placeholder: "bee-memory-shards" },
+      { key: "WEBDAV_URL", placeholder: "https://dav.jianguoyun.com/dav/bee-memory/" },
+      { key: "WEBDAV_USER", placeholder: "你的坚果云登录邮箱" },
+      { key: "WEBDAV_PASS", placeholder: "应用密码(非登录密码)", secret: true },
     ],
   },
   {
@@ -65,17 +71,35 @@ const KEY_FIELDS: { group: string; help: string; fields: { key: string; placehol
     ],
   },
   {
-    group: "阿里云盘", help: "用 alist 等工具拿 OAuth refresh token (较复杂)",
+    group: "七牛云 Kodo (国内直连·标准存储 10G 免费)",
+    help: "📋 步骤 (打开 portal.qiniu.com):\n" +
+          "1) 注册并完成实名认证 (对象存储必须实名)\n" +
+          "2) 左侧「对象存储 Kodo」→ 新建空间(Bucket) → 名字填 bee-memory-shards → 访问控制选「私有」→ 区域记下(华东=z0)\n" +
+          "3) 右上头像 → 密钥管理 → 拿 AK (AccessKey) 和 SK (SecretKey)\n" +
+          "4) 下载域名: 空间概览里有「域名」一栏。七牛已停发永久测试域名, 需在「域名管理」绑定一个自有域名(已备案), 填到 QINIU_DOMAIN\n" +
+          "   ⚠ 没有自有域名也能上传(省本地空间), 但日后恢复需要这个域名才能下载\n" +
+          "5) QINIU_REGION 填区域码: 华东z0 / 华北z1 / 华南z2 / 北美na0 / 东南亚as0 (默认 z0)",
     fields: [
-      { key: "ALIYUN_DRIVE_TOKEN", placeholder: "OAuth refresh token", secret: true },
-      { key: "ALIYUN_DRIVE_ID", placeholder: "drive_id" },
+      { key: "QINIU_AK", placeholder: "AccessKey", secret: true },
+      { key: "QINIU_SK", placeholder: "SecretKey", secret: true },
+      { key: "QINIU_BUCKET", placeholder: "bee-memory-shards" },
+      { key: "QINIU_DOMAIN", placeholder: "http://你绑定的下载域名 (恢复用, 可暂空)" },
+      { key: "QINIU_REGION", placeholder: "z0 (华东, 默认)" },
     ],
   },
   {
-    group: "Google Drive", help: "Google Cloud Console 建 service account, 下载 JSON 后转 token",
+    group: "Google Drive (国内需梯子·可选)",
+    help: "📋 用服务账号 JSON (贴一次即可, 不会过期):\n" +
+          "1) Google Cloud Console → 建项目 → 启用 Google Drive API\n" +
+          "2) IAM → 服务账号 → 建一个 → 建密钥(JSON) → 下载那张 JSON\n" +
+          "3) 把整张 JSON 文件内容(从 { 到 } 全部)粘到下面 GOOGLE_DRIVE_SA_JSON\n" +
+          "⚠ 关键: 服务账号自己没有网盘配额! 你得在自己 Google Drive 建个文件夹,\n" +
+          "   右键共享给 JSON 里那个 client_email(xxx@xxx.iam.gserviceaccount.com),\n" +
+          "   再把该文件夹 ID 填到 GOOGLE_DRIVE_FOLDER, 否则上传会失败.\n" +
+          "💡 嫌麻烦可跳过 Google Drive, 坚果云+七牛+Gist 已够 3 池恢复",
     fields: [
-      { key: "GOOGLE_DRIVE_TOKEN", placeholder: "OAuth token", secret: true },
-      { key: "GOOGLE_DRIVE_FOLDER", placeholder: "folder_id (可选)" },
+      { key: "GOOGLE_DRIVE_SA_JSON", placeholder: "粘贴整张服务账号 JSON ({...})", secret: true },
+      { key: "GOOGLE_DRIVE_FOLDER", placeholder: "共享给服务账号的文件夹 ID" },
     ],
   },
 ];
