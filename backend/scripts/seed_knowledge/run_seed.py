@@ -14,6 +14,16 @@ import sys
 from .engine import seed_scenario
 
 
+def _load_pools():
+    """跨场景共享池: (head_plus_pool, ceo_pool). 任一加载失败返回 None (降级不补)."""
+    try:
+        from .lib_shared import HEAD_PLUS_POOL, CEO_POOL
+        return HEAD_PLUS_POOL, CEO_POOL
+    except Exception as e:
+        print(f"[warn] 共享池加载失败: {e!r}")
+        return None, None
+
+
 def _load_libs() -> dict[str, dict]:
     """已手写书库的场景 → {dept_id: SpecialtyLibrary}."""
     libs: dict[str, dict] = {}
@@ -28,13 +38,14 @@ def _load_libs() -> dict[str, dict]:
 
 def main(argv: list[str]) -> int:
     libs = _load_libs()
-    per = 30
+    head_plus_pool, ceo_pool = _load_pools()
+    per = None  # None → 按 ROLE_TARGETS 自动分层 (staff30/head50/ceo80)
     if "--per" in argv:
         i = argv.index("--per")
         try:
             per = int(argv[i + 1])
         except Exception:
-            per = 30
+            per = None
         argv = argv[:i] + argv[i + 2:]
 
     if "--all" in argv:
@@ -51,9 +62,11 @@ def main(argv: list[str]) -> int:
         if mode_id not in libs:
             print(f"[skip] {mode_id} 还没写书库")
             continue
-        print(f"\n=== 灌库: {mode_id} (每人 {per} 本) ===")
+        print(f"\n=== 灌库: {mode_id} ({'分层30/50/80' if per is None else f'每人{per}本'}) ===")
         st = seed_scenario(mode_id=mode_id, libraries=libs[mode_id],
-                           target_per_persona=per, skip_existing=True, verbose=True)
+                           target_per_persona=per,
+                           head_plus_pool=head_plus_pool, ceo_pool=ceo_pool,
+                           skip_existing=True, verbose=True)
         for k in grand:
             grand[k] += st.get(k, 0)
         print(f"--- {mode_id}: persona={st['personas']} 灌入={st['stored']} "

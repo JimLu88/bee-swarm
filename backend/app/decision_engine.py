@@ -516,9 +516,18 @@ async def finalize_decision_bundle(
                 sop_section = ""
 
             ceo_framework_brief = build_framework_brief(task, _active_frameworks.get() or None)
+            # v8: CEO 综合阶段也召回知识库 (CEO 那 80 本: 决策/战略/沟通管理), 之前完全没接.
+            ceo_kb_section = ""
+            try:
+                from .rag.persona_kb_retriever import retrieve_for_ceo, format_bundle_for_prompt as _fmt_kb
+                _ceo_bundle = retrieve_for_ceo(mode_id=mode_id, task=task, k=12)
+                ceo_kb_section = _fmt_kb(_ceo_bundle)
+            except Exception:
+                ceo_kb_section = ""
             ceo_prompt = (
                 (sop_section + "\n---\n\n" if sop_section else "")
                 + (ceo_framework_brief + "\n" if ceo_framework_brief else "")
+                + (ceo_kb_section + "\n---\n\n" if ceo_kb_section else "")
                 + f"用户任务: {task}\n\n"
                 + f"以下是 {len(reports)} 个部门的独立意见:\n\n{dept_views}\n\n"
                 + "现在按上面 SOP, 直接输出最终回答 (中文, markdown 可用).\n"

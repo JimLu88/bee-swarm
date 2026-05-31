@@ -99,6 +99,49 @@ def retrieve_for_dept(
     return bundle
 
 
+def retrieve_for_ceo(
+    *,
+    mode_id: str,
+    task: str,
+    k: int = 12,
+) -> KnowledgeBundle:
+    """v8: CEO 综合阶段的知识库召回. 按 team.yaml 的 ceo.persona_id 拉 CEO 那 80 本里
+    最相关的 k 条 (决策/战略/沟通管理). 失败返回空 bundle (向后兼容)."""
+    bundle = KnowledgeBundle(snapshot_ts=int(time.time()))
+    try:
+        from ..persona.team_store import load_team
+        team = load_team(mode_id) or {}
+    except Exception:
+        return bundle
+    ceo = team.get("ceo") or {}
+    persona_id = str(ceo.get("persona_id") or "")
+    if not persona_id:
+        return bundle
+    bundle.persona_id = persona_id
+    try:
+        from ..persona.knowledge_store import recall_for_persona
+        raw_items = recall_for_persona(
+            mode_id=mode_id, persona_id=persona_id, query=task, k=k, strategy="activation",
+        )
+    except Exception:
+        raw_items = []
+    for idx, it in enumerate(raw_items[:k]):
+        layer = str(it.get("_layer") or "unknown")
+        meta = it.get("_meta_parsed") or {}
+        frag = KnowledgeFragment(
+            ref_id=f"k.{layer[:4]}.{idx + 1}",
+            full_id=str(it.get("id") or ""),
+            layer=layer,
+            title=str(meta.get("title") or layer.upper()),
+            content=str(it.get("content") or "")[:1500],
+            importance=int(it.get("importance") or 3),
+            source_url=str(meta.get("source_url") or ""),
+        )
+        bundle.fragments.append(frag)
+        bundle.total_chars += len(frag.content)
+    return bundle
+
+
 def format_bundle_for_prompt(bundle: KnowledgeBundle) -> str:
     """格式化成 LLM system context 的一段, 含引用要求."""
     if not bundle.fragments:
