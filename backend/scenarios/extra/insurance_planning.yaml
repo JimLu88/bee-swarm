@@ -1,0 +1,17 @@
+mode_id: insurance_planning
+label: 保险规划
+scenario_description: 买什么保险/避坑/理赔
+departments:
+- insurance_architect
+- product_analyst
+- claim_advisor
+- health_underwriter
+- budget_allocator
+- risk_assessor
+department_labels:
+  insurance_architect: 保险架构师 (家庭保障体系/优先级)
+  product_analyst: 产品分析师 (条款/对比/性价比)
+  claim_advisor: 理赔顾问 (健康告知/理赔/拒赔避坑)
+  health_underwriter: 核保顾问 (既往症/投保策略)
+  budget_allocator: 预算分配师 (保费占比/期限/搭配)
+  risk_assessor: 风险评估师 (家庭风险敞口/缺口)

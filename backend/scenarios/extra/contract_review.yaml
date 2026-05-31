@@ -1,0 +1,17 @@
+mode_id: contract_review
+label: 合同法务审查
+scenario_description: 合同/协议条款审查
+departments:
+- contract_lawyer
+- risk_assessor
+- clause_specialist
+- dispute_advisor
+- compliance_checker
+- negotiation_advisor
+department_labels:
+  contract_lawyer: 合同律师 (条款/权责/漏洞)
+  risk_assessor: 风险评估师 (违约/争议/敞口)
+  clause_specialist: 条款专家 (付款/知产/保密/竞业)
+  dispute_advisor: 争议顾问 (管辖/仲裁/救济)
+  compliance_checker: 合规审查师 (法规/红线/效力)
+  negotiation_advisor: 谈判顾问 (修改/让步/底线)

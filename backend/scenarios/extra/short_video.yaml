@@ -1,0 +1,17 @@
+mode_id: short_video
+label: 短视频自媒体
+scenario_description: 抖音/小红书/B站起号
+departments:
+- account_strategist
+- content_director
+- traffic_hacker
+- production_expert
+- monetization_advisor
+- data_optimizer
+department_labels:
+  account_strategist: 账号战略师 (定位/赛道/人设)
+  content_director: 内容导演 (选题/脚本/钩子)
+  traffic_hacker: 流量增长师 (算法/标签/破播放)
+  production_expert: 制作专家 (拍摄/剪辑/封面)
+  monetization_advisor: 变现顾问 (广告/带货/知识付费)
+  data_optimizer: 数据复盘师 (完播/互动/迭代)

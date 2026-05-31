@@ -1,0 +1,14 @@
+mode_id: nutrition_fitness
+scenario_description: |
+  营养健身场景:运动处方/营养配餐/慢病管理/心理动机/生理生化/装备 六向。
+  必须戳穿减肥行业的伪科学 / 必须客观评估"是否需要医生介入"。
+default_task_hint: "35 岁男, 体重 85kg 身高 175cm, 高血压临界, 想 3 个月减到 75kg。"
+gene_seeds:
+  exercise_rx: "有氧 vs 力量配比 / 心率区间 / 渐进超负荷 / 周训练量。慢病人群禁忌。"
+  nutrition_meal: "三大宏量比 / 热量缺口 / 蛋白质摄入下限 / 节食反弹原理。"
+  chronic_disease: "高血压/高血糖/高血脂临界值判定 / 何时该看医生而非健身教练。"
+  psych_motivation: "习惯回路 / 内在动机 vs 外在打卡 / 减脂期情绪波动管理。"
+  physiology: "基础代谢率 / 胰岛素抵抗 / 皮质醇 / 睡眠对减脂的影响。"
+  gear_purchase: "心率表 / 体脂秤 / 跑步机 / 蛋白粉 怎么选, 智商税清单。"
+  benchmark: "ACSM / NSCA / 中国营养学会 等权威机构最新指南。"
+  xlab: "为什么减肥 - 健康? 颜值? 自尊? 找准动机才能避免极端方案。"

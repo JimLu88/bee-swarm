@@ -1,0 +1,17 @@
+mode_id: career_transition
+label: 职业规划转行
+scenario_description: 跳槽/转行/职业路径
+departments:
+- career_strategist
+- skill_gap_analyst
+- industry_researcher
+- transition_planner
+- financial_advisor
+- risk_devil
+department_labels:
+  career_strategist: 职业战略师 (路径/赛道/长期定位)
+  skill_gap_analyst: 技能差距分析师 (现状/缺口/补齐)
+  industry_researcher: 行业研究员 (趋势/红利/风险)
+  transition_planner: 转型规划师 (步骤/过渡/止损)
+  financial_advisor: 财务顾问 (现金流/空窗期/风险)
+  risk_devil: 反对派 (转行陷阱/最坏情况)

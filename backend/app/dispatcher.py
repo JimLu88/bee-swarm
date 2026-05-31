@@ -31,6 +31,20 @@ _DEPT_FOCUS: dict[str, list[str]] = {
 
 _STRATEGIC_MARKERS = ("战略", "三年", "五年", "路线图", "roadmap", "愿景", "转型", "长期")
 
+# v6-E 业务研究关键词: 任务命中后, dispatcher 自动追加 business_research 部门
+_BUSINESS_RESEARCH_MARKERS = (
+    "运营", "推广", "营销", "增长", "起号", "养号", "引流", "私域",
+    "小红书", "抖音", "B站", "bilibili", "xiaohongshu", "tiktok", "weibo",
+    "竞品", "调研", "研究", "市场", "用户画像", "GTM", "go-to-market",
+    "电商", "直播带货", "短视频", "MCN",
+)
+
+
+def needs_business_research(task: str) -> bool:
+    """命中业务/运营/营销/调研关键词 → 建议加 business_research 部门."""
+    t = task.lower()
+    return any(m.lower() in t for m in _BUSINESS_RESEARCH_MARKERS)
+
 
 def classify_task(task: str) -> dict[str, Any]:
     t = task.strip()

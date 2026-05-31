@@ -1,0 +1,17 @@
+mode_id: parenting_baby
+label: 婴幼儿养育
+scenario_description: 0-3岁喂养/护理/早教
+departments:
+- pediatric_advisor
+- feeding_expert
+- sleep_trainer
+- early_education
+- safety_advisor
+- parent_support
+department_labels:
+  pediatric_advisor: 儿科顾问 (发育/疫苗/常见病)
+  feeding_expert: 喂养专家 (母乳/辅食/营养)
+  sleep_trainer: 睡眠引导师 (作息/夜醒/哄睡)
+  early_education: 早教启蒙师 (认知/感统/互动)
+  safety_advisor: 安全顾问 (居家/意外/急救)
+  parent_support: 家长支持师 (产后/分工/情绪)

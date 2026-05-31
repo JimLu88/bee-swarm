@@ -1,0 +1,17 @@
+mode_id: skincare_beauty
+label: 护肤美妆
+scenario_description: 护肤/美妆/医美决策
+departments:
+- dermatology_advisor
+- ingredient_analyst
+- routine_designer
+- medical_beauty
+- makeup_artist
+- budget_advisor
+department_labels:
+  dermatology_advisor: 皮肤顾问 (肤质/成分/问题肌)
+  ingredient_analyst: 成分分析师 (功效/搭配/刺激)
+  routine_designer: 护肤流程师 (步骤/早晚/换季)
+  medical_beauty: 医美顾问 (项目/风险/恢复)
+  makeup_artist: 彩妆师 (妆容/产品/场合)
+  budget_advisor: 预算顾问 (平替/性价比/避坑)

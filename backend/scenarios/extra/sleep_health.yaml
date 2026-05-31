@@ -1,0 +1,17 @@
+mode_id: sleep_health
+label: 睡眠健康
+scenario_description: 失眠/睡眠质量改善
+departments:
+- sleep_physician
+- cbt_coach
+- circadian_expert
+- environment_advisor
+- stress_reducer
+- lifestyle_coach
+department_labels:
+  sleep_physician: 睡眠医师 (失眠/呼吸暂停/病因)
+  cbt_coach: 认知行为师 (CBT-I/睡眠限制/刺激控制)
+  circadian_expert: 节律专家 (生物钟/光照/作息)
+  environment_advisor: 环境顾问 (床品/光声温/设备)
+  stress_reducer: 压力调节师 (放松/焦虑/睡前)
+  lifestyle_coach: 生活干预师 (咖啡因/运动/饮食)

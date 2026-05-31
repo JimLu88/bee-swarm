@@ -45,6 +45,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .decision_engine import run_decision
 from .evolution_coordinator import coordinator_router
+from .persona.team_api import router as team_router
 from pathlib import Path
 
 from .decision_memory import DecisionMemory
@@ -58,6 +59,8 @@ from .models import (
     DecisionStartRequest,
     DecisionEstimateRequest,
     DecisionEstimateResponse,
+    PreflightRequest,
+    DecisionFeedbackRequest,
     PriceCardResponse,
     PriceCardEntry,
     GeneEvolveRequest,
@@ -95,13 +98,37 @@ _DATA_DIR = backend_data_dir()
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    # v6 修脱节 #2: 启 APScheduler 让 P0-P16 evolvers 02:00 每天自动跑
+    try:
+        from .evolution_coordinator.coordinator import start_scheduler
+        start_scheduler()
+    except Exception:
+        pass
     yield
+    try:
+        from .evolution_coordinator.coordinator import stop_scheduler
+        stop_scheduler()
+    except Exception:
+        pass
     from .orchestration.decision_graph import shutdown_checkpoint_runtime
 
     await shutdown_checkpoint_runtime()
 
 
 app = FastAPI(title=settings.app_name, lifespan=lifespan)
+
+# bee_logs: JSONL 滚动日志 + /logs/* 端点 (蜂群侧, 给主程序自己也接上)
+_log_router_ok = False
+try:
+    import sys as _bee_sys
+    _bee_sys.path.insert(0, "D:/AI/observability")
+    from bee_logs import setup_service_logging, log_router as _swarm_log_router  # type: ignore
+    from pathlib import Path as _BeePath
+    setup_service_logging("bee-swarm",
+                          _BeePath(__file__).parent.parent / "data" / "logs")
+    _log_router_ok = True
+except Exception:
+    pass
 
 apply_stored_hub_on_startup()
 
@@ -117,6 +144,30 @@ app.add_middleware(
 @app.get("/api/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+# ============ v6-D 七剑客工具 (BeeServiceClient) ============
+@app.get("/api/tools/list")
+def tools_list(include_sensitive: bool = False) -> dict[str, Any]:
+    from .tools import list_tools as _lt
+    return {"tools": _lt(include_sensitive=include_sensitive)}
+
+
+@app.get("/api/tools/healthcheck")
+def tools_healthcheck() -> dict[str, Any]:
+    from .tools import bee_clients as _bc
+    return {"services": _bc.healthcheck()}
+
+
+@app.post("/api/tools/call")
+def tools_call(payload: dict[str, Any]) -> dict[str, Any]:
+    """手动触发工具调用 (前端/调试用); allow_sensitive=true 才放敏感工具."""
+    from .tools import execute_tool as _ex
+    name = str(payload.get("tool", ""))
+    args = payload.get("args") or {}
+    allow_sensitive = bool(payload.get("allow_sensitive", False))
+    return _ex(name, args if isinstance(args, dict) else {},
+               allow_sensitive=allow_sensitive)
 
 
 @app.get("/api/settings/hub")
@@ -694,10 +745,115 @@ async def decision_start(req: DecisionStartRequest) -> dict[str, str]:
     decision_id = "dec-" + uuid.uuid4().hex[:12]
 
     async def _bg() -> None:
-        await run_decision(decision_id=decision_id, task=req.task, mode_id=req.mode_id, debate_rounds=req.debate_rounds, thinking_frameworks=req.thinking_frameworks)
+        await run_decision(decision_id=decision_id, task=req.task, mode_id=req.mode_id, debate_rounds=req.debate_rounds, thinking_frameworks=req.thinking_frameworks, tier=req.tier, images=req.images, files=[f.model_dump() for f in req.files], route=req.route, departments_override=req.departments_override)
 
     asyncio.create_task(_bg())
     return {"decision_id": decision_id}
+
+
+@app.post("/api/decision/preflight")
+async def decision_preflight(req: PreflightRequest) -> dict[str, Any]:
+    """v6-Z CEO 预分析: 便宜 LLM 读任务 → 推荐启动哪些部门 + 路线 + 轮数 (前端 5×3 选择器)."""
+    from .decision_engine import ceo_preflight
+    return await ceo_preflight(
+        task=req.task,
+        mode_id=req.mode_id,
+        images=req.images,
+        files=[f.model_dump() for f in req.files],
+    )
+
+
+@app.post("/api/decision/feedback")
+def decision_feedback(req: DecisionFeedbackRequest) -> dict[str, Any]:
+    """v6-Z 👍👎 奖励回填 → sop_bandit 学习 (Thompson 后验更新 + 时间衰减)."""
+    from . import sop_bandit
+    result = sop_bandit.record(
+        mode_id=req.mode_id,
+        difficulty=req.difficulty,
+        route=req.route,
+        rounds_band=req.rounds_band,
+        reward=req.reward,
+    )
+    return {"ok": True, "recorded": result}
+
+
+@app.get("/api/sop/bandit/{mode_id}")
+def sop_bandit_stats(mode_id: str) -> dict[str, Any]:
+    """v6-Z 查看某场景学到的路线/轮数偏好 (诊断/可视化用)."""
+    from . import sop_bandit
+    return {"stats": sop_bandit.stats(mode_id), "summary": sop_bandit.summary_for_sop(mode_id)}
+
+
+@app.post("/api/decision/rerun-dept/{decision_id}/{dept_id}")
+async def decision_rerun_dept(decision_id: str, dept_id: str) -> dict[str, Any]:
+    """v6-S6 只重跑某个部门 (保留其它部门已有结果). 重跑后追加新 decision 到 jsonl, 原行不动."""
+    from .decision_engine import _run_dept, _memory  # type: ignore[attr-defined]
+    from .runtime_paths import backend_data_dir
+
+    base = backend_data_dir()
+    found_row: dict[str, Any] | None = None
+    found_mode: str | None = None
+    for mode_dir in base.iterdir():
+        if not mode_dir.is_dir():
+            continue
+        p = mode_dir / "decisions.jsonl"
+        if not p.exists():
+            continue
+        try:
+            with p.open("r", encoding="utf-8") as f:
+                for line in f:
+                    if f'"decision_id": "{decision_id}"' in line or f'"decision_id":"{decision_id}"' in line:
+                        try:
+                            found_row = json.loads(line)
+                            found_mode = mode_dir.name
+                            break
+                        except Exception:
+                            continue
+        except Exception:
+            continue
+        if found_row:
+            break
+
+    if not found_row or not found_mode:
+        raise HTTPException(status_code=404, detail=f"decision {decision_id} 没找到")
+
+    task = str(found_row.get("task") or "").strip()
+    if not task:
+        raise HTTPException(status_code=422, detail="原决策没有 task 字段, 无法重跑")
+
+    new_decision_id = "dec-" + uuid.uuid4().hex[:12]
+    try:
+        new_report = await _run_dept(
+            decision_id=new_decision_id,
+            mode_id=found_mode,
+            dept=dept_id,
+            task=task,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"rerun_failed: {e}")
+
+    new_summary = dict(found_row)
+    reports = list(new_summary.get("dept_reports") or [])
+    new_report_dict = new_report.model_dump() if hasattr(new_report, "model_dump") else dict(new_report)
+    patched = False
+    for i, r in enumerate(reports):
+        if str(r.get("dept") or "") == dept_id:
+            reports[i] = new_report_dict
+            patched = True
+            break
+    if not patched:
+        reports.append(new_report_dict)
+    new_summary["dept_reports"] = reports
+    new_summary["decision_id"] = new_decision_id
+    new_summary["rerun_of"] = decision_id
+    new_summary["rerun_dept"] = dept_id
+
+    try:
+        _memory.append_summary(mode_id=found_mode, summary=new_summary)
+    except Exception:
+        pass
+
+    return {"summary": new_summary}
 
 
 @app.websocket("/api/decision/stream/{decision_id}")
@@ -795,6 +951,171 @@ def llm_price_card() -> PriceCardResponse:
     return PriceCardResponse(fx_rate_cny_per_usd=fx, entries=entries)
 
 app.include_router(coordinator_router, prefix="/coordinator", tags=["coordinator"])
+app.include_router(team_router)  # v6-A 动态部门 + 人设池 (/api/team/**)
+from .persona.wizard_api import router as wizard_router  # v7 W4 自定义场景向导
+app.include_router(wizard_router)
+# v3-K 主动交互 (修脱节: proactive.py 现在有 HTTP 端点 /api/proactive/**)
+from .assistant.api import router as proactive_router  # noqa: E402
+app.include_router(proactive_router)
+
+# v6-F 意图澄清节点 (/api/intent/probe + /api/intent/resolve)
+from .intent_clarify import router as intent_router  # noqa: E402
+app.include_router(intent_router)
+
+# v6-G PendingChanges 审批通道 (/api/pending/**)
+from .pending_changes import router as pending_router  # noqa: E402
+app.include_router(pending_router)
+
+# v6-K 趋势仪表盘 (/api/trends/aggregate)
+from .trends_api import router as trends_router  # noqa: E402
+app.include_router(trends_router)
+
+# v6-M 收藏功能 (/api/favorites/*)
+from .favorites import router as favorites_router  # noqa: E402
+app.include_router(favorites_router)
+
+
+# ============ v6-O bee-memory 代理 (解决前端跨域 + bearer 问题) ============
+def _proxy_memory_get(path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
+    import httpx as _hx
+    import os as _o
+    base = _o.environ.get("BEE_MEMORY_URL", "http://127.0.0.1:8004")
+    headers = {"Authorization": f"Bearer {_o.environ.get('BEE_BEARER_TOKEN', 'dev-token-change-me')}"}
+    try:
+        with _hx.Client(timeout=10) as c:
+            r = c.get(f"{base.rstrip('/')}{path}", params=params or {}, headers=headers)
+        if r.status_code >= 400:
+            return {"_proxy_error": f"HTTP {r.status_code}", "_path": path, "detail": r.text[:300]}
+        return r.json()
+    except Exception as e:
+        return {"_proxy_error": f"network: {e!r}", "_path": path}
+
+
+def _proxy_memory_post(path: str, json_body: dict[str, Any] | None = None) -> dict[str, Any]:
+    import httpx as _hx
+    import os as _o
+    base = _o.environ.get("BEE_MEMORY_URL", "http://127.0.0.1:8004")
+    headers = {"Authorization": f"Bearer {_o.environ.get('BEE_BEARER_TOKEN', 'dev-token-change-me')}"}
+    try:
+        with _hx.Client(timeout=15) as c:
+            r = c.post(f"{base.rstrip('/')}{path}", json=json_body or {}, headers=headers)
+        if r.status_code >= 400:
+            return {"_proxy_error": f"HTTP {r.status_code}", "_path": path, "detail": r.text[:300]}
+        return r.json()
+    except Exception as e:
+        return {"_proxy_error": f"network: {e!r}", "_path": path}
+
+
+@app.get("/api/memory/review/due")
+def memory_review_due_proxy(limit: int = 20) -> dict[str, Any]:
+    return _proxy_memory_get("/memory/review/due", {"limit": limit})
+
+
+@app.get("/api/memory/review/stats")
+def memory_review_stats_proxy() -> dict[str, Any]:
+    return _proxy_memory_get("/memory/review/stats")
+
+
+@app.post("/api/memory/review/grade")
+def memory_review_grade_proxy(payload: dict[str, Any]) -> dict[str, Any]:
+    return _proxy_memory_post("/memory/review/grade", payload)
+
+
+@app.get("/api/memory/backup/stats")
+def memory_backup_stats_proxy() -> dict[str, Any]:
+    return _proxy_memory_get("/memory/backup/stats")
+
+
+@app.post("/api/memory/backup/retry")
+def memory_backup_retry_proxy(limit: int = 100) -> dict[str, Any]:
+    return _proxy_memory_post(f"/memory/backup/retry?limit={limit}")
+
+
+@app.post("/api/memory/backup/config")
+def memory_backup_config_proxy(payload: dict[str, Any]) -> dict[str, Any]:
+    """前端 5 池 Key 输入框提交; 转发给 bee-memory 持久化."""
+    return _proxy_memory_post("/memory/backup/config", payload)
+
+
+# v6-L /api/budget — 顶部预算环 (代理 bee-ledger /ledger/status)
+@app.get("/api/budget")
+def budget_summary() -> dict[str, Any]:
+    """直接代理 bee-ledger /ledger/status; 不可达时返默认值."""
+    try:
+        from .tools import bee_clients as _bc
+        return {"ok": True, **_bc.ledger_status()}
+    except Exception as e:
+        return {"ok": False, "error": repr(e)[:200],
+                "today_yuan": 0.0, "month_yuan": 0.0,
+                "budget_yuan": 800.0, "budget_used_pct": 0.0, "tier": "unknown"}
+
+# 蜂群自己的日志端点 (没 bearer; 主程序聚合页面拉这里)
+if _log_router_ok:
+    app.include_router(_swarm_log_router)
+
+
+# ============ /api/logs/aggregate — 把 6 微服务 + 蜂群自身日志聚合 ============
+@app.get("/api/logs/aggregate")
+def logs_aggregate(per_service_limit: int = 100, level: str = "") -> dict[str, Any]:
+    """同步轮询 6 微服务 + 蜂群自身的 /logs/recent 与 /logs/stats; 不阻塞太久."""
+    import httpx as _httpx_a
+    from .tools import bee_clients as _bc_a
+    import os as _os
+    bearer = {"Authorization": f"Bearer {_os.environ.get('BEE_BEARER_TOKEN', 'dev-token-change-me')}"}
+    targets = {
+        "scraper": _bc_a.scraper_url, "hands": _bc_a.hands_url,
+        "light": _bc_a.light_url, "vision": _bc_a.vision_url,
+        "ledger": _bc_a.ledger_url, "memory": _bc_a.memory_url,
+    }
+    services: dict[str, Any] = {}
+    aggregated_errors = 0
+    aggregated_warnings = 0
+    qparam = {"limit": per_service_limit}
+    if level:
+        qparam["level"] = level
+
+    for name, base in targets.items():
+        svc: dict[str, Any] = {"name": name, "url": base, "reachable": False,
+                               "items": [], "stats": {}}
+        try:
+            with _httpx_a.Client(timeout=5) as c:
+                r1 = c.get(f"{base.rstrip('/')}/logs/recent",
+                           params=qparam, headers=bearer)
+                r2 = c.get(f"{base.rstrip('/')}/logs/stats", headers=bearer)
+            if r1.status_code == 200:
+                svc["items"] = (r1.json() or {}).get("items") or []
+            if r2.status_code == 200:
+                svc["stats"] = r2.json() or {}
+                aggregated_errors += int(svc["stats"].get("ERROR", 0) or 0)
+                aggregated_warnings += int(svc["stats"].get("WARNING", 0) or 0)
+            svc["reachable"] = (r1.status_code == 200 or r2.status_code == 200)
+        except Exception as e:
+            svc["error"] = repr(e)[:200]
+        services[name] = svc
+
+    # 蜂群自己 (本进程直接读 _LOG_PATH, 不走 HTTP)
+    swarm_svc: dict[str, Any] = {"name": "swarm", "url": "local",
+                                 "reachable": True, "items": [], "stats": {}}
+    try:
+        from bee_logs import logs_recent as _lr, logs_stats as _ls  # type: ignore
+        rec = _lr(limit=per_service_limit, level=level)
+        st = _ls()
+        swarm_svc["items"] = rec.get("items", [])
+        swarm_svc["stats"] = st
+        aggregated_errors += int(st.get("ERROR", 0) or 0)
+        aggregated_warnings += int(st.get("WARNING", 0) or 0)
+    except Exception as e:
+        swarm_svc["error"] = repr(e)[:200]
+    services["swarm"] = swarm_svc
+
+    return {
+        "services": services,
+        "summary": {
+            "total_errors": aggregated_errors,
+            "total_warnings": aggregated_warnings,
+            "service_count": len(services),
+        },
+    }
 
 
 # Optional B2: serve exported frontend from backend process.

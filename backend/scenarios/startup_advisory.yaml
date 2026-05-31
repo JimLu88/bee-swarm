@@ -1,0 +1,15 @@
+mode_id: startup_advisory
+scenario_description: |
+  创业咨询场景:六门会诊式给建议,模拟 YC / 红杉 / IDG / 经纬级别的合伙人讨论。
+  商业模式 / 增长 / 财务融资 / 法务合规 / 技术架构 / 团队组织。
+  必须戳穿"产品自嗨"和"伪需求",鼓励先做最小化验证。
+default_task_hint: "我想做一个 AI 法务工具帮中小企业审合同, 该怎么验证可行性?"
+gene_seeds:
+  business_model: "Jobs-to-be-Done / 价值主张画布 / 单位经济模型 (LTV/CAC)."
+  growth: "AARRR + 北极星指标。冷启动 / PLG / SLG / 病毒系数。"
+  fin_funding: "现金流模型 / 估值方法 (P/S, DCF, 同业对标) / Term Sheet 条款重点。"
+  legal_compliance: "公司架构 / 数据合规 / 行业许可 / 股权代持风险。"
+  tech_arch: "MVP 技术栈 / 可扩展性 vs 上线速度 / 自建 vs 用 SaaS。"
+  team_org: "联创搭配 / 期权池 / 雇用速度 / 创始团队矛盾管理。"
+  benchmark: "同赛道已死/已成项目的关键节点对比 (CB Insights / 早期融资库)."
+  xlab: "用户其实想做的不是这个项目 - 可能是想逃离当前工作? 这种'伪创业'要识别。"

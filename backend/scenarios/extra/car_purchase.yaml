@@ -1,0 +1,17 @@
+mode_id: car_purchase
+label: 汽车选购维保
+scenario_description: 买车/换车/养车决策
+departments:
+- vehicle_analyst
+- price_negotiator
+- reliability_expert
+- maintenance_advisor
+- insurance_planner
+- trade_in_expert
+department_labels:
+  vehicle_analyst: 车型分析师 (需求匹配/参数/对标)
+  price_negotiator: 购车谈判师 (裸车价/优惠/赠品/全款分期)
+  reliability_expert: 可靠性专家 (故障率/保值率/口碑)
+  maintenance_advisor: 维保顾问 (保养成本/质保/配件)
+  insurance_planner: 保险规划师 (险种/理赔/费用)
+  trade_in_expert: 置换二手师 (旧车估值/过户/避坑)

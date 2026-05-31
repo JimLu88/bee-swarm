@@ -1,0 +1,17 @@
+mode_id: travel_deep
+label: 深度旅行定制
+scenario_description: 小众/深度/自由行定制
+departments:
+- itinerary_designer
+- local_expert
+- budget_planner
+- foodie_guide
+- safety_advisor
+- experience_curator
+department_labels:
+  itinerary_designer: 行程设计师 (路线/节奏/亮点)
+  local_expert: 在地专家 (小众/文化/避坑)
+  budget_planner: 预算规划师 (机酒/性价比/分配)
+  foodie_guide: 美食向导 (餐厅/小吃/预订)
+  safety_advisor: 安全顾问 (治安/医疗/应急)
+  experience_curator: 体验策展师 (独特体验/拍照/纪念)

@@ -37,6 +37,10 @@ class DecisionGraphState(TypedDict, total=False):
     dept: str
     reports: Annotated[list[dict[str, Any]], operator.add]
     summary: dict[str, Any]
+    # v6-X 多模态: 整场共享, route_depts 透传到每个 dept_worker.
+    images: list[str]
+    # v6-X-5 一次性图像摘要 (vision LLM 跑一次, 后续 staff/瞎子模型读文本)
+    image_summary: str
 
 
 _compiled_graph: Any = None
@@ -93,6 +97,23 @@ def _compile_graph(checkpointer: Any) -> Any:
             "dept_brief_preview": brief_preview,
         }
         bus.publish(StreamEvent(type="dispatcher_ready", decision_id=state["decision_id"], payload=dispatcher_payload_preview))
+
+        # v6-X-5 图像摘要: 有图就用 image_summary_model[tier] 跑一次 vision, 后续节点都读这段文字.
+        image_summary = ""
+        images = list(state.get("images") or [])
+        if images:
+            from ..decision_engine import build_image_summary
+            tier = str(state.get("tier") or "A").upper()
+            try:
+                image_summary = await build_image_summary(images=images, tier=tier, task=state["task"])
+                bus.publish(StreamEvent(
+                    type="image_summary_ready",
+                    decision_id=state["decision_id"],
+                    payload={"chars": len(image_summary), "image_count": len(images)},
+                ))
+            except Exception as e:
+                image_summary = f"[图像摘要失败: {e}]"
+
         bus.publish(
             StreamEvent(
                 type="fanout_started",
@@ -107,6 +128,7 @@ def _compile_graph(checkpointer: Any) -> Any:
             "lvl": str(dsp.get("level") or ""),
             "urg": str(dsp.get("urgency") or ""),
             "dept_briefs": dept_briefs,
+            "image_summary": image_summary,
         }
 
     def route_depts(state: DecisionGraphState) -> list[Send]:
@@ -115,6 +137,8 @@ def _compile_graph(checkpointer: Any) -> Any:
         notes = str(state.get("notes") or "")
         lvl = str(state.get("lvl") or "")
         urg = str(state.get("urg") or "")
+        images = list(state.get("images") or [])
+        image_summary = str(state.get("image_summary") or "")
         # Send(arg) is the sole input to dept_worker — include everything _run_dept needs.
         return [
             Send(
@@ -129,14 +153,17 @@ def _compile_graph(checkpointer: Any) -> Any:
                     "task_level": lvl,
                     "task_urgency": urg,
                     "debate_rounds": int(state.get("debate_rounds") or 1),
+                    "tier": str(state.get("tier") or "A"),
+                    "images": images,
+                    "image_summary": image_summary,
                 },
             )
             for d in depts
         ]
 
     async def dept_worker(state: DecisionGraphState) -> dict[str, Any]:
-        """v1.2 N 轮辩论: 同一部门连跑 N 次, 上轮冲突注入下轮 dispatcher_context. 余弦相似>0.9 早停."""
-        from ..decision_engine import _run_dept
+        """v1.2 N 轮辩论 + v6-W 本地档限流."""
+        from ..decision_engine import _run_dept, _LOCAL_TIER_SEMAPHORE
         from ..stream_bus import bus
         from ..models import StreamEvent
 
@@ -146,7 +173,14 @@ def _compile_graph(checkpointer: Any) -> Any:
         urg = str(state.get("task_urgency") or state.get("urg") or "")
         ctx = str(state.get("dispatcher_context") or "")
         rounds = int(state.get("debate_rounds") or 1)
+        tier = str(state.get("tier") or "A").upper()
         decision_id = state["decision_id"]
+        # v6-X 多模态: head 在第 1 轮收原图; staff/瞎子模型读 image_summary 文字.
+        images = list(state.get("images") or [])
+        image_summary = str(state.get("image_summary") or "")
+        # 图像摘要作为 ctx 附加, 让所有 staff 都能"读到"图
+        if image_summary:
+            ctx = f"{ctx}\n\n[用户上传图片摘要]\n{image_summary}".strip()
 
         last_report = None
         last_consensus = ""
@@ -157,12 +191,22 @@ def _compile_graph(checkpointer: Any) -> Any:
                     decision_id=decision_id,
                     payload={"dept": d, "round": r_idx + 1, "total": rounds},
                 ))
-            last_report = await _run_dept(
-                decision_id, state["mode_id"], d, state["task"],
-                dispatcher_context=ctx,
-                dispatcher_notes=notes,
-                task_level=lvl, task_urgency=urg,
-            )
+            # v6-W 本地档限流: tier=C 时同时只跑 2 个 dept (ollama 单实例并发弱)
+            if tier == "C":
+                async with _LOCAL_TIER_SEMAPHORE:
+                    last_report = await _run_dept(
+                        decision_id, state["mode_id"], d, state["task"],
+                        dispatcher_context=ctx, dispatcher_notes=notes,
+                        task_level=lvl, task_urgency=urg, tier=tier,
+                        images=images,
+                    )
+            else:
+                last_report = await _run_dept(
+                    decision_id, state["mode_id"], d, state["task"],
+                    dispatcher_context=ctx, dispatcher_notes=notes,
+                    task_level=lvl, task_urgency=urg, tier=tier,
+                    images=images,
+                )
             # 简单早停: 跟上一轮共识完全一样 → 收敛
             if r_idx >= 1 and last_report.consensus.strip() == last_consensus.strip():
                 bus.publish(StreamEvent(
@@ -192,9 +236,14 @@ def _compile_graph(checkpointer: Any) -> Any:
         raw_sorted = sorted(raw, key=lambda row: rank.get(str(row.get("dept")), 10_000))
 
         reports = [DeptLeadReport(**r) for r in raw_sorted]
+        # v6-W-fix CEO 之前看不到图片 → 把图像摘要拼进 task 给 CEO (之前只给了部门 ctx).
+        _task = state["task"]
+        _img_sum = str(state.get("image_summary") or "")
+        if _img_sum and "[用户上传图片摘要]" not in _task:
+            _task = f"{_task}\n\n[用户上传图片摘要]\n{_img_sum}"
         summary = await finalize_decision_bundle(
             decision_id=state["decision_id"],
-            task=state["task"],
+            task=_task,
             mode_id=state["mode_id"],
             mode_label=state["mode_label"],
             dsp_meta=dict(state.get("dsp_meta") or {}),
@@ -275,6 +324,8 @@ async def invoke_decision_graph(
     mode_label: str,
     departments: list[str],
     debate_rounds: int = 1,
+    tier: str = "A",
+    images: list[str] | None = None,
 ) -> "DecisionSummary":
     """Run compiled graph; raises if finalize did not populate ``summary``."""
     from ..models import DecisionSummary
@@ -288,6 +339,8 @@ async def invoke_decision_graph(
             "mode_label": mode_label,
             "departments": departments,
             "debate_rounds": int(debate_rounds or 1),
+            "tier": str(tier or "A").upper(),
+            "images": list(images or []),
         },
         config={"configurable": {"thread_id": decision_id}},
     )

@@ -1,0 +1,17 @@
+mode_id: fashion_styling
+label: 穿搭造型
+scenario_description: 服装搭配/形象提升
+departments:
+- stylist
+- body_analyst
+- color_consultant
+- wardrobe_planner
+- trend_advisor
+- budget_shopper
+department_labels:
+  stylist: 造型师 (搭配/风格/场合)
+  body_analyst: 身型分析师 (体型/扬长避短)
+  color_consultant: 色彩顾问 (肤色/季型/配色)
+  wardrobe_planner: 衣橱规划师 (胶囊衣橱/单品/预算)
+  trend_advisor: 潮流顾问 (流行/经典/个人)
+  budget_shopper: 省钱买手 (性价比/平替/避坑)

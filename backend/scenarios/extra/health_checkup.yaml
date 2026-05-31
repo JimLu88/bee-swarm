@@ -1,0 +1,17 @@
+mode_id: health_checkup
+label: 体检报告解读
+scenario_description: 体检/化验单看不懂找它
+departments:
+- general_physician
+- lab_interpreter
+- imaging_reader
+- chronic_disease_advisor
+- lifestyle_coach
+- referral_advisor
+department_labels:
+  general_physician: 全科医师 (综合判读/异常分级)
+  lab_interpreter: 检验解读师 (血常规/生化/肿瘤标志物)
+  imaging_reader: 影像解读师 (B超/CT/结节/钙化)
+  chronic_disease_advisor: 慢病管理师 (三高/血糖/趋势)
+  lifestyle_coach: 生活干预师 (饮食/运动/作息建议)
+  referral_advisor: 就医指引 (要不要进一步查/挂什么科)

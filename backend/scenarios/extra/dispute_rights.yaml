@@ -1,0 +1,17 @@
+mode_id: dispute_rights
+label: 消费维权
+scenario_description: 退款/投诉/消费纠纷维权
+departments:
+- rights_lawyer
+- complaint_strategist
+- evidence_advisor
+- negotiation_expert
+- channel_navigator
+- cost_assessor
+department_labels:
+  rights_lawyer: 维权法务 (法条/证据/赔偿)
+  complaint_strategist: 投诉策略师 (渠道/话术/升级)
+  evidence_advisor: 证据顾问 (保全/录音/凭证)
+  negotiation_expert: 协商专家 (谈判/和解/底线)
+  channel_navigator: 渠道领航员 (12315/平台/媒体)
+  cost_assessor: 成本评估师 (时间/精力/胜算)

@@ -1,0 +1,17 @@
+mode_id: home_renovation
+label: 装修设计
+scenario_description: 新房/旧房装修全流程决策
+departments:
+- space_designer
+- budget_controller
+- material_expert
+- construction_supervisor
+- style_curator
+- contract_advisor
+department_labels:
+  space_designer: 空间设计师 (户型动线/采光/功能分区)
+  budget_controller: 预算控制师 (报价拆解/防增项/性价比)
+  material_expert: 材料专家 (主辅材/环保/耐用度/品牌)
+  construction_supervisor: 施工监理 (工艺标准/验收/水电防坑)
+  style_curator: 风格软装师 (色彩/家具/灯光/氛围)
+  contract_advisor: 合同顾问 (装修合同/付款节点/维权)

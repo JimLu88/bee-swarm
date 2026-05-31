@@ -1,0 +1,17 @@
+mode_id: mental_wellness
+label: 心理情绪疏导
+scenario_description: 压力/焦虑/情绪困扰陪伴
+departments:
+- clinical_psychologist
+- emotion_coach
+- relationship_advisor
+- sleep_specialist
+- growth_mentor
+- safety_gatekeeper
+department_labels:
+  clinical_psychologist: 临床心理师 (评估/认知行为/危机识别)
+  emotion_coach: 情绪教练 (即时安抚/正念/调节)
+  relationship_advisor: 关系顾问 (亲密/家庭/职场人际)
+  sleep_specialist: 睡眠专家 (失眠/作息/放松)
+  growth_mentor: 成长导师 (自我认知/价值/意义感)
+  safety_gatekeeper: 安全守门员 (高危识别/转介专业)

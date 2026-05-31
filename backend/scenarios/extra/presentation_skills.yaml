@@ -1,0 +1,17 @@
+mode_id: presentation_skills
+label: PPT演讲汇报
+scenario_description: 做 PPT / 上台演讲/工作汇报
+departments:
+- narrative_architect
+- slide_designer
+- delivery_coach
+- audience_analyst
+- data_storyteller
+- qa_simulator
+department_labels:
+  narrative_architect: 叙事架构师 (逻辑/金字塔/故事线)
+  slide_designer: 视觉设计师 (排版/图表/视觉锤)
+  delivery_coach: 演讲教练 (台风/控场/紧张)
+  audience_analyst: 受众分析师 (听众/痛点/说服)
+  data_storyteller: 数据叙事师 (数字/图表/可信度)
+  qa_simulator: 答辩模拟官 (尖锐提问/应对)

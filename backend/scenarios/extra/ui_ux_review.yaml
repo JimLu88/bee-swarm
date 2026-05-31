@@ -1,0 +1,17 @@
+mode_id: ui_ux_review
+label: UI/UX设计评审
+scenario_description: 界面/交互设计评审优化
+departments:
+- visual_designer
+- interaction_designer
+- usability_expert
+- design_system
+- brand_aligner
+- dev_feasibility
+department_labels:
+  visual_designer: 视觉设计师 (排版/色彩/层次)
+  interaction_designer: 交互设计师 (流程/反馈/状态)
+  usability_expert: 可用性专家 (易用/认知负荷/无障碍)
+  design_system: 设计系统师 (组件/规范/一致性)
+  brand_aligner: 品牌对齐师 (调性/识别/情感)
+  dev_feasibility: 前端可行性 (实现/性能/还原度)

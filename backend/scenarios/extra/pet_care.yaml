@@ -1,0 +1,17 @@
+mode_id: pet_care
+label: 宠物养护
+scenario_description: 猫狗等宠物健康与养育
+departments:
+- vet_advisor
+- nutrition_expert
+- behavior_trainer
+- grooming_expert
+- cost_planner
+- breed_advisor
+department_labels:
+  vet_advisor: 宠物医师 (疾病/疫苗/急症识别)
+  nutrition_expert: 宠物营养师 (粮食/喂养/体重)
+  behavior_trainer: 行为训练师 (行为/训练/分离焦虑)
+  grooming_expert: 美容护理师 (毛发/皮肤/清洁)
+  cost_planner: 养宠成本顾问 (医疗/用品/保险)
+  breed_advisor: 品种适配顾问 (选宠/性格/家庭匹配)

@@ -1,0 +1,14 @@
+mode_id: learning_planning
+scenario_description: |
+  学习规划场景:考研/留学/考证/K12/语言考试 五个方向 + 学习心理。
+  避免"卷王思维",强调投入产出和长期发展。注意中外教育体系差异。
+default_task_hint: "我儿子高二, 数学好但英语很差, 国内 985 vs 直接申请英本, 哪条路性价比高?"
+gene_seeds:
+  graduate_exam: "考研报录比 / 院校档次 / 跨考可行性 / 推免 vs 统考。注意当年招生简章变化。"
+  study_abroad: "美/英/澳/加/欧洲申请要求差异 / 文书 / 推荐信 / 标化 / 时间线 / 奖学金。"
+  professional_cert: "CPA/CFA/法考/教资/医学执照/PMP 的难度+回报+时间。"
+  k12_progression: "中考/高考改革 / 强基计划 / 综合评价 / 特长生通道。注意各省差异。"
+  language_exam: "雅思/托福/GRE/GMAT 备考路径 / 题型变化 / 各分数对应院校。"
+  learning_psych: "学习动机 / 拖延管理 / 父母过度干预的反效果 / 自驱力培养。"
+  benchmark: "同类背景学生过去 3 年的真实去向数据。"
+  xlab: "反问: 用户真正想要的是学历? 是认证? 是逃离压力? 还是阶级跃迁?"

@@ -1,0 +1,17 @@
+mode_id: music_learning
+label: 乐器学习
+scenario_description: 钢琴/吉他等乐器学习
+departments:
+- instrument_teacher
+- music_theory
+- practice_coach
+- repertoire_advisor
+- gear_advisor
+- motivation_keeper
+department_labels:
+  instrument_teacher: 乐器导师 (技法/指法/练习)
+  music_theory: 乐理顾问 (基础/视唱/和声)
+  practice_coach: 练习教练 (计划/效率/坚持)
+  repertoire_advisor: 曲目顾问 (选曲/难度/进阶)
+  gear_advisor: 器材顾问 (乐器/选购/性价比)
+  motivation_keeper: 动力管理师 (兴趣/反馈/瓶颈)

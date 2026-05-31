@@ -1,6 +1,6 @@
 "use client";
 import type { CSSProperties } from "react";
-const card: CSSProperties = { padding: 14, borderRadius: 10, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.04)" };
+const card: CSSProperties = { padding: 14, borderRadius: 10, border: "1px solid var(--bg-hover)", background: "var(--bg-subtle)" };
 export function SandboxPanel() {
   return (
     <div style={card}>

@@ -1,0 +1,14 @@
+mode_id: dining_recommendation
+scenario_description: |
+  餐饮推荐场景:本地探店/菜系评论/商务宴请/健康饮食/性价比/节日特色 六向。
+  支持指定城市 + 预算 + 场合 + 同行人数。必须诚实指出网红店翻车风险。
+default_task_hint: "周五在杭州西湖区招待两个北京客户, 人均 300-500 预算, 不要太网红风的。"
+gene_seeds:
+  local_explore: "本地老饕信得过的店 / 大众点评筛选避坑 / 抖音网红店红黑榜。"
+  cuisine_critic: "菜系正宗度判断 / 主理人来源 / 食材产地 / 制作工艺细节。"
+  business_dining: "包间 / 上菜节奏 / 价格透明 / 送客礼仪 / 适合谈事的环境。"
+  healthy_eating: "膳食搭配 / 隐形糖盐油 / 食安红线 (黑作坊 / 复用油)."
+  value_for_money: "同档次横向对比 / 隐藏菜单 / 优惠券 / 团购陷阱。"
+  festive_special: "节日限定 / 季节性食材 / 仪式感 / 家宴 vs 商务的边界。"
+  benchmark: "米其林 / 黑珍珠 / 五星地标 / 知乎/小红书 KOL 测评汇总。"
+  xlab: "推荐之外的反向问: 这顿饭真正要传递什么信息 / 关系? 也许不去吃才对。"

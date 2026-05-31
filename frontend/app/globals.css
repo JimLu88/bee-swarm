@@ -1,0 +1,55 @@
+/* v7 主题令牌层: 一处定义, 全站 var(--xxx) 引用. 深/浅切换只切 data-theme. */
+
+/* 默认(无 data-theme)= 深色, 与历史一致, 防未转换组件突变 */
+:root,
+:root[data-theme="dark"] {
+  --bg: #0a0a0a;
+  --bg-elev: #15151a;
+  --bg-card: #1a1a1e;
+  --bg-subtle: rgba(255, 255, 255, 0.04);
+  --bg-hover: rgba(255, 255, 255, 0.08);
+  --text: #ededed;
+  --text-dim: #bbbbbb;
+  --text-faint: #888888;
+  --border: rgba(255, 255, 255, 0.12);
+  --border-strong: rgba(255, 255, 255, 0.20);
+  --accent: #facc15;
+  --accent-bg: rgba(250, 204, 21, 0.15);
+  --info: #90caf9;
+  --info-bg: rgba(144, 202, 249, 0.10);
+  --good: #4ade80;
+  --warn: #fbbf24;
+  --bad: #f87171;
+  --overlay: rgba(0, 0, 0, 0.55);
+  --shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+}
+
+/* 浅色 (用户主选): 黑字白底, 重点色改蓝 (黄字在白底看不清) */
+:root[data-theme="light"] {
+  --bg: #ffffff;
+  --bg-elev: #f5f6f8;
+  --bg-card: #fafbfc;
+  --bg-subtle: rgba(0, 0, 0, 0.03);
+  --bg-hover: rgba(0, 0, 0, 0.06);
+  --text: #1a1a1a;
+  --text-dim: #555555;
+  --text-faint: #888888;
+  --border: rgba(0, 0, 0, 0.12);
+  --border-strong: rgba(0, 0, 0, 0.20);
+  --accent: #d97706;
+  --accent-bg: rgba(217, 119, 6, 0.10);
+  --info: #2563eb;
+  --info-bg: rgba(37, 99, 235, 0.08);
+  --good: #16a34a;
+  --warn: #d97706;
+  --bad: #dc2626;
+  --overlay: rgba(0, 0, 0, 0.35);
+  --shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}

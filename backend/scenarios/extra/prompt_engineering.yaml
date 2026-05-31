@@ -1,0 +1,17 @@
+mode_id: prompt_engineering
+label: AI提示词工程
+scenario_description: Prompt/AI 应用调优
+departments:
+- prompt_architect
+- eval_engineer
+- rag_advisor
+- cost_optimizer
+- safety_reviewer
+- workflow_designer
+department_labels:
+  prompt_architect: 提示架构师 (结构/角色/约束)
+  eval_engineer: 评测工程师 (基准/A/B/回归)
+  rag_advisor: RAG 顾问 (检索/上下文/幻觉)
+  cost_optimizer: 成本优化师 (token/模型选型/缓存)
+  safety_reviewer: 安全审查师 (越狱/注入/合规)
+  workflow_designer: 工作流设计师 (Agent/链路/工具)

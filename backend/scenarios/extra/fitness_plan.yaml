@@ -1,0 +1,17 @@
+mode_id: fitness_plan
+label: 健身训练计划
+scenario_description: 增肌/减脂/塑形训练
+departments:
+- training_coach
+- nutrition_planner
+- sports_medicine
+- body_analyst
+- habit_coach
+- equipment_advisor
+department_labels:
+  training_coach: 训练教练 (计划/动作/周期)
+  nutrition_planner: 营养规划师 (热量/三大营养素/食谱)
+  sports_medicine: 运动医学 (损伤/恢复/疼痛)
+  body_analyst: 体测分析师 (体脂/围度/进度)
+  habit_coach: 习惯教练 (坚持/动力/作息)
+  equipment_advisor: 装备顾问 (器械/补剂/性价比)

@@ -1,0 +1,17 @@
+mode_id: photography
+label: 摄影技巧
+scenario_description: 拍照/构图/后期提升
+departments:
+- composition_master
+- gear_advisor
+- lighting_expert
+- post_processing
+- genre_specialist
+- style_curator
+department_labels:
+  composition_master: 构图大师 (构图/视角/光线)
+  gear_advisor: 器材顾问 (相机/镜头/性价比)
+  lighting_expert: 用光专家 (自然光/布光/氛围)
+  post_processing: 后期修图师 (调色/Lightroom/PS)
+  genre_specialist: 题材专家 (人像/风光/街拍)
+  style_curator: 风格策展师 (审美/参考/个人风格)

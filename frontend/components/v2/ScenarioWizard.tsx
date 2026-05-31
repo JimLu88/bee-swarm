@@ -1,0 +1,192 @@
+"use client";
+
+/** v7 W4 自定义场景向导: 分步问答 → AI 草拟部门 → 确认落地为新场景. */
+
+import { useState, type CSSProperties } from "react";
+import { fetchWithTimeout, TIMEOUT_MS } from "../../lib/http";
+
+type Dept = { id: string; label: string };
+type Draft = {
+  mode_id: string; label: string; ceo_title: string;
+  scenario_description: string; departments: Dept[]; llm_error?: string;
+};
+
+type Props = {
+  backendUrl: string;
+  open: boolean;
+  onClose: () => void;
+  onCreated?: (modeId: string) => void;
+};
+
+const DOMAIN_PRESETS = [
+  "装修设计", "租房买房", "宠物养护", "婚礼策划", "心理疏导",
+  "求职面试", "副业创业", "理财规划", "健身减脂", "亲子教育",
+];
+
+const backdrop: CSSProperties = {
+  position: "fixed", inset: 0, background: "var(--overlay)", zIndex: 320,
+  display: "flex", alignItems: "center", justifyContent: "center",
+};
+const box: CSSProperties = {
+  width: "min(560px, 94vw)", maxHeight: "88vh", overflow: "auto",
+  background: "var(--bg-card)", color: "var(--text)", borderRadius: 12, padding: 20,
+  border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 14,
+};
+const inp: CSSProperties = {
+  width: "100%", padding: "8px 10px", fontSize: 13, borderRadius: 6,
+  border: "1px solid var(--border)", background: "var(--bg-subtle)", color: "var(--text)",
+};
+const btn = (primary: boolean): CSSProperties => ({
+  padding: "8px 16px", fontSize: 13, fontWeight: 600, borderRadius: 8, cursor: "pointer",
+  border: primary ? "1px solid var(--accent)" : "1px solid var(--border)",
+  background: primary ? "var(--accent)" : "var(--bg-subtle)",
+  color: primary ? "#000" : "var(--text)",
+});
+const chip = (active: boolean): CSSProperties => ({
+  padding: "5px 11px", fontSize: 12, borderRadius: 16, cursor: "pointer",
+  border: active ? "1px solid var(--accent)" : "1px solid var(--border)",
+  background: active ? "var(--accent-bg)" : "transparent", color: "var(--text)",
+});
+
+export function ScenarioWizard({ backendUrl, open, onClose, onCreated }: Props) {
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [domain, setDomain] = useState("");
+  const [examples, setExamples] = useState("");
+  const [angles, setAngles] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [draft, setDraft] = useState<Draft | null>(null);
+
+  if (!open) return null;
+
+  const reset = () => { setStep(1); setDomain(""); setExamples(""); setAngles(""); setDraft(null); setError(null); };
+  const close = () => { reset(); onClose(); };
+
+  const doDraft = async () => {
+    if (!domain.trim()) { setError("先填你想咨询的领域"); return; }
+    setLoading(true); setError(null);
+    try {
+      const res = await fetchWithTimeout(`${backendUrl}/api/wizard/draft`,
+        { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ domain, examples, angles_hint: angles }) },
+        TIMEOUT_MS.decisionStart);
+      if (!res.ok) throw new Error(`draft ${res.status}`);
+      setDraft(await res.json() as Draft);
+      setStep(3);
+    } catch (e) { setError(`AI 草拟失败: ${(e as Error).message}`); }
+    finally { setLoading(false); }
+  };
+
+  const updateDept = (i: number, field: "id" | "label", v: string) => {
+    if (!draft) return;
+    setDraft({ ...draft, departments: draft.departments.map((d, idx) => idx === i ? { ...d, [field]: v } : d) });
+  };
+  const removeDept = (i: number) => {
+    if (!draft) return;
+    setDraft({ ...draft, departments: draft.departments.filter((_, idx) => idx !== i) });
+  };
+  const addDept = () => {
+    if (!draft) return;
+    setDraft({ ...draft, departments: [...draft.departments, { id: `dept_${draft.departments.length + 1}`, label: "新部门" }] });
+  };
+
+  const doCreate = async () => {
+    if (!draft) return;
+    setLoading(true); setError(null);
+    try {
+      const res = await fetchWithTimeout(`${backendUrl}/api/wizard/create`,
+        { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mode_id: draft.mode_id, label: draft.label,
+            scenario_description: draft.scenario_description,
+            departments: draft.departments,
+          }) },
+        TIMEOUT_MS.teamGenerate ?? TIMEOUT_MS.decisionStart);
+      if (!res.ok) { const t = await res.text(); throw new Error(`${res.status}: ${t.slice(0, 120)}`); }
+      const j = await res.json();
+      onCreated?.(j.mode_id);
+      close();
+    } catch (e) { setError(`创建失败: ${(e as Error).message}`); }
+    finally { setLoading(false); }
+  };
+
+  return (
+    <div style={backdrop} onClick={close}>
+      <div style={box} onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ fontSize: 16, fontWeight: 700 }}>✨ 自定义场景向导 ({step}/3)</div>
+          <button type="button" onClick={close} style={{ ...btn(false), padding: "4px 10px" }}>✕</button>
+        </div>
+
+        {step === 1 && (
+          <>
+            <div style={{ fontSize: 13, fontWeight: 600 }}>① 你想咨询什么领域?</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {DOMAIN_PRESETS.map((d) => (
+                <span key={d} style={chip(domain === d)} onClick={() => setDomain(d)}>{d}</span>
+              ))}
+            </div>
+            <input style={inp} placeholder="或自己输入 (如: 二手车评估 / 民宿运营)"
+              value={domain} onChange={(e) => setDomain(e.target.value)} />
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+              <button type="button" style={btn(true)} disabled={!domain.trim()} onClick={() => setStep(2)}>下一步 →</button>
+            </div>
+          </>
+        )}
+
+        {step === 2 && (
+          <>
+            <div style={{ fontSize: 13, fontWeight: 600 }}>② 帮 AI 更懂你 (可跳过)</div>
+            <div style={{ fontSize: 12, opacity: 0.7 }}>典型问题举例:</div>
+            <textarea style={{ ...inp, minHeight: 60, resize: "vertical" }}
+              placeholder="如: 这套二手房值不值这个价? 合同有没有坑?"
+              value={examples} onChange={(e) => setExamples(e.target.value)} />
+            <div style={{ fontSize: 12, opacity: 0.7 }}>希望从哪些角度分析:</div>
+            <input style={inp} placeholder="如: 法律风险 / 性价比 / 长期价值"
+              value={angles} onChange={(e) => setAngles(e.target.value)} />
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+              <button type="button" style={btn(false)} onClick={() => setStep(1)}>← 返回</button>
+              <button type="button" style={btn(true)} disabled={loading} onClick={doDraft}>
+                {loading ? "🤔 AI 草拟中..." : "🪄 让 AI 草拟顾问团 →"}
+              </button>
+            </div>
+          </>
+        )}
+
+        {step === 3 && draft && (
+          <>
+            <div style={{ fontSize: 13, fontWeight: 600 }}>③ 确认 / 微调 (可改名删增)</div>
+            <input style={inp} value={draft.label}
+              onChange={(e) => setDraft({ ...draft, label: e.target.value })} placeholder="场景名" />
+            <input style={inp} value={draft.scenario_description}
+              onChange={(e) => setDraft({ ...draft, scenario_description: e.target.value })} placeholder="一句话说明" />
+            <div style={{ fontSize: 12, opacity: 0.7 }}>顾问团 ({draft.departments.length} 个角色):</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {draft.departments.map((d, i) => (
+                <div key={i} style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  <input style={{ ...inp, flex: "0 0 130px" }} value={d.id}
+                    onChange={(e) => updateDept(i, "id", e.target.value)} placeholder="英文id" />
+                  <input style={{ ...inp, flex: 1 }} value={d.label}
+                    onChange={(e) => updateDept(i, "label", e.target.value)} placeholder="中文角色名" />
+                  <button type="button" style={{ ...btn(false), padding: "4px 8px" }} onClick={() => removeDept(i)}>✕</button>
+                </div>
+              ))}
+              <button type="button" style={{ ...btn(false), alignSelf: "flex-start" }} onClick={addDept}>+ 加角色</button>
+            </div>
+            <div style={{ fontSize: 11, opacity: 0.6 }}>
+              点&quot;创建&quot;后 AI 会用便宜模型给每个角色配人设 (约 30 秒); 不满意可在场景页&quot;重生整场&quot;.
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+              <button type="button" style={btn(false)} onClick={() => setStep(2)}>← 重来</button>
+              <button type="button" style={btn(true)} disabled={loading || draft.departments.length === 0} onClick={doCreate}>
+                {loading ? "⏳ 创建中 (配人设)..." : "✅ 创建场景"}
+              </button>
+            </div>
+          </>
+        )}
+
+        {error && <div style={{ color: "var(--bad)", fontSize: 12 }}>⚠ {error}</div>}
+      </div>
+    </div>
+  );
+}

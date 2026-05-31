@@ -26,6 +26,20 @@ class LiteLlmClient:
         extra: dict[str, Any] = {}
         if llm_rag_settings.litellm_base_url:
             extra["api_base"] = llm_rag_settings.litellm_base_url
+        # v6-U 显式传 api_key (防 LiteLLM 找不到 env 而 silent fail)
+        api_key = getattr(llm_rag_settings, "openai_api_key", None)
+        if not api_key:
+            import os as _os
+            api_key = _os.environ.get("OPENAI_API_KEY")
+        if api_key:
+            extra["api_key"] = api_key
+        # v6-U 显式 timeout 150s (大 prompt 给 Opus 留余量) + 禁 LiteLLM 内部重试 (我们自己重试)
+        extra["timeout"] = 150.0
+        extra["num_retries"] = 0
+        # v6-W-fix 关键修复: 不设 max_tokens 时网关默认截断在 ~1k tokens,
+        # 部门要求输出 JSON, 截断 → JSON 不完整 → parse 失败 → 退化成占位符.
+        # 给足额度让 consensus+conflicts+评分 JSON 完整输出.
+        extra["max_tokens"] = 4000
         return extra
 
     @staticmethod
@@ -56,7 +70,10 @@ class LiteLlmClient:
         prompt: str,
         fallbacks: list[str] | None = None,
         system: str | None = None,
+        images: list[str] | None = None,
     ) -> LlmResponse:
+        """v6-X: ``images`` 非空时按 OpenAI 多模态格式拼 user content.
+        调方 (decision_engine._run_dept) 负责确保 model 在 vision_capable 里, 否则模型会报错."""
         if llm_rag_settings.llm_provider != "litellm":
             return LlmResponse(
                 text="[simulated] LLM_PROVIDER!=litellm; using placeholder response.",
@@ -67,6 +84,17 @@ class LiteLlmClient:
         from litellm import acompletion  # type: ignore
 
         sys_msg = system or "You are a helpful expert consultant. Return concise, actionable output."
+
+        # v6-X: 有图就拼多模态 content; 没图保持纯文本 (向后兼容).
+        if images:
+            user_content: Any = [{"type": "text", "text": prompt}]
+            for img_url in images:
+                user_content.append({
+                    "type": "image_url",
+                    "image_url": {"url": img_url},  # data URL 或 https URL litellm 都接受
+                })
+        else:
+            user_content = prompt
 
         models = [model] + [m for m in (fallbacks or []) if m and m != model]
         if not models:
@@ -83,7 +111,7 @@ class LiteLlmClient:
                                 "role": "system",
                                 "content": sys_msg,
                             },
-                            {"role": "user", "content": prompt},
+                            {"role": "user", "content": user_content},
                         ],
                         **self._extra(),
                     )

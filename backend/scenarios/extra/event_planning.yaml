@@ -1,0 +1,17 @@
+mode_id: event_planning
+label: 活动策划
+scenario_description: 聚会/团建/生日会策划
+departments:
+- event_director
+- budget_manager
+- venue_coordinator
+- entertainment_designer
+- logistics_planner
+- guest_experience
+department_labels:
+  event_director: 活动总监 (主题/流程/亮点)
+  budget_manager: 预算管家 (分项/控制/性价比)
+  venue_coordinator: 场地协调 (场地/餐饮/设备)
+  entertainment_designer: 节目设计师 (游戏/互动/气氛)
+  logistics_planner: 执行统筹 (物料/时间/分工)
+  guest_experience: 宾客体验师 (邀请/体验/纪念)

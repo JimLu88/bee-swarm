@@ -33,6 +33,38 @@ class DecisionMemory:
         enriched.setdefault("created_at", time.strftime("%Y-%m-%d %H:%M:%S"))
         with p.open("a", encoding="utf-8") as f:
             f.write(json.dumps(enriched, ensure_ascii=False) + "\n")
+        # v6-M 修剪: 保留最近 100 + 全部收藏的; 仅当 >130 行才扫
+        try:
+            self._maybe_trim(p)
+        except Exception:
+            pass
+
+    def _maybe_trim(self, p, retention: int = 100, threshold: int = 130) -> None:
+        try:
+            from .favorites import all_starred_ids
+        except Exception:
+            return
+        with p.open("rb") as f:
+            chunk = f.read()
+        rough = chunk.count(b"\n")
+        if rough <= threshold:
+            return
+        text = chunk.decode("utf-8", errors="replace")
+        lines = [ln for ln in text.splitlines() if ln.strip()]
+        if len(lines) <= retention:
+            return
+        starred = all_starred_ids()
+        keep_idx_set: set[int] = set()
+        for i in range(max(0, len(lines) - retention), len(lines)):
+            keep_idx_set.add(i)
+        for i, ln in enumerate(lines):
+            if any(f'"decision_id": "{sid}"' in ln or f'"decision_id":"{sid}"' in ln
+                   for sid in starred):
+                keep_idx_set.add(i)
+        if len(keep_idx_set) == len(lines):
+            return
+        kept = [lines[i] for i in sorted(keep_idx_set)]
+        p.write_text("\n".join(kept) + "\n", encoding="utf-8")
 
     def read_all_summaries(self, *, mode_id: str) -> list[dict[str, Any]]:
         """Read entire JSONL (MVP scale). Used by list tail + lookup by decision_id."""

@@ -49,7 +49,7 @@ def _extract_json(text: str) -> dict[str, Any] | None:
             pass
 
     # 3) first {...} block (greedy-ish, but bounded)
-    m = re.search(r"(\{[\s\S]{10,5000}\})", text)
+    m = re.search(r"(\{[\s\S]{10,20000}\})", text)
     if m:
         candidate = m.group(1)
         # remove trailing commentary after last }
@@ -60,6 +60,37 @@ def _extract_json(text: str) -> dict[str, Any] | None:
                 return obj
         except Exception:
             pass
+
+    # 4) v6-W-fix 截断救援: LLM 输出 JSON 但被 max_tokens 截断 (没有闭合 }).
+    #    直接用正则抠出 "consensus" / "conflicts" / 评分, 哪怕 JSON 不完整也能救回真内容.
+    salvaged: dict[str, Any] = {}
+    mc = re.search(r'"consensus"\s*:\s*"((?:[^"\\]|\\.)*)"', text)
+    if mc:
+        try:
+            salvaged["consensus"] = json.loads('"' + mc.group(1) + '"')
+        except Exception:
+            salvaged["consensus"] = mc.group(1).replace("\\n", "\n").replace('\\"', '"')
+    # conflicts: 抠出数组里已闭合的字符串项 (截断处之后的丢弃)
+    conf_block = re.search(r'"conflicts"\s*:\s*\[([\s\S]*)', text)
+    if conf_block:
+        items = re.findall(r'"((?:[^"\\]|\\.)*)"', conf_block.group(1))
+        cleaned = []
+        for it in items:
+            try:
+                cleaned.append(json.loads('"' + it + '"'))
+            except Exception:
+                cleaned.append(it)
+        if cleaned:
+            salvaged["conflicts"] = cleaned
+    for k in ("confidence_score", "dissent_intensity"):
+        mk = re.search(rf'"{k}"\s*:\s*([0-9.]+)', text)
+        if mk:
+            try:
+                salvaged[k] = float(mk.group(1))
+            except Exception:
+                pass
+    if salvaged.get("consensus"):
+        return salvaged
 
     return None
 

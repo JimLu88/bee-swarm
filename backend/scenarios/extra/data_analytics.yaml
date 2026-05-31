@@ -1,0 +1,17 @@
+mode_id: data_analytics
+label: 数据分析BI
+scenario_description: 数据分析/报表/BI
+departments:
+- analytics_lead
+- data_engineer
+- viz_expert
+- stats_advisor
+- business_translator
+- tool_advisor
+department_labels:
+  analytics_lead: 分析负责人 (问题定义/指标体系)
+  data_engineer: 数据工程师 (清洗/建模/管道)
+  viz_expert: 可视化专家 (图表/仪表盘/叙事)
+  stats_advisor: 统计顾问 (显著性/相关因果/陷阱)
+  business_translator: 业务翻译官 (数据→决策/落地)
+  tool_advisor: 工具顾问 (SQL/BI/Python/性价比)

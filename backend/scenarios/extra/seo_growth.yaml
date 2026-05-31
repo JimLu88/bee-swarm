@@ -1,0 +1,17 @@
+mode_id: seo_growth
+label: SEO网站增长
+scenario_description: 网站流量/SEO/增长
+departments:
+- seo_strategist
+- content_engineer
+- tech_seo
+- link_builder
+- analytics_expert
+- growth_hacker
+department_labels:
+  seo_strategist: SEO 战略师 (关键词/架构/意图)
+  content_engineer: 内容工程师 (产出/质量/EEAT)
+  tech_seo: 技术 SEO (速度/索引/结构化)
+  link_builder: 外链建设师 (权重/外链/品牌)
+  analytics_expert: 数据分析师 (GA/转化/归因)
+  growth_hacker: 增长黑客 (实验/裂变/渠道)

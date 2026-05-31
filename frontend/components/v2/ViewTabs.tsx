@@ -15,7 +15,7 @@ const tabRow: CSSProperties = {
   gap: 4,
   padding: 4,
   borderRadius: 8,
-  background: "rgba(0,0,0,0.25)",
+  background: "var(--bg-subtle)",
   width: "fit-content",
 };
 
@@ -31,7 +31,7 @@ const tab: CSSProperties = {
   opacity: 0.7,
 };
 
-const tabActive: CSSProperties = { ...tab, background: "rgba(255,255,255,0.1)", opacity: 1, fontWeight: 600 };
+const tabActive: CSSProperties = { ...tab, background: "var(--border)", opacity: 1, fontWeight: 600 };
 
 export function ViewTabs({
   value,

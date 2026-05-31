@@ -7,31 +7,17 @@ from pydantic import BaseModel, Field, field_validator
 from .settings import settings as core_app_settings
 
 
-DeptName = Literal[
-    "business",
-    "design",
-    "efficiency",
-    "finance",
-    "security",
-    "benchmark",
-    "xlab",
-    "arch",
-    "logic",
-    "ui",
-    "database",
-    "symptom",
-    "nutrition",
-    "drug_interactions",
-    "psych",
-    "macro_policy",
-    "financial_reports",
-    "technical_indicators",
-    "smart_money",
-    "visa",
-    "flight_value",
-    "local_safety",
-    "culture_taboos",
-]
+## v6-A: DeptName 从 Literal 改 str. 让 AI 自由命名 dept (例 family_doctor 现在可以
+## 拥有 internal_medicine / surgery / radiology 这种真实科室). pydantic 字段保留 DeptName
+## 别名,运行时校验降级为任意字符串。已注册的 dept 集合改由 catalog.list_dept_names() 从
+## modes.MODES 动态列举 (代替原来的 get_args(DeptName))。
+DeptName = str
+
+
+class AttachedFile(BaseModel):
+    """v6-Y 用户上传的文档附件 (xlsx/pdf/docx/...). content_b64 可含 data URL 前缀."""
+    name: str = Field(min_length=1, max_length=300)
+    content_b64: str = Field(min_length=1, max_length=20 * 1024 * 1024)  # ~15MB 原文件
 
 
 class DecisionStartRequest(BaseModel):
@@ -43,6 +29,54 @@ class DecisionStartRequest(BaseModel):
     debate_rounds: int = Field(default=1, ge=1, le=5)
     # v1.5 / L-infinity thinking frameworks (optional)
     thinking_frameworks: list[str] = Field(default_factory=list)
+    # v6-W 3 档降级: A=高档旗舰, B=中档便宜云, C=离线本地 (并发限 2)
+    tier: str = Field(default="A", pattern=r"^[ABC]$")
+    # v6-X 多模态: data URL (data:image/png;base64,...) 或 https URL, 最多 4 张.
+    # 瞎子模型自动走 vision_fallback 表换视觉兄弟; tier C 默认 ollama/llava:7b.
+    images: list[str] = Field(default_factory=list, max_length=10)
+    # v6-Y 文档附件: xlsx/pdf/docx/pptx/csv/txt 等, 进程内解析成文字拼进 task.
+    # 文字对所有模型免费可读 (含瞎子模型), 不走视觉.
+    files: list[AttachedFile] = Field(default_factory=list, max_length=5)
+    # v6-Z 路线: all=全部门 / multi=CEO选多部门 / key=重点部门 / single=单部门 / ceo_only=CEO单答
+    route: str = Field(default="all", pattern=r"^(all|multi|key|single|ceo_only)$")
+    # v6-Z route!=all 时, 前端传 CEO/用户选定的部门子集 (route=single 则 1 个)
+    departments_override: list[str] = Field(default_factory=list, max_length=40)
+    # v6-Z 难度桶 (light/medium/heavy), 供 sop_bandit 记录; 空则后端自算
+    difficulty_bucket: str = Field(default="", max_length=12)
+
+    @field_validator("images")
+    @classmethod
+    def _validate_images(cls, v: list[str]) -> list[str]:
+        # 单张 <= 8 MB base64 (约 6 MB 原图); 拒绝空串和明显非法 scheme.
+        out: list[str] = []
+        for s in v:
+            s = (s or "").strip()
+            if not s:
+                continue
+            if not (s.startswith("data:image/") or s.startswith("http://") or s.startswith("https://")):
+                raise ValueError(f"image must be data:image/... or http(s)://, got: {s[:32]}")
+            if len(s) > 8 * 1024 * 1024:
+                raise ValueError(f"image too large: {len(s)} bytes (max 8MB)")
+            out.append(s)
+        return out
+
+
+class PreflightRequest(BaseModel):
+    """v6-Z CEO 预分析: 读 task → 推荐启动哪些部门 + 路线 + 轮数 (供前端 5×3 选择器)."""
+    task: str = Field(min_length=1, max_length=20_000)
+    mode_id: str = Field(default="program_management", min_length=1, max_length=64)
+    images: list[str] = Field(default_factory=list, max_length=10)
+    files: list[AttachedFile] = Field(default_factory=list, max_length=5)
+
+
+class DecisionFeedbackRequest(BaseModel):
+    """v6-Z 👍👎 奖励回填: bandit 学习信号. route/band/difficulty 由前端从选择时带回 (免服务端存状态)."""
+    decision_id: str = Field(min_length=1, max_length=64)
+    mode_id: str = Field(default="program_management", min_length=1, max_length=64)
+    reward: float = Field(ge=0.0, le=1.0, description="👍=1.0 / 👎=0.0 / 1-5星归一化")
+    route: str = Field(default="all", pattern=r"^(all|multi|key|single|ceo_only)$")
+    rounds_band: str = Field(default="medium", pattern=r"^(heavy|medium|light)$")
+    difficulty: str = Field(default="medium", pattern=r"^(light|medium|heavy)$")
 
 
 class DecisionEstimateRequest(BaseModel):
@@ -206,6 +240,13 @@ class DecisionSummary(BaseModel):
     dispatcher: dict[str, Any] | None = None
     execution: dict[str, Any] | None = None
     rag_aggregate: dict[str, Any] | None = None
+    # v6-B ELO 信号:本次决策实际用了哪些 persona + model + role (从 team.yaml 提取)
+    # 格式: [{"persona_id": "head_orth_xxx", "role": "head", "model": "deepseek/...", "dept_id": "symptom"}]
+    team_personas_used: list[dict[str, Any]] = Field(default_factory=list)
+    # 用户反馈 (👍/👎/驳回/差评), 由前端在决策完成后回写
+    user_feedback: str = ""
+    # v7 W3 爬虫图文聚合卡 (信息流): [{type,title,body,url,image_url,source}]
+    media_cards: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class StreamEvent(BaseModel):

@@ -1,0 +1,17 @@
+mode_id: product_manager
+label: 产品需求分析
+scenario_description: 产品经理/需求/PRD
+departments:
+- product_strategist
+- user_researcher
+- requirement_analyst
+- ux_advisor
+- data_pm
+- dev_liaison
+department_labels:
+  product_strategist: 产品战略师 (定位/路线/取舍)
+  user_researcher: 用户研究员 (画像/痛点/场景)
+  requirement_analyst: 需求分析师 (优先级/PRD/边界)
+  ux_advisor: 交互体验顾问 (流程/可用性/原型)
+  data_pm: 数据产品师 (指标/AB/北极星)
+  dev_liaison: 研发对接 (可行性/成本/排期)

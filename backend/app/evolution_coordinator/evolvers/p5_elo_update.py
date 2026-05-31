@@ -13,7 +13,8 @@ import sqlite3, time
 from pathlib import Path
 
 DB_PATH = Path(__file__).resolve().parents[1] / "data" / "evolution_history.sqlite"
-MAIN_DB = Path(__file__).resolve().parents[3] / "data" / "decision_memory.sqlite"
+# v6 修脱节: decision_memory 实际是 JSONL 不是 SQLite. 读 backend/data/<mode_id>/decisions.jsonl
+DATA_ROOT = Path(__file__).resolve().parents[3] / "data"
 
 
 def _conn() -> sqlite3.Connection:
@@ -59,22 +60,56 @@ def _update_pair(c: sqlite3.Connection, kind: str, winner: str, loser: str, k: f
         )
 
 
-def _collect_pairs() -> dict[str, list[tuple[str, str]]]:
-    """从 decisions 表挑昨日的 (winner, loser) 对."""
-    if not MAIN_DB.exists():
-        return {}
-    try:
-        mc = sqlite3.connect(str(MAIN_DB))
-        mc.row_factory = sqlite3.Row
-        since = int(time.time()) - 86400
-        rows = mc.execute(
-            "SELECT * FROM decisions WHERE ts > ? ORDER BY ts DESC LIMIT 500", (since,)
-        ).fetchall()
-        mc.close()
-    except sqlite3.OperationalError:
-        return {}
+def _read_recent_decisions_jsonl(since_ts: int, per_mode_limit: int = 200) -> list[dict]:
+    """v6 修脱节: 从 backend/data/<mode>/decisions.jsonl 读最近的决策记录."""
+    import json as _json
+    import datetime as _dt
+    if not DATA_ROOT.exists():
+        return []
+    rows: list[dict] = []
+    for mode_dir in DATA_ROOT.iterdir():
+        if not mode_dir.is_dir():
+            continue
+        jsonl = mode_dir / "decisions.jsonl"
+        if not jsonl.exists():
+            continue
+        try:
+            lines = jsonl.read_text(encoding="utf-8").splitlines()[-per_mode_limit:]
+        except Exception:
+            continue
+        for ln in lines:
+            ln = ln.strip()
+            if not ln:
+                continue
+            try:
+                row = _json.loads(ln)
+            except Exception:
+                continue
+            # 解析 created_at "YYYY-MM-DD HH:MM:SS" → ts
+            try:
+                ts = int(_dt.datetime.strptime(row.get("created_at", ""), "%Y-%m-%d %H:%M:%S").timestamp())
+            except Exception:
+                ts = int(time.time())
+            if ts < since_ts:
+                continue
+            row["_ts"] = ts
+            rows.append(row)
+    return rows
 
-    pairs: dict[str, list[tuple[str, str]]] = {"model": [], "ocean": [], "paradigm": []}
+
+def _collect_pairs() -> dict[str, list[tuple[str, str]]]:
+    """从 decisions.jsonl 挑最近的 (winner, loser) 对."""
+    since = int(time.time()) - 86400 * 14  # 滚动 14 天
+    rows = _read_recent_decisions_jsonl(since)
+    if not rows:
+        return {"model": [], "ocean": [], "paradigm": [], "persona_role": [], "model_role": []}
+
+    import json as _json
+
+    pairs: dict[str, list[tuple[str, str]]] = {
+        "model": [], "ocean": [], "paradigm": [],
+        "persona_role": [], "model_role": [],   # v6-B: 主管/职员 ELO 维度
+    }
     for r in rows:
         row = dict(r)
         feedback = row.get("user_feedback") or ""
@@ -100,6 +135,35 @@ def _collect_pairs() -> dict[str, list[tuple[str, str]]]:
             w = paradigm if positive else other
             l = other if positive else paradigm
             pairs["paradigm"].append((w, l))
+
+        # v6-B: persona_role + model_role ELO — 用户反馈映射到 head/staff/ceo 的 ELO
+        # decisions 表预期有列 team_personas_used (JSON 字符串):
+        #   [{"persona_id": "...", "role": "head|staff|ceo", "model": "anthropic/..."}]
+        # 该列不存在时 row.get 返回 None, 这段直接跳过 (向后兼容)
+        team_used_raw = row.get("team_personas_used")
+        if team_used_raw:
+            try:
+                used = _json.loads(team_used_raw) if isinstance(team_used_raw, str) else team_used_raw
+            except Exception:
+                used = []
+            for p in used or []:
+                if not isinstance(p, dict):
+                    continue
+                pid = str(p.get("persona_id") or "")
+                role = str(p.get("role") or "")
+                model = str(p.get("model") or "")
+                if not pid or not role:
+                    continue
+                baseline = f"baseline@{role}"
+                if positive:
+                    pairs["persona_role"].append((f"{pid}@{role}", baseline))
+                else:
+                    pairs["persona_role"].append((baseline, f"{pid}@{role}"))
+                if model:
+                    if positive:
+                        pairs["model_role"].append((f"{model}@{role}", baseline))
+                    else:
+                        pairs["model_role"].append((baseline, f"{model}@{role}"))
     return pairs
 
 
@@ -115,7 +179,7 @@ def run() -> dict:
         top = {kind: [dict(r) for r in c.execute(
             "SELECT entity_id, rating, n_games FROM elo_ratings WHERE kind=? "
             "ORDER BY rating DESC LIMIT 5", (kind,)).fetchall()]
-            for kind in ("model", "ocean", "paradigm")}
+            for kind in ("model", "ocean", "paradigm", "persona_role", "model_role")}
     return {
         "evolver": "p5_elo_update",
         "status": "ok" if total_updates else "no_pairs_found",

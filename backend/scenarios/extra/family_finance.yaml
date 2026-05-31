@@ -1,0 +1,17 @@
+mode_id: family_finance
+label: 家庭理财
+scenario_description: 工资/存款/资产配置规划
+departments:
+- financial_planner
+- investment_advisor
+- insurance_planner
+- tax_optimizer
+- debt_manager
+- retirement_planner
+department_labels:
+  financial_planner: 理财规划师 (目标/资产配置/现金流)
+  investment_advisor: 投资顾问 (基金/股票/风险偏好)
+  insurance_planner: 保险规划师 (保障缺口/险种/性价比)
+  tax_optimizer: 税务优化师 (个税/专项扣除/合规)
+  debt_manager: 负债管理师 (房贷/消费贷/优先级)
+  retirement_planner: 养老规划师 (养老金/长期/复利)

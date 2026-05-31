@@ -1,0 +1,17 @@
+mode_id: time_productivity
+label: 时间管理效率
+scenario_description: 拖延/效率/精力管理
+departments:
+- system_designer
+- priority_coach
+- habit_engineer
+- energy_manager
+- procrastination_buster
+- tool_curator
+department_labels:
+  system_designer: 效率系统设计师 (GTD/方法论/工具)
+  priority_coach: 优先级教练 (要事/取舍/四象限)
+  habit_engineer: 习惯工程师 (习惯养成/触发/复利)
+  energy_manager: 精力管理师 (节律/休息/专注)
+  procrastination_buster: 拖延克星 (拆解/启动/反拖延)
+  tool_curator: 工具策展师 (App/自动化/性价比)

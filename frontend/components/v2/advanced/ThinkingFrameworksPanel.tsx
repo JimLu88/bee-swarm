@@ -21,14 +21,14 @@ const FRAMEWORKS = [
 const card: CSSProperties = {
   padding: 14,
   borderRadius: 10,
-  border: "1px solid rgba(255,255,255,0.08)",
-  background: "rgba(255,255,255,0.04)",
+  border: "1px solid var(--bg-hover)",
+  background: "var(--bg-subtle)",
 };
 
 const tile: CSSProperties = {
   padding: 10,
   borderRadius: 6,
-  background: "rgba(0,0,0,0.2)",
+  background: "var(--bg-subtle)",
   border: "1px solid transparent",
   fontSize: 12,
   cursor: "pointer",

@@ -1,0 +1,17 @@
+mode_id: gift_selection
+label: 送礼选购
+scenario_description: 节日/商务/人情送礼
+departments:
+- gift_strategist
+- product_curator
+- etiquette_advisor
+- budget_planner
+- personalize_expert
+- backup_advisor
+department_labels:
+  gift_strategist: 送礼策略师 (对象/场合/预算/心意)
+  product_curator: 好物策展师 (品类/品牌/独特)
+  etiquette_advisor: 礼仪顾问 (人情/分寸/禁忌)
+  budget_planner: 预算规划师 (档次/性价比/搭配)
+  personalize_expert: 个性定制师 (定制/惊喜/纪念)
+  backup_advisor: 应急方案师 (临时/快速/万能款)

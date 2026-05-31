@@ -1,0 +1,17 @@
+mode_id: language_learning
+label: 语言学习
+scenario_description: 英语/日语等语言学习规划
+departments:
+- curriculum_designer
+- method_coach
+- exam_strategist
+- speaking_partner
+- motivation_keeper
+- resource_curator
+department_labels:
+  curriculum_designer: 课程设计师 (路径/教材/进度)
+  method_coach: 方法教练 (输入输出/记忆/沉浸)
+  exam_strategist: 考试策略师 (雅思/托福/应试技巧)
+  speaking_partner: 口语陪练 (发音/表达/纠错)
+  motivation_keeper: 动力管理师 (坚持/习惯/反馈)
+  resource_curator: 资源策展师 (App/书/媒体/性价比)

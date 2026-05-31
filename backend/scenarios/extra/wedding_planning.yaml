@@ -1,0 +1,17 @@
+mode_id: wedding_planning
+label: 婚礼策划
+scenario_description: 婚礼筹备全流程
+departments:
+- wedding_planner
+- budget_manager
+- venue_scout
+- vendor_coordinator
+- etiquette_advisor
+- guest_experience
+department_labels:
+  wedding_planner: 婚礼策划总监 (流程/主题/时间线)
+  budget_manager: 预算管家 (分项控制/防超支/性价比)
+  venue_scout: 场地餐饮顾问 (场地/菜单/档期)
+  vendor_coordinator: 供应商协调 (摄影/化妆/司仪/四大金刚)
+  etiquette_advisor: 习俗礼仪师 (彩礼/流程/双方家庭)
+  guest_experience: 宾客体验师 (邀请/座位/伴手礼)

@@ -29,6 +29,7 @@ from .execution import build_execution_bundle
 from .stream_bus import bus
 from .vision_scope import is_vision_dept
 from .runtime_paths import backend_data_dir
+from .tools import extract_tool_calls, execute_tool, list_tools as list_bee_tools
 
 
 _DATA = backend_data_dir()
@@ -77,6 +78,8 @@ async def _run_dept(
     dispatcher_notes: str = "",
     task_level: str = "",
     task_urgency: str = "",
+    tier: str = "A",
+    images: list[str] | None = None,
 ) -> DeptLeadReport:
     # MVP: simulated department run with deterministic scores.
     await asyncio.sleep(0.3 + _stable_float(f"{dept}:{task}", 0, 0.7))
@@ -92,6 +95,47 @@ async def _run_dept(
 
     gene_prompt = merged_gene_prompt(gene, mode_id, dept, f"你是 {dept} 部门的 Lead。")
     llm_choice = llm_router.pick_for_dept(dept)
+
+    # v6-A: team.yaml override — 如果该 mode 有 AI 生成的 team, 用 head 的 prompt 和 model 取代 gene
+    head_persona_id: str = ""
+    team_head_vendor: str = ""
+    try:
+        from .persona.team_store import load_team as _load_team_yaml
+        _team = _load_team_yaml(mode_id)
+        if _team:
+            _dept_entry = next(
+                (d for d in (_team.get("departments") or []) if str(d.get("dept_id")) == dept),
+                None,
+            )
+            if _dept_entry:
+                _head = _dept_entry.get("head") or {}
+                _head_prompt = str(_head.get("prompt") or "").strip()
+                # v6-W 按档取模型: tier A/B/C → model_modeA/B/C
+                _tier_field = f"model_mode{tier}"
+                _head_model = str(_head.get(_tier_field) or _head.get("model_modeA") or "").strip()
+                if _head_prompt:
+                    gene_prompt = _head_prompt   # 真用 head 的 system prompt
+                if _head_model and llm_choice.provider == "litellm":
+                    from .llm.router import LLMChoice as _LLMChoice
+                    llm_choice = _LLMChoice(provider="litellm", model=_head_model)
+                head_persona_id = str(_head.get("persona_id") or "")
+                team_head_vendor = str(_head.get("model_vendor") or "")
+    except Exception:
+        pass
+
+    # v6-C: 人设知识库 — 调 bee-memory /memory/recall (strategy=activation) 拉 top-10 知识片段,
+    # 拼到 system prompt 让 head 引用. v3-D 6 因子激活 + 2 跳沿边扩散在这一步真正生效。
+    kb_bundle = None
+    kb_context = ""
+    if head_persona_id:
+        try:
+            from .rag.persona_kb_retriever import retrieve_for_dept, format_bundle_for_prompt
+            kb_bundle = retrieve_for_dept(mode_id=mode_id, dept_id=dept, task=task, k=10)
+            if kb_bundle.fragments:
+                kb_context = format_bundle_for_prompt(kb_bundle)
+                gene_prompt = f"{gene_prompt}\n\n{kb_context}"
+        except Exception:
+            pass
 
     # Shadow gene (if any): run "in background" and score vs active.
     shadows = _genes.list_shadows(mode_id=mode_id, dept=dept, limit=1)
@@ -149,15 +193,39 @@ async def _run_dept(
             "conflicts 请写主流方案可能忽略的早期信号或第二类错误。\n"
         )
 
+    # v6-D 真工具: 把 BeeServiceClient 工具清单露给 LLM, 让它可选择性 tool_calls
+    bee_tools_safe = list_bee_tools(include_sensitive=False)
+    tools_brief = "\n".join(
+        f"  - {t['name']}({', '.join(t['args_schema'].keys())}) : {t['description']}"
+        for t in bee_tools_safe
+    )
+
     llm_text = ""
     parsed = None
+    # v6-X 多模态预处理: 有图但 model 瞎 → 查 vision_fallback 表换视觉兄弟.
+    # 注意: image_summary 已在 dispatcher_context 里 (decision_graph 拼好), staff 不需要原图也能"读到".
+    # 只有 head 才需要原图详细看; 这里 _run_dept 是 head 视角, 所以传原图.
+    _imgs = list(images or [])
+    _effective_model = llm_choice.model
+    _vision_swapped = False
+    if _imgs and llm_choice.provider == "litellm":
+        from .llm.vision_capability import swap_for_vision
+        _effective_model, _vision_swapped = swap_for_vision(llm_choice.model)
+        if _vision_swapped:
+            bus.publish(StreamEvent(
+                type="vision_model_swapped",
+                decision_id=decision_id,
+                payload={"dept": dept, "from": llm_choice.model, "to": _effective_model},
+            ))
     if llm_choice.provider == "litellm":
         # Phase 2: call real model (env-only keys).
         try:
             llm_text = (
                 await litellm_client.complete(
-                    model=llm_choice.model,
+                    model=_effective_model,
                     fallbacks=llm_router.fallbacks(),
+                    system=gene_prompt,
+                    images=_imgs if _imgs else None,
                     prompt=(
                         f"部门={dept}\n"
                         f"{xlab_brief}"
@@ -166,12 +234,16 @@ async def _run_dept(
                         f"用户完整任务=\n{task[:4000]}\n\n"
                         f"分诊官下发（仅本部门）=\n{(dispatcher_context or '（无）')[:3500]}\n\n"
                         f"{ref_section_title}\n{rag_context_str}\n\n"
-                        "请只输出 JSON（不要输出其它文字），格式如下：\n"
+                        f"可用工具(可选, 不需要也行):\n{tools_brief}\n\n"
+                        "请只输出 JSON, 格式如下:\n"
                         "{\n"
-                        '  \"consensus\": \"...\",\n'
-                        '  \"conflicts\": [\"...\"],\n'
-                        '  \"confidence_score\": 0.0,\n'
-                        '  \"dissent_intensity\": 0.0\n'
+                        '  "consensus": "...",\n'
+                        '  "conflicts": ["..."],\n'
+                        '  "confidence_score": 0.0,\n'
+                        '  "dissent_intensity": 0.0,\n'
+                        '  "tool_calls": [   // 可选, 想用工具就填; 最多 3 个\n'
+                        '     {"tool": "scrape", "args": {"site":"hacker_news","limit":5}}\n'
+                        '  ]\n'
                         "}\n"
                     ),
                 )
@@ -180,7 +252,30 @@ async def _run_dept(
         except Exception as e:
             llm_text = f"[litellm error] {e!r}"
 
+    # v6-D 真工具调用: 解析 tool_calls 并真执行 (safe 才自动跑, sensitive 显式跳过)
+    tool_results: list[dict[str, Any]] = []
+    for call in extract_tool_calls(llm_text)[:3]:
+        tool_results.append(execute_tool(call["tool"], call.get("args") or {},
+                                         allow_sensitive=False))
+
     raw_debate: list[dict[str, str]] = []
+    # v6-C: 记录 LLM 引用了哪些 KB 片段 (写演化日志 + 后续 ELO 信号)
+    if kb_bundle is not None and kb_bundle.fragments and llm_text:
+        try:
+            from .rag.persona_kb_retriever import cited_full_ids
+            cited = cited_full_ids(kb_bundle, llm_text)
+            if cited:
+                raw_debate.append({
+                    "role": "KB_Citations",
+                    "content": (
+                        f"[{dept}/KB] persona={kb_bundle.persona_id} "
+                        f"frags_loaded={len(kb_bundle.fragments)} "
+                        f"cited={cited[:20]}"
+                    ),
+                })
+        except Exception:
+            pass
+
     if dispatcher_context or dispatcher_notes:
         raw_debate.append(
             {
@@ -194,7 +289,7 @@ async def _run_dept(
         )
     raw_debate.extend(
         [
-        {"role": "System", "content": f"[{dept}/System] llm={llm_choice.provider}:{llm_choice.model} active_gene_prompt={gene_prompt}"},
+        {"role": "System", "content": f"[{dept}/System] llm={llm_choice.provider}:{_effective_model if llm_choice.provider == 'litellm' else llm_choice.model}{' (vision-swapped from ' + llm_choice.model + ')' if _vision_swapped else ''} head_persona={head_persona_id or '(gene)'} vendor={team_head_vendor or '-'} images={len(_imgs)} active_gene_prompt={gene_prompt[:600]}"},
         {"role": "A", "content": f"[{dept}/A] 保守视角：针对任务《{task[:60]}…》列出主要风险与约束。"},
         {"role": "B", "content": f"[{dept}/B] 进取视角：给出更快更省的路径与可选捷径。"},
         {"role": "C", "content": f"[{dept}/C] 批判视角：逐条攻击 A 与 B 的盲点，指出潜在失败模式。"},
@@ -206,6 +301,21 @@ async def _run_dept(
     )
     if llm_text:
         raw_debate.append({"role": "LLM", "content": llm_text})
+
+    # v6-D 工具结果回灌 (每个 tool_call 单独一行, 截断到 1500 字防爆)
+    for tr in tool_results:
+        body = (tr.get("result") if tr.get("ok") else tr.get("error")) or {}
+        body_str = json.dumps(body, ensure_ascii=False, default=str) \
+            if not isinstance(body, str) else body
+        raw_debate.append({
+            "role": "Tool",
+            "content": (
+                f"[{dept}/Tool] name={tr.get('tool')} "
+                f"ok={tr.get('ok')} safety={tr.get('safety','-')}\n"
+                f"args={json.dumps(tr.get('args') or {}, ensure_ascii=False)[:600]}\n"
+                f"out={body_str[:1500]}"
+            ),
+        })
     if is_vision_dept(dept):
         raw_debate.append(
             {"role": "ExternalSearch", "content": f"[{dept}/Web] {json.dumps(web_meta, ensure_ascii=False)[:4000]}"}
@@ -235,6 +345,20 @@ async def _run_dept(
         conflicts = parsed.conflicts or conflicts
         confidence = float(parsed.confidence_score)
         dissent = float(parsed.dissent_intensity)
+    else:
+        # v6-W-fix 最后兜底: LLM 真返回了内容但既不是JSON也救不回 → 直接拿原文当 consensus,
+        # 绝不用"MVP 骨架"占位符盖掉真实意见 (那正是之前 11 部门全一样的根因).
+        _txt = (llm_text or "").strip()
+        _is_err = (not _txt) or _txt.startswith("[litellm") or _txt.startswith("[simulated")
+        if not _is_err and llm_choice.provider == "litellm":
+            # 去掉可能的 ```json 包裹残留
+            _clean = _txt.strip("`").lstrip("json").strip()
+            consensus = _clean[:2000]
+            conflicts = []
+            raw_debate.append({
+                "role": "ParseNote",
+                "content": f"[{dept}/解析] LLM 未输出规范JSON, 已直接采用其原文作为意见 (len={len(_txt)})。",
+            })
 
     report = DeptLeadReport(
         dept=dept,  # type: ignore[arg-type]
@@ -321,13 +445,39 @@ async def finalize_decision_bundle(
                 f"[{r.dept}] {r.consensus}" + (f"\n冲突: {'; '.join(r.conflicts)}" if r.conflicts else "")
                 for r in reports
             )
+            # v6-J 从 ceo_sop.yaml 读 SOP, 拼成 system prompt
+            sop_section = ""
+            try:
+                import yaml as _yaml_ceo
+                from pathlib import Path as _P_ceo
+                sop_path = _P_ceo(__file__).resolve().parent / "prompts" / "ceo_sop.yaml"
+                if sop_path.is_file():
+                    sop = _yaml_ceo.safe_load(sop_path.read_text(encoding="utf-8")) or {}
+                    role = sop.get("role", "").strip()
+                    principles = sop.get("principles", []) or []
+                    steps = sop.get("steps", []) or []
+                    qc = sop.get("quality_checklist", []) or []
+                    sop_section = (
+                        f"## 你的角色\n{role}\n\n"
+                        f"## 6 条原则\n" +
+                        "\n".join(f"- {p}" for p in principles) + "\n\n"
+                        f"## 5 步法 (内化, 不要把步骤名写进输出)\n" +
+                        "\n".join(f"{i+1}. **{s.get('name')}**: {s.get('purpose')}\n   {s.get('internal_prompt','').strip()}"
+                                  for i, s in enumerate(steps)) + "\n\n"
+                        f"## 自检清单 (输出前心里过一遍)\n" +
+                        "\n".join(f"- {q}" for q in qc) + "\n"
+                    )
+            except Exception:
+                sop_section = ""
+
             ceo_prompt = (
-                f"用户任务: {task}\n\n"
-                f"以下是 {len(reports)} 个部门的独立意见:\n\n{dept_views}\n\n"
-                "你是 CEO. 直接给用户一个最终回答(简洁,中文).\n"
-                "- 如果部门意见高度一致, 综合成一段;\n"
-                "- 如果有重要冲突, 指出冲突并给推荐方案;\n"
-                "- 不要复述部门标签, 不要写 '综上所述' 这种废话, 像跟朋友说话.\n"
+                (sop_section + "\n---\n\n" if sop_section else "")
+                + f"用户任务: {task}\n\n"
+                + f"以下是 {len(reports)} 个部门的独立意见:\n\n{dept_views}\n\n"
+                + "现在按上面 SOP, 直接输出最终回答 (中文, markdown 可用).\n"
+                + "- 若部门意见一致 → 综合成一段\n"
+                + "- 若有重要冲突 → 指出冲突并给推荐方案 (附 1-2 句理由)\n"
+                + "- 红队风险单独最后一段 ⚠ 标出 (无风险则省略此段)\n"
             )
             ceo_text = (await litellm_client.complete(
                 model=ceo_choice.model,
@@ -385,6 +535,37 @@ async def finalize_decision_bundle(
 
     rag_aggregate = compact_rag_hint_from_dept_rows(list(reports))
 
+    # v6-B ELO 信号: 从 team.yaml 提取本次决策实际用了的 head + staff
+    team_personas_used: list[dict[str, Any]] = []
+    try:
+        from .persona.team_store import load_team as _load_team
+        _team = _load_team(mode_id) or {}
+        active_depts = {str(r.dept) for r in reports}
+        for d in _team.get("departments") or []:
+            did = str(d.get("dept_id"))
+            if did not in active_depts:
+                continue
+            head = d.get("head") or {}
+            if head.get("persona_id"):
+                team_personas_used.append({
+                    "persona_id": head["persona_id"], "role": "head",
+                    "model": head.get("model_modeA", ""), "dept_id": did,
+                })
+            for s in d.get("staff") or []:
+                if s.get("persona_id"):
+                    team_personas_used.append({
+                        "persona_id": s["persona_id"], "role": "staff",
+                        "model": s.get("model_modeA", ""), "dept_id": did,
+                    })
+        ceo_p = _team.get("ceo") or {}
+        if ceo_p.get("persona_id"):
+            team_personas_used.append({
+                "persona_id": ceo_p["persona_id"], "role": "ceo",
+                "model": ceo_p.get("model_modeA", ""), "dept_id": "__ceo__",
+            })
+    except Exception:
+        pass
+
     summary = DecisionSummary(
         decision_id=decision_id,
         task=task,
@@ -397,6 +578,7 @@ async def finalize_decision_bundle(
         dispatcher=dsp_meta,
         execution=execution,
         rag_aggregate=rag_aggregate,
+        team_personas_used=team_personas_used,
     )
 
     bus.publish(StreamEvent(type="decision_done", decision_id=decision_id, payload={"summary": summary.model_dump()}))
@@ -404,9 +586,198 @@ async def finalize_decision_bundle(
     return summary
 
 
-async def run_decision(*, decision_id: str, task: str, mode_id: str, debate_rounds: int = 1, thinking_frameworks: list[str] | None = None) -> DecisionSummary:
-    """决策主链路：LangGraph 三节点编排（dispatcher → 并行部门 → finalize）。"""
+import asyncio as _asyncio_v6w
+# v6-W 本地档 (tier=C) 同时只跑 2 个 dept (ollama 单实例并发弱; 防止排队过载)
+_LOCAL_TIER_SEMAPHORE = _asyncio_v6w.Semaphore(2)
+
+
+async def build_image_summary(*, images: list[str], tier: str, task: str) -> str:
+    """v6-X-5 一次性图像摘要: 用最便宜的视觉模型把图变成纯文字, 后续所有 staff/瞎子模型读这段文字.
+
+    省钱原理: 9 head × 27 staff = 36 次调用, 如果每次都发图, 成本爆炸.
+    改成 vision 跑 1 次 (~¥0.05), 输出 600 字摘要, 后续全部读文字 (0 额外图成本).
+
+    Args:
+        images: data URL / https URL 列表 (1-4 张)
+        tier: A/B/C, 决定用哪个摘要模型 (gemini-flash / doubao / llava:7b)
+        task: 用户任务 — 让摘要"按任务相关"重点描述图, 不浪费 token 说无关细节
+
+    Returns: 纯文字描述 (失败时返回 "[图像摘要失败: ...]")
+    """
+    if not images:
+        return ""
+    from .llm.vision_capability import image_summary_model
+    vmodel = image_summary_model(tier)
+    summary_prompt = (
+        f"用户提了个问题: {task[:400]}\n\n"
+        f"请只看图, 用 300-600 字客观描述图里的关键信息 (与上面问题相关的). "
+        f"按列表输出, 不要分析、不要建议、不要诊断, 只描述事实. "
+        f"如果图里有文字/数字/图表数据, 完整列出. 多张图分别编号 (图1/图2/...)."
+    )
+    try:
+        resp = await litellm_client.complete(
+            model=vmodel,
+            system="你是医疗/数据/财务图像的客观描述员, 只描述看到什么, 不下判断.",
+            prompt=summary_prompt,
+            images=images,
+        )
+        return (resp.text or "").strip() or "[图像摘要为空]"
+    except Exception as e:
+        return f"[图像摘要失败 model={vmodel} err={e!r}]"
+
+
+# v6-Z CEO 预分析用的便宜模型 (deepseek-flash; fallback 链里有 opus 兜底)
+_PREFLIGHT_MODEL = "openai/deepseek-v4-flash"
+
+
+async def ceo_preflight(*, task: str, mode_id: str, images: list[str] | None = None,
+                        files: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    """v6-Z CEO 预分析: 便宜 LLM 读任务 → 推荐启动哪些部门 + 路线 + 轮数.
+
+    返回结构 (供前端 5 路线 × 3 轮数 选择器):
+    {
+      mode_id, mode_label,
+      all_depts: [...], all_labels: {id:label},
+      multi_depts: [...], key_depts: [...], single_dept: "...",
+      reasoning: "CEO 的一句话分析",
+      ceo_recommended_route, ceo_recommended_rounds_band,
+      sop: {recommended_route, recommended_rounds_band, recommended_rounds, explored, arms},
+      difficulty,
+      recommended_route, recommended_rounds_band  # 最终默认高亮(SOP 优先, 无数据则用 CEO)
+    }
+    """
+    from .llm.parsing import _extract_json
+    from . import sop_bandit
+    from .dispatcher import classify_task
+
     mode = get_mode(mode_id)
+    all_depts = list(mode.departments)
+    labels = dict(getattr(mode, "department_labels", {}) or {})
+
+    # 难度桶
+    meta = classify_task(task)
+    difficulty = sop_bandit.difficulty_bucket(task, str(meta.get("level") or ""))
+
+    # 文件名/张数给 CEO 做路由判断 (不需要看图细节, 只需知道"有附件")
+    attach_note = ""
+    if files:
+        names = ", ".join(str(f.get("name") or "?") for f in files)
+        attach_note += f"\n[用户附了 {len(files)} 个文档: {names}]"
+    if images:
+        attach_note += f"\n[用户附了 {len(images)} 张图片]"
+
+    # CEO 读历史 SOP 偏好 (软参考; 让 CEO 慢慢靠拢历史好评选择, 但不强制 — 配合 5% 探索防僵化)
+    try:
+        sop_history = sop_bandit.summary_for_sop(mode_id)
+    except Exception:
+        sop_history = ""
+
+    dept_menu = "\n".join(f"  - {d}: {labels.get(d, d)}" for d in all_depts)
+    sys_prompt = (
+        f"你是「{mode.label}」场景的会诊总指挥 (CEO). 用户提了个任务, 你要快速判断该启动哪些专科部门.\n"
+        f"可用部门菜单:\n{dept_menu}\n\n"
+        + (f"{sop_history}\n(以上是历史统计, 当软参考: 倾向但别盲从, 任务确实不同就大胆换路线)\n\n" if sop_history else "")
+        + "只输出 JSON, 不要解释. 格式:\n"
+        "{\n"
+        '  "key_depts": ["最关键的2-3个部门id"],\n'
+        '  "multi_depts": ["相关的4-7个部门id"],\n'
+        '  "single_dept": "最相关的1个部门id",\n'
+        '  "reasoning": "一句话(40字内)说明为什么这样分",\n'
+        '  "recommended_route": "all|multi|key|single|ceo_only",\n'
+        '  "recommended_rounds_band": "heavy|medium|light"\n'
+        "}\n"
+        "判断原则: 简单/单一领域→single或ceo_only+light; 多领域交叉→multi+medium; "
+        "高风险/不可逆/复杂权衡→key或all+heavy. 部门id必须来自菜单."
+    )
+    user_prompt = f"用户任务:\n{task[:2000]}{attach_note}"
+
+    llm_obj: dict[str, Any] = {}
+    llm_err = ""
+    try:
+        resp = await litellm_client.complete(
+            model=_PREFLIGHT_MODEL,
+            fallbacks=llm_router.fallbacks(),
+            system=sys_prompt,
+            prompt=user_prompt,
+        )
+        llm_obj = _extract_json(resp.text or "") or {}
+    except Exception as e:
+        llm_err = repr(e)
+
+    def _valid(ids: Any) -> list[str]:
+        if not isinstance(ids, list):
+            return []
+        return [str(x) for x in ids if str(x) in all_depts]
+
+    key_depts = _valid(llm_obj.get("key_depts")) or all_depts[:3]
+    multi_depts = _valid(llm_obj.get("multi_depts")) or all_depts[: min(6, len(all_depts))]
+    single_raw = str(llm_obj.get("single_dept") or "")
+    single_dept = single_raw if single_raw in all_depts else (key_depts[0] if key_depts else all_depts[0])
+    reasoning = str(llm_obj.get("reasoning") or "").strip() or (
+        f"(预分析模型未返回, {llm_err or '已用默认分组'})"
+    )
+    ceo_route = str(llm_obj.get("recommended_route") or "")
+    if ceo_route not in sop_bandit.ROUTES:
+        ceo_route = "multi"
+    ceo_band = str(llm_obj.get("recommended_rounds_band") or "")
+    if ceo_band not in sop_bandit.ROUNDS_BANDS:
+        ceo_band = "medium"
+
+    # SOP 学到的偏好 (Thompson 采样 + 5% 探索)
+    sop = sop_bandit.recommend(mode_id, difficulty)
+    # 最终默认高亮: 若该难度桶有历史样本则用 SOP, 否则用 CEO 当前判断
+    has_history = any(v.get("n", 0) > 0 for v in sop.get("arms", {}).values())
+    final_route = sop["recommended_route"] if has_history else ceo_route
+    final_band = sop["recommended_rounds_band"] if has_history else ceo_band
+
+    return {
+        "mode_id": mode_id,
+        "mode_label": mode.label,
+        "all_depts": all_depts,
+        "all_labels": labels,
+        "multi_depts": multi_depts,
+        "key_depts": key_depts,
+        "single_dept": single_dept,
+        "reasoning": reasoning,
+        "ceo_recommended_route": ceo_route,
+        "ceo_recommended_rounds_band": ceo_band,
+        "sop": sop,
+        "sop_has_history": has_history,
+        "difficulty": difficulty,
+        "recommended_route": final_route,
+        "recommended_rounds_band": final_band,
+        "llm_error": llm_err,
+    }
+
+
+async def run_decision(*, decision_id: str, task: str, mode_id: str, debate_rounds: int = 1, thinking_frameworks: list[str] | None = None, tier: str = "A", images: list[str] | None = None, files: list[dict[str, Any]] | None = None, route: str = "all", departments_override: list[str] | None = None) -> DecisionSummary:
+    """决策主链路：LangGraph 三节点编排（dispatcher → 并行部门 → finalize）.
+
+    v6-W: tier=A 高档旗舰 / B 便宜云 / C 本地 ollama (限并发 2)
+    v6-X: images 传给 triage 节点 → 一次性 vision 摘要 → staff 读文字; head 收原图.
+    v6-Y: files (xlsx/pdf/docx...) 进程内解析成文字, prepend 到 task, 所有部门/所有模型免费可读.
+    v6-Z: route 决定跑哪些部门 — all=全部 / multi|key|single=部门子集(departments_override) / ceo_only=不跑部门直接CEO答.
+    """
+    mode = get_mode(mode_id)
+
+    # v6-Y 文档附件: 解析成文字拼到 task 前面 (内部 task 字符串无 20k 限制).
+    if files:
+        try:
+            from .file_extract import extract_files
+            file_block = extract_files(files)
+            if file_block:
+                task = f"{file_block}\n\n[用户的问题]\n{task}"
+                bus.publish(StreamEvent(
+                    type="files_parsed",
+                    decision_id=decision_id,
+                    payload={"file_count": len(files), "chars": len(file_block)},
+                ))
+        except Exception as e:
+            bus.publish(StreamEvent(
+                type="files_parse_error",
+                decision_id=decision_id,
+                payload={"error": repr(e)},
+            ))
 
     bus.publish(
         StreamEvent(
@@ -418,12 +789,63 @@ async def run_decision(*, decision_id: str, task: str, mode_id: str, debate_roun
 
     from .orchestration.decision_graph import invoke_decision_graph
 
+    # v6-Z 路线决定基础部门集合
+    route = (route or "all").lower()
+    valid_override = [d for d in (departments_override or []) if d in mode.departments]
+    if route == "ceo_only":
+        departments = []                       # 不跑任何部门, CEO 直接基于任务作答
+    elif route in ("multi", "key", "single") and valid_override:
+        departments = list(valid_override)     # 用前端/CEO 选定的子集
+        if route == "single":
+            departments = departments[:1]
+    else:
+        departments = list(mode.departments)   # all (或子集为空时兜底全开)
+
+    # v6-I 视野拓展部强制注入 (env BEE_DISABLE_VISION_EXPANSION=1 可关).
+    # ceo_only / single 跳过 (轻量路线不该被强行加 2 个横切部门).
+    import os as _os_vi
+    if departments and route not in ("ceo_only", "single") and \
+            _os_vi.environ.get("BEE_DISABLE_VISION_EXPANSION", "0") != "1":
+        from .persona.team_generator import VISION_EXPANSION_DEPTS
+        for d in VISION_EXPANSION_DEPTS:
+            if d not in departments:
+                departments.append(d)
+
+    bus.publish(StreamEvent(
+        type="route_resolved",
+        decision_id=decision_id,
+        payload={"route": route, "departments": departments, "count": len(departments), "rounds": debate_rounds},
+    ))
+
+    # v6-Z ceo_only: 不跑部门, 直接让 CEO 基于任务(+附件摘要)作答.
+    # 走 finalize_decision_bundle(reports=[]) 而非 LangGraph (空 fan-out 会让 deferred finalize 不触发).
+    if route == "ceo_only":
+        image_summary = ""
+        if images:
+            image_summary = await build_image_summary(images=list(images), tier=tier, task=task)
+            if image_summary:
+                task = f"{task}\n\n[用户上传图片摘要]\n{image_summary}"
+        bus.publish(StreamEvent(
+            type="dispatcher_ready", decision_id=decision_id,
+            payload={"level": "ceo_only", "note": "CEO 单独作答 (未启动部门)"},
+        ))
+        return await finalize_decision_bundle(
+            decision_id=decision_id,
+            task=task,
+            mode_id=mode.mode_id,
+            mode_label=mode.label,
+            dsp_meta={"level": "ceo_only", "department_count": 0, "route": "ceo_only"},
+            reports=[],
+        )
+
     return await invoke_decision_graph(
         decision_id=decision_id,
         task=task,
         mode_id=mode.mode_id,
         mode_label=mode.label,
-        departments=list(mode.departments),
+        departments=departments,
         debate_rounds=debate_rounds,
+        tier=tier,
+        images=list(images or []),
     )
 

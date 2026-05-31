@@ -1,0 +1,17 @@
+mode_id: grad_civil_exam
+label: 考研考公
+scenario_description: 考研/考公/考编规划
+departments:
+- exam_strategist
+- subject_planner
+- method_coach
+- info_researcher
+- mental_coach
+- interview_prep
+department_labels:
+  exam_strategist: 应试战略师 (院校/岗位/分数线/性价比)
+  subject_planner: 科目规划师 (公共课/专业课/时间表)
+  method_coach: 学习方法教练 (刷题/笔记/记忆)
+  info_researcher: 信息研究员 (招录/政策/报录比)
+  mental_coach: 心态教练 (焦虑/坚持/瓶颈)
+  interview_prep: 面试复试官 (复试/面试/调剂)

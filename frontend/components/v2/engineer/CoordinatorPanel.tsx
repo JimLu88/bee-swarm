@@ -1,12 +1,130 @@
 "use client";
-import type { CSSProperties } from "react";
-const card: CSSProperties = { padding: 14, borderRadius: 10, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.04)" };
+
+import { useCallback, useEffect, useState, type CSSProperties } from "react";
+import { fetchWithTimeout, TIMEOUT_MS } from "../../../lib/http";
+import { resolveBackendHttpBase } from "../../../lib/backend";
+
+type Evolver = { id: string; label: string; layer: string; last_run: number | null };
+type SchedulerStatus = { running: boolean; jobs: { id: string; next_run: string }[] };
+
+const card: CSSProperties = {
+  padding: 14, borderRadius: 10,
+  borderWidth: 1, borderStyle: "solid", borderColor: "var(--border)",
+  background: "var(--bg-subtle)",
+  display: "flex", flexDirection: "column", gap: 10,
+};
+
+const row: CSSProperties = {
+  display: "flex", justifyContent: "space-between", alignItems: "center",
+  padding: "6px 10px", borderRadius: 6,
+  borderWidth: 1, borderStyle: "solid", borderColor: "var(--bg-hover)",
+  background: "var(--bg-subtle)",
+};
+
+const btn = (variant: "default" | "primary"): CSSProperties => ({
+  padding: "3px 10px", fontSize: 11, borderRadius: 4,
+  borderWidth: 1, borderStyle: "solid",
+  borderColor: variant === "primary" ? "var(--accent)" : "var(--border)",
+  background: variant === "primary" ? "var(--accent-bg)" : "var(--bg-subtle)",
+  color: "inherit", cursor: "pointer",
+});
+
+const HIGHLIGHT_EVOLVERS: Record<string, { emoji: string; cost_hint: string }> = {
+  p16_knowledge_curator: { emoji: "📚", cost_hint: "DeepSeek ~¥0.5-1, 4 persona × books+pitfalls+standards" },
+  p13_model_discovery: { emoji: "🔭", cost_hint: "免费 (爬 LiteLLM 价表)" },
+  p14_skill_discovery: { emoji: "🧩", cost_hint: "免费 (GitHub Search)" },
+  p15_team_evolve: { emoji: "👑", cost_hint: "需要 14 天 ELO 数据, 否则空跑" },
+  p12_code_self_update: { emoji: "🤖", cost_hint: "~¥3-5 Opus, 全过 git verify+shadow+kpi 才合" },
+  p5_elo_update: { emoji: "🏆", cost_hint: "免费 (本地计算 ELO)" },
+};
+
 export function CoordinatorPanel() {
+  const [evolvers, setEvolvers] = useState<Evolver[]>([]);
+  const [sched, setSched] = useState<SchedulerStatus | null>(null);
+  const [running, setRunning] = useState<string | null>(null);
+  const [lastResult, setLastResult] = useState<{ id: string; ok: boolean; msg: string } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const backendUrl = resolveBackendHttpBase();
+
+  const reload = useCallback(async () => {
+    setError(null);
+    try {
+      const [statusRes, schRes] = await Promise.all([
+        fetchWithTimeout(`${backendUrl}/coordinator/status`, undefined, TIMEOUT_MS.default),
+        fetchWithTimeout(`${backendUrl}/coordinator/scheduler-status`, undefined, TIMEOUT_MS.default),
+      ]);
+      if (statusRes.ok) setEvolvers((await statusRes.json()).evolvers || []);
+      if (schRes.ok) setSched(await schRes.json());
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, [backendUrl]);
+
+  useEffect(() => { reload(); }, [reload]);
+
+  const trigger = useCallback(async (id: string) => {
+    if (!window.confirm(`手动触发 ${id}? ${HIGHLIGHT_EVOLVERS[id]?.cost_hint || ""}`)) return;
+    setRunning(id);
+    setLastResult(null);
+    try {
+      const res = await fetchWithTimeout(`${backendUrl}/coordinator/trigger?evolver=${id}`,
+        { method: "POST" }, TIMEOUT_MS.decisionStart);
+      const j = await res.json();
+      setLastResult({
+        id, ok: res.ok,
+        msg: j.result?.status || (res.ok ? "完成" : `失败 ${res.status}`),
+      });
+    } catch (e) {
+      setLastResult({ id, ok: false, msg: (e as Error).message });
+    } finally {
+      setRunning(null);
+    }
+  }, [backendUrl]);
+
   return (
     <div style={card}>
-      <div style={{ fontWeight: 600, marginBottom: 6 }}>🔄 系统自我升级状态</div>
-      <div style={{ fontSize: 12, opacity: 0.7 }}>
-        系统每天凌晨 2 点自我升级 (Prompt 进化/架构调整/技能繁殖等 13 项). 这里看状态.
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ fontWeight: 600, fontSize: 14 }}>🔄 演化协调器 (P0-P16)</div>
+        <div style={{ fontSize: 11, opacity: 0.65 }}>
+          {sched?.running ? "✅ Cron 运行中" : "⏸ Cron 未启动"}
+          {sched?.jobs?.[0] && ` · 下次 ${sched.jobs[0].next_run.slice(0, 16)}`}
+        </div>
+      </div>
+
+      {error && <div style={{ fontSize: 12, color: "#f44336" }}>⚠ {error}</div>}
+      {lastResult && (
+        <div style={{
+          padding: 8, borderRadius: 6, fontSize: 12,
+          background: lastResult.ok ? "rgba(76,175,80,0.10)" : "rgba(244,67,54,0.10)",
+          borderWidth: 1, borderStyle: "solid",
+          borderColor: lastResult.ok ? "#4caf50" : "#f44336",
+        }}>
+          [{lastResult.id}] {lastResult.msg}
+        </div>
+      )}
+
+      {evolvers.map((e) => {
+        const h = HIGHLIGHT_EVOLVERS[e.id];
+        return (
+          <div key={e.id} style={row}>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 500 }}>
+                {h?.emoji || "·"} {e.id} <span style={{ opacity: 0.55 }}>· {e.label}</span>
+                <span style={{ opacity: 0.45, marginLeft: 6, fontSize: 10 }}>{e.layer}</span>
+              </div>
+              {h && <div style={{ fontSize: 10, opacity: 0.55 }}>{h.cost_hint}</div>}
+            </div>
+            <button type="button" disabled={running === e.id}
+                    onClick={() => trigger(e.id)}
+                    style={btn(e.id === "p16_knowledge_curator" ? "primary" : "default")}>
+              {running === e.id ? "..." : "▶ 触发"}
+            </button>
+          </div>
+        );
+      })}
+
+      <div style={{ fontSize: 11, opacity: 0.55, marginTop: 4 }}>
+        💡 Cron 每天 02:00 串行跑 P0-P16。手动触发不影响 cron。
       </div>
     </div>
   );

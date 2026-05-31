@@ -1,0 +1,17 @@
+mode_id: ecommerce_ops
+label: 电商运营
+scenario_description: 淘宝/拼多多/抖店运营
+departments:
+- operations_lead
+- traffic_expert
+- conversion_optimizer
+- supply_chain
+- content_creator
+- data_analyst
+department_labels:
+  operations_lead: 运营操盘手 (策略/节奏/数据)
+  traffic_expert: 流量专家 (付费/自然/搜索/推荐)
+  conversion_optimizer: 转化优化师 (详情/价格/评价)
+  supply_chain: 供应链顾问 (选品/库存/成本)
+  content_creator: 内容创意师 (主图/详情/直播)
+  data_analyst: 数据分析师 (ROI/复购/漏斗)

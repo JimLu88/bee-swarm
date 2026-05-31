@@ -1,0 +1,17 @@
+mode_id: resume_interview
+label: 简历求职面试
+scenario_description: 简历优化与面试准备
+departments:
+- resume_expert
+- interview_coach
+- industry_insider
+- salary_negotiator
+- personal_brand
+- hr_perspective
+department_labels:
+  resume_expert: 简历专家 (结构/亮点/ATS 关键词)
+  interview_coach: 面试教练 (行为面/压力面/话术)
+  industry_insider: 行业内行 (岗位真相/薪资/前景)
+  salary_negotiator: 薪资谈判师 (报价/谈薪/offer 对比)
+  personal_brand: 个人品牌师 (定位/作品集/领英)
+  hr_perspective: HR 视角 (筛选逻辑/红线/背调)

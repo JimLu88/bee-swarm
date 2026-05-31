@@ -1,0 +1,17 @@
+mode_id: chronic_disease
+label: 慢病管理
+scenario_description: 三高/糖尿病等慢病管理
+departments:
+- chronic_physician
+- nutrition_therapist
+- exercise_therapist
+- medication_advisor
+- monitoring_coach
+- complication_watch
+department_labels:
+  chronic_physician: 慢病医师 (诊断/用药/监测)
+  nutrition_therapist: 营养治疗师 (饮食/控糖/控盐)
+  exercise_therapist: 运动治疗师 (适宜运动/强度)
+  medication_advisor: 用药顾问 (依从/副作用/相互作用)
+  monitoring_coach: 监测教练 (指标/记录/趋势)
+  complication_watch: 并发症预警 (红旗征/筛查)

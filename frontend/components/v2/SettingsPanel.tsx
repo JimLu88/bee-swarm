@@ -27,8 +27,8 @@ type HubSettings = {
 const card: CSSProperties = {
   padding: 18,
   borderRadius: 12,
-  border: "1px solid rgba(255,255,255,0.08)",
-  background: "rgba(255,255,255,0.04)",
+  border: "1px solid var(--bg-hover)",
+  background: "var(--bg-subtle)",
   display: "flex",
   flexDirection: "column",
   gap: 14,
@@ -39,8 +39,8 @@ const input: CSSProperties = {
   width: "100%",
   padding: "8px 10px",
   borderRadius: 6,
-  border: "1px solid rgba(255,255,255,0.12)",
-  background: "rgba(0,0,0,0.25)",
+  border: "1px solid var(--border)",
+  background: "var(--bg-subtle)",
   color: "inherit",
   fontFamily: "inherit",
   fontSize: 13,
@@ -55,6 +55,119 @@ const PRESETS: { id: string; name: string; base_url: string; default_model: stri
   { id: "custom", name: "其它(手动填)", base_url: "", default_model: "", hint: "" },
 ];
 
+// v6-H: 模型按行选 (废斜杠手动拼)
+const VENDORS: { id: string; label: string; prefix: string; examples: string[] }[] = [
+  { id: "anthropic", label: "Anthropic", prefix: "anthropic/", examples: ["claude-opus-4-7", "claude-sonnet-4-5", "claude-haiku-4-5"] },
+  { id: "openai", label: "OpenAI / 兼容", prefix: "openai/", examples: ["gpt-5", "gpt-4o", "gpt-4o-mini"] },
+  { id: "deepseek", label: "DeepSeek", prefix: "deepseek/", examples: ["deepseek-chat", "deepseek-reasoner"] },
+  { id: "gemini", label: "Google Gemini", prefix: "gemini/", examples: ["gemini-2.5-pro", "gemini-2.5-flash"] },
+  { id: "xai", label: "xAI Grok", prefix: "xai/", examples: ["grok-4", "grok-4-fast"] },
+  { id: "moonshot", label: "Moonshot Kimi", prefix: "moonshot/", examples: ["kimi-k2", "moonshot-v1-128k"] },
+  { id: "zhipu", label: "智谱 GLM", prefix: "zhipu/", examples: ["glm-4.6", "glm-4-air"] },
+  { id: "qwen", label: "通义千问", prefix: "qwen/", examples: ["qwen3-max", "qwen-plus"] },
+  { id: "mistral", label: "Mistral", prefix: "mistral/", examples: ["mistral-large-3"] },
+  { id: "ollama", label: "Ollama 本地", prefix: "ollama_chat/", examples: ["deepseek-r1:8b", "llama4", "qwen3:32b"] },
+  { id: "custom", label: "自定义", prefix: "", examples: [] },
+];
+
+function splitModel(full: string): { vendorId: string; name: string } {
+  if (!full) return { vendorId: "anthropic", name: "" };
+  const v = VENDORS.find(x => x.prefix && full.startsWith(x.prefix));
+  if (v) return { vendorId: v.id, name: full.slice(v.prefix.length) };
+  return { vendorId: "custom", name: full };
+}
+function joinModel(vendorId: string, name: string): string {
+  const v = VENDORS.find(x => x.id === vendorId);
+  if (!v || !v.prefix) return name.trim();
+  return name.trim() ? `${v.prefix}${name.trim()}` : "";
+}
+
+function ModelInput({ value, onChange, placeholder }: {
+  value: string; onChange: (v: string) => void; placeholder?: string;
+}) {
+  const { vendorId, name } = splitModel(value);
+  const vendor = VENDORS.find(v => v.id === vendorId) ?? VENDORS[0];
+  return (
+    <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+      <select
+        value={vendorId}
+        onChange={(e) => onChange(joinModel(e.target.value, name))}
+        style={{ ...input, width: 160, flexShrink: 0 }}
+      >
+        {VENDORS.map(v => <option key={v.id} value={v.id}>{v.label}</option>)}
+      </select>
+      <input
+        style={{ ...input, flex: 1 }}
+        value={name}
+        onChange={(e) => onChange(joinModel(vendorId, e.target.value))}
+        placeholder={vendor.examples[0] || placeholder || "模型名"}
+        list={`models-${vendorId}`}
+      />
+      <datalist id={`models-${vendorId}`}>
+        {vendor.examples.map(ex => <option key={ex} value={ex} />)}
+      </datalist>
+    </div>
+  );
+}
+
+function ModelChain({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  // 用本地 state 维护行 (含空行), 同步出去时才 filter; 修"加一行无反应"bug
+  const [items, setItems] = useState<string[]>(() =>
+    (value || "").split(",").map(s => s.trim()).filter(Boolean)
+  );
+  useEffect(() => {
+    const parsed = (value || "").split(",").map(s => s.trim()).filter(Boolean);
+    if (parsed.join(",") !== items.filter(Boolean).join(",")) {
+      setItems(parsed);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+
+  const commit = (next: string[]) => {
+    setItems(next);
+    onChange(next.filter(Boolean).join(","));
+  };
+  const setRow = (i: number, m: string) => {
+    const next = [...items]; next[i] = m; commit(next);
+  };
+  const del = (i: number) => commit(items.filter((_, k) => k !== i));
+  const add = () => commit([...items, ""]);
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      {items.length === 0 && (
+        <div style={{ fontSize: 11, color: "var(--text-faint)", fontStyle: "italic" }}>
+          (空 — 没备用模型. 点 + 加一行)
+        </div>
+      )}
+      {items.map((m, i) => (
+        <div key={i} style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          <span style={{ fontSize: 10, color: "var(--text-faint)", width: 28, textAlign: "right" }}>#{i + 1}</span>
+          <div style={{ flex: 1 }}>
+            <ModelInput value={m} onChange={(v) => setRow(i, v)} />
+          </div>
+          <button
+            type="button" onClick={() => del(i)}
+            style={{
+              padding: "4px 10px", fontSize: 11, borderRadius: 4, cursor: "pointer",
+              borderWidth: 1, borderStyle: "solid", borderColor: "rgba(244,67,54,0.4)",
+              background: "rgba(244,67,54,0.10)", color: "#ff8a80",
+            }}
+          >✕</button>
+        </div>
+      ))}
+      <button
+        type="button" onClick={add}
+        style={{
+          padding: "5px 12px", fontSize: 11, borderRadius: 4, cursor: "pointer",
+          borderWidth: 1, borderStyle: "dashed", borderColor: "var(--border-strong)",
+          background: "var(--bg-subtle)", color: "var(--info)",
+          alignSelf: "flex-start",
+        }}
+      >+ 加一个备用</button>
+    </div>
+  );
+}
+
 export function SettingsPanel() {
   const [busy, setBusy] = useState(false);
   const [loaded, setLoaded] = useState<HubSettings | null>(null);
@@ -65,7 +178,10 @@ export function SettingsPanel() {
   const [fallback, setFallback] = useState("");
   const [presetId, setPresetId] = useState("aihubmix");
   const [msg, setMsg] = useState<string | null>(null);
-  const [diagResult, setDiagResult] = useState<string | null>(null);
+  const [diagResult, setDiagResult] = useState<{
+    rows: { name: string; ok: boolean; detail: string; group: string }[];
+    error?: string;
+  } | null>(null);
 
   const backendUrl = resolveBackendHttpBase();
 
@@ -125,20 +241,114 @@ export function SettingsPanel() {
 
   const testConnect = async () => {
     setBusy(true);
-    setDiagResult("测试中…");
+    setDiagResult({ rows: [], error: "测试中…" });
     try {
       const r1 = await fetchWithTimeout(`${backendUrl}/api/settings/hub/diagnostics/connectivity`, { method: "POST" }, 60_000);
       const j1 = await r1.json();
       const r2 = await fetchWithTimeout(`${backendUrl}/api/settings/hub/diagnostics/chat`, { method: "POST" }, 120_000);
       const j2 = await r2.json();
-      setDiagResult(JSON.stringify({ connectivity: j1, chat: j2 }, null, 2));
+      // 把两段 JSON 揉成单维 rows
+      const rows: { name: string; ok: boolean; detail: string; group: string }[] = [];
+      // connectivity 段
+      const conn = j1?.connectivity || j1 || {};
+      if (conn.litellm_proxy) {
+        rows.push({
+          group: "网关连通", name: "LiteLLM 网关",
+          ok: !!conn.litellm_proxy.ok, detail: conn.litellm_proxy.detail || "",
+        });
+      }
+      if (conn.qdrant) {
+        rows.push({
+          group: "网关连通", name: "向量库 (Qdrant/RAG)",
+          ok: !!conn.qdrant.ok, detail: conn.qdrant.detail || "",
+        });
+      }
+      for (const k of (conn.llm_keys || [])) {
+        rows.push({
+          group: "LLM Key 配置", name: k.id,
+          ok: !!k.ok, detail: k.detail || (k.configured ? "已配" : "未配"),
+        });
+      }
+      for (const k of (conn.search || [])) {
+        rows.push({
+          group: "搜索 Key 配置", name: k.id,
+          ok: !!k.ok, detail: k.detail || (k.configured ? "已配" : "未配"),
+        });
+      }
+      // chat 段
+      const chat = j2?.chat || j2 || {};
+      for (const c of (chat.llm_chat || [])) {
+        rows.push({
+          group: "真调 LLM 测试", name: c.id,
+          ok: !!c.ok, detail: (c.preview ? `${c.preview} · ` : "") + (c.detail || ""),
+        });
+      }
+      if (chat.litellm_default) {
+        rows.push({
+          group: "真调 LLM 测试", name: "litellm_default",
+          ok: !!chat.litellm_default.ok,
+          detail: (chat.litellm_default.preview ? `${chat.litellm_default.preview} · ` : "") + (chat.litellm_default.detail || ""),
+        });
+      }
+      setDiagResult({ rows });
     } catch (e: unknown) {
-      setDiagResult("❌ 测试不通 (可能 AI 服务地址不对): " + ((e as Error).message ?? ""));
+      setDiagResult({ rows: [], error: "❌ 测试不通 (可能 AI 服务地址不对): " + ((e as Error).message ?? "") });
+    } finally { setBusy(false); }
+  };
+
+  // R1.4: 系统自更新一键触发 (调 p12_code_self_update)
+  const triggerSelfUpdate = async () => {
+    if (!window.confirm("确认让系统自我检查 + 提案更新? 约 ¥3-5 Opus 费用. 任何代码改动会先入待审池, 你 approve 后才真应用.")) return;
+    setBusy(true); setMsg(null);
+    try {
+      const r = await fetchWithTimeout(
+        `${backendUrl}/coordinator/trigger?evolver=p12_code_self_update`,
+        { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" },
+        180_000,
+      );
+      const j = await r.json();
+      setMsg(`📦 自更新: ${j?.result?.status || "已触发"}. 查待审抽屉看提案.`);
+    } catch (e) {
+      setMsg("❌ 自更新触发失败: " + (e as Error).message);
     } finally { setBusy(false); }
   };
 
   return (
     <div style={card}>
+      {/* R1.4 顶部一键操作 */}
+      <div style={{
+        display: "flex", gap: 10, padding: 10, borderRadius: 8,
+        background: "var(--accent-bg)",
+        borderWidth: 1, borderStyle: "solid", borderColor: "var(--accent-bg)",
+      }}>
+        <button
+          type="button" onClick={triggerSelfUpdate} disabled={busy}
+          style={{
+            padding: "10px 18px", borderRadius: 8, cursor: busy ? "wait" : "pointer",
+            borderWidth: 1, borderStyle: "solid", borderColor: "var(--accent)",
+            background: "var(--accent)", color: "#1a1a1a", fontWeight: 700, fontSize: 13,
+          }}
+        >📦 系统自更新</button>
+        <a href="#pending" onClick={(e) => {
+          e.preventDefault();
+          (document.querySelector('[title*="待审"]') as HTMLButtonElement | null)?.click();
+        }} style={{
+          padding: "10px 18px", borderRadius: 8,
+          borderWidth: 1, borderStyle: "solid", borderColor: "var(--border-strong)",
+          background: "var(--bg-card)", color: "var(--text)", fontWeight: 600, fontSize: 13,
+          textDecoration: "none", display: "inline-flex", alignItems: "center",
+        }}>⚖️ 查看待审</a>
+        <a href="/trends" style={{
+          padding: "10px 18px", borderRadius: 8,
+          borderWidth: 1, borderStyle: "solid", borderColor: "var(--border-strong)",
+          background: "var(--bg-card)", color: "var(--text)", fontWeight: 600, fontSize: 13,
+          textDecoration: "none", display: "inline-flex", alignItems: "center",
+        }}>🌍 趋势仪表盘</a>
+        <div style={{ flex: 1, fontSize: 11, color: "var(--text-dim)", alignSelf: "center", textAlign: "right" }}>
+          自更新会先扫错误日志 + ELO 低部门, 由 Opus 出 diff/人设改进提案, 全部走待审审批
+        </div>
+      </div>
+
       <div style={{ fontWeight: 600, fontSize: 16 }}>⚙ AI 大脑设置(填一次就行)</div>
       <div style={{ fontSize: 12, opacity: 0.7 }}>
         一个 Key 就能用所有 AI(GPT/Claude/Gemini 等). 找个聚合服务,填它的 Key 就够了.
@@ -176,12 +386,15 @@ export function SettingsPanel() {
 
       <div>
         <label style={label}>主用 AI 大脑</label>
-        <input style={input} value={model} onChange={(e) => setModel(e.target.value)} placeholder="格式: openai/模型名. 例: openai/claude-opus-4-7" />
+        <ModelInput value={model} onChange={setModel} placeholder="选 vendor + 填模型名" />
+        <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 4 }}>
+          提示: 主用挂了自动切下方备用; staff 默认走本地 ollama, 不消耗这里
+        </div>
       </div>
 
       <div>
-        <label style={label}>备用 AI 大脑 (主用挂了自动切到备用,用逗号分隔)</label>
-        <input style={input} value={fallback} onChange={(e) => setFallback(e.target.value)} placeholder="逗号分隔, 例: openai/gpt-4o-mini,ollama_chat/deepseek-r1:8b" />
+        <label style={label}>备用模型列表 (按优先级排, 上面挂了切下一个)</label>
+        <ModelChain value={fallback} onChange={setFallback} />
       </div>
 
       <div>
@@ -201,7 +414,7 @@ export function SettingsPanel() {
             padding: "10px 20px",
             borderRadius: 8,
             border: "none",
-            background: busy ? "rgba(250,204,21,0.4)" : "#facc15",
+            background: busy ? "var(--accent-bg)" : "var(--accent)",
             color: "#000",
             cursor: busy ? "not-allowed" : "pointer",
             fontWeight: 600,
@@ -216,8 +429,8 @@ export function SettingsPanel() {
           style={{
             padding: "10px 20px",
             borderRadius: 8,
-            border: "1px solid rgba(255,255,255,0.15)",
-            background: "rgba(255,255,255,0.05)",
+            border: "1px solid var(--border)",
+            background: "var(--bg-subtle)",
             color: "inherit",
             cursor: busy ? "not-allowed" : "pointer",
           }}
@@ -229,13 +442,63 @@ export function SettingsPanel() {
       {msg && <div style={{ fontSize: 13 }}>{msg}</div>}
 
       {diagResult && (
-        <details open>
-          <summary style={{ cursor: "pointer", fontSize: 12, opacity: 0.7 }}>诊断详情 (点开看每一项是不是通了)</summary>
-          <pre style={{ background: "rgba(0,0,0,0.3)", padding: 10, borderRadius: 6, fontSize: 11, overflow: "auto", maxHeight: 300 }}>{diagResult}</pre>
-        </details>
+        <div style={{
+          marginTop: 8, borderRadius: 8, overflow: "hidden",
+          borderWidth: 1, borderStyle: "solid", borderColor: "var(--border)",
+          background: "var(--bg)",
+        }}>
+          <div style={{
+            padding: "8px 12px", fontSize: 13, fontWeight: 600, color: "var(--text)",
+            background: "var(--bg-card)",
+            borderBottomWidth: 1, borderBottomStyle: "solid",
+            borderBottomColor: "var(--border)",
+          }}>
+            🔍 诊断结果 ({diagResult.rows.length} 项)
+          </div>
+          {diagResult.error && (
+            <div style={{ padding: 10, color: "#ffb300", fontSize: 12 }}>{diagResult.error}</div>
+          )}
+          {(() => {
+            const groups: Record<string, typeof diagResult.rows> = {};
+            for (const r of diagResult.rows) {
+              (groups[r.group] = groups[r.group] || []).push(r);
+            }
+            return Object.entries(groups).map(([g, rows]) => (
+              <div key={g}>
+                <div style={{
+                  padding: "6px 12px", fontSize: 11, color: "var(--info)", fontWeight: 600,
+                  background: "var(--info-bg)",
+                }}>{g}</div>
+                {rows.map((r, i) => (
+                  <div key={`${g}-${i}`} style={{
+                    display: "grid", gridTemplateColumns: "180px 60px 1fr",
+                    gap: 10, padding: "8px 12px", alignItems: "center",
+                    fontSize: 12,
+                    borderTopWidth: 1, borderTopStyle: "solid",
+                    borderTopColor: "var(--bg-subtle)",
+                  }}>
+                    <div style={{
+                      color: "var(--text)", fontWeight: 500,
+                      fontFamily: "ui-monospace, Consolas, monospace",
+                    }}>{r.name}</div>
+                    <div style={{
+                      fontSize: 11, fontWeight: 700,
+                      padding: "2px 8px", borderRadius: 4, textAlign: "center",
+                      background: r.ok ? "rgba(76,175,80,0.18)" : "rgba(255,82,82,0.18)",
+                      color: r.ok ? "#9ccc65" : "#ff8a80",
+                    }}>{r.ok ? "✓ 通" : "✗ 失败"}</div>
+                    <div style={{ color: r.ok ? "#bbb" : "#ff8a80", fontSize: 11 }}>
+                      {r.detail || "—"}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ));
+          })()}
+        </div>
       )}
 
-      <div style={{ fontSize: 11, opacity: 0.5, borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 8 }}>
+      <div style={{ fontSize: 11, opacity: 0.5, borderTop: "1px solid var(--bg-hover)", paddingTop: 8 }}>
         密钥保存在: <code>backend/data/hub_settings.json</code>本地, 永远不会上传
       </div>
     </div>

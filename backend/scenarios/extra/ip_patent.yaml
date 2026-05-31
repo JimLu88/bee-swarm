@@ -1,0 +1,17 @@
+mode_id: ip_patent
+label: 专利知识产权
+scenario_description: 专利/商标/版权保护
+departments:
+- patent_attorney
+- trademark_expert
+- ip_strategist
+- infringement_analyst
+- valuation_advisor
+- compliance_advisor
+department_labels:
+  patent_attorney: 专利代理师 (检索/撰写/布局)
+  trademark_expert: 商标专家 (注册/分类/驳回)
+  ip_strategist: 知产战略师 (布局/组合/护城河)
+  infringement_analyst: 侵权分析师 (FTO/规避/维权)
+  valuation_advisor: 价值评估师 (转化/许可/作价)
+  compliance_advisor: 合规顾问 (流程/期限/风险)

@@ -1,0 +1,17 @@
+mode_id: board_game
+label: 桌游策略
+scenario_description: 桌游/棋牌/策略游戏
+departments:
+- strategy_master
+- game_selector
+- rules_expert
+- beginner_coach
+- group_host
+- collection_advisor
+department_labels:
+  strategy_master: 策略大师 (战术/布局/博弈)
+  game_selector: 游戏选品师 (推荐/人数/类型)
+  rules_expert: 规则专家 (规则/裁判/争议)
+  beginner_coach: 新手教练 (入门/技巧/进阶)
+  group_host: 组局主持 (氛围/节奏/破冰)
+  collection_advisor: 收藏顾问 (购买/扩展/性价比)

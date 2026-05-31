@@ -1,0 +1,110 @@
+# v6-A 全球 Tier-1 大模型快照 (2026-05).
+snapshot_date: "2026-05"
+vendors:
+  - vendor: Anthropic
+    flagship_model: Claude Opus 4.7
+    api_id: anthropic/claude-opus-4-7
+    second_tier: anthropic/claude-sonnet-4-6
+    strengths: [长文本推理, 编码, 谨慎不乱编, 工具调用稳定]
+    weaknesses: [中文略弱]
+    price_in_per_M: 110
+    price_out_per_M: 550
+    good_for_roles: [ceo, head_general, head_legal, head_safety, head_code_review]
+  - vendor: OpenAI
+    flagship_model: GPT-5
+    api_id: openai/gpt-5
+    second_tier: openai/o3
+    strengths: [数学逻辑, 工具调用, 多模态, 通用]
+    weaknesses: [中文一般, 过度迎合]
+    price_in_per_M: 80
+    price_out_per_M: 320
+    good_for_roles: [head_finance, head_algorithm, head_qa, head_data]
+  - vendor: Google
+    flagship_model: Gemini 2.5 Pro
+    api_id: gemini/gemini-2.5-pro
+    second_tier: gemini/gemini-flash
+    strengths: [视觉极强, 100 万长上下文, 多模态, 价格友好]
+    weaknesses: [复杂推理略弱, 工具调用一般]
+    price_in_per_M: 18
+    price_out_per_M: 75
+    good_for_roles: [head_radiology, head_imaging, head_design, head_video]
+  - vendor: DeepSeek
+    flagship_model: DeepSeek V3 Pro
+    api_id: deepseek/deepseek-chat
+    second_tier: deepseek/deepseek-reasoner
+    strengths: [中文优秀, 推理 R1, 极便宜, 代码强]
+    weaknesses: [国际知识弱, 多模态弱]
+    price_in_per_M: 4
+    price_out_per_M: 14
+    good_for_roles: [head_internal_med, head_research, head_engineering, head_chinese_market]
+  - vendor: xAI
+    flagship_model: Grok 4
+    api_id: openai/grok-4
+    second_tier: ""
+    strengths: [实时信息, 长上下文, 反建制视角, 多视角]
+    weaknesses: [中文一般]
+    price_in_per_M: 50
+    price_out_per_M: 200
+    good_for_roles: [head_intelligence, head_market_trends, head_xlab, head_devil_advocate]
+  - vendor: 月之暗面 Moonshot
+    flagship_model: Kimi K2
+    api_id: openai/kimi-k2-0905-preview
+    second_tier: ""
+    strengths: [中文超长文本 200k, 学术法律, PDF 解析]
+    weaknesses: [多模态弱]
+    price_in_per_M: 12
+    price_out_per_M: 36
+    good_for_roles: [head_legal, head_compliance, head_academic, head_long_doc]
+  - vendor: 智谱 GLM
+    flagship_model: GLM-4.6
+    api_id: openai/glm-4-plus
+    second_tier: ""
+    strengths: [中文本土, 价格友好, 工具调用]
+    weaknesses: [多模态弱, 国际知识弱]
+    price_in_per_M: 8
+    price_out_per_M: 30
+    good_for_roles: [head_chinese_market, head_admin, head_policy]
+  - vendor: 阿里 Qwen
+    flagship_model: Qwen3 Max
+    api_id: openai/qwen3-max
+    second_tier: ""
+    strengths: [中文优秀, 多语言, Agent 工具, 多模态有进展]
+    weaknesses: [推理略逊]
+    price_in_per_M: 15
+    price_out_per_M: 60
+    good_for_roles: [head_logistics, head_supply_chain, head_multilang, head_agent]
+  - vendor: Meta
+    flagship_model: Llama 4 Maverick
+    api_id: meta-llama/llama-4-maverick
+    second_tier: ""
+    strengths: [开源, 学术友好, 多模态原生]
+    weaknesses: [闭源旗舰之外差距]
+    price_in_per_M: 20
+    price_out_per_M: 60
+    good_for_roles: [head_academic, head_research, head_open_source]
+  - vendor: Mistral
+    flagship_model: Mistral Large 3
+    api_id: mistral/mistral-large-3
+    second_tier: ""
+    strengths: [欧洲合规, 代码, 多语]
+    weaknesses: [中文一般]
+    price_in_per_M: 30
+    price_out_per_M: 90
+    good_for_roles: [head_eu_compliance, head_localization]
+
+local_models:
+  - api_id: ollama/deepseek-r1:8b
+    label: DeepSeek-R1 8B (本地)
+    strengths: [推理还行, 中文 OK, 免费无限, 隐私不出本机]
+    weaknesses: [慢, 复杂任务勉强]
+    good_for_roles: [staff_general, staff_resident, staff_junior]
+    price_in_per_M: 0
+    price_out_per_M: 0
+
+ceo:
+  primary_model: anthropic/claude-opus-4-7
+  fallback_model: anthropic/claude-sonnet-4-6
+  rationale: |
+    CEO 综合各部门意见, 要的是判断力 + 诚实度。
+    Opus 4.7 在 200k 上下文里能装下所有主管报告 + 用户原始诉求,
+    Anthropic 对齐在 "主张能力边界" 上表现最好 (不会乱编)。

@@ -1,0 +1,14 @@
+mode_id: child_education
+scenario_description: |
+  儿童教育场景:0-18 岁全程, 学龄前/小学/青春期心理/特长/家庭沟通/营养 六向。
+  避免"鸡娃"陷阱, 鼓励观察孩子真实需求。家长情绪管理也是关键。
+default_task_hint: "8 岁孩子最近不愿意上学, 也不肯说原因, 我该怎么办?"
+gene_seeds:
+  preschool_dev: "0-6 岁敏感期 / 语言爆发期 / 大动作小动作 / 蒙台梭利 vs 华德福。"
+  primary_academic: "小学一二年级行为习惯, 三四年级思维转型, 五六年级独立性。"
+  adolescent_psych: "青春期叛逆背后的自我认同需求 / 同伴影响 / 早恋 / 手机沉迷。"
+  interests_talent: "天赋发现 / 兴趣 vs 天赋区分 / 多元智能理论 / 不盲目兴趣班轰炸。"
+  family_comm: "非暴力沟通 / 父母情绪自控 / 不当孩子的拐杖也不当法官。"
+  child_nutrition: "零食陷阱 / 蛋白质/铁/钙 关键期 / 视力保护 / 充足睡眠。"
+  benchmark: "国内外儿童发展研究最新进展 (哈佛 Center for Developing Child 等)."
+  xlab: "孩子的问题往往映照家庭关系问题。检查家长自身是否需要先解决。"

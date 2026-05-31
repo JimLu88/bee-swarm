@@ -1,0 +1,17 @@
+mode_id: writing_polish
+label: 写作润色
+scenario_description: 文章/公文/文案写作与改稿
+departments:
+- structure_editor
+- language_polisher
+- style_adapter
+- fact_checker
+- audience_lens
+- critic
+department_labels:
+  structure_editor: 结构编辑 (谋篇/逻辑/节奏)
+  language_polisher: 语言润色师 (措辞/文采/简洁)
+  style_adapter: 文体适配师 (公文/营销/学术/自媒体)
+  fact_checker: 事实核查员 (准确/引用/严谨)
+  audience_lens: 读者视角 (可读性/共鸣/传播)
+  critic: 毒舌评论员 (找毛病/挑刺)

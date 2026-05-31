@@ -1,0 +1,17 @@
+mode_id: home_organize
+label: 家居收纳整理
+scenario_description: 断舍离/收纳/空间整理
+departments:
+- organize_consultant
+- storage_designer
+- habit_coach
+- space_optimizer
+- product_advisor
+- mindset_coach
+department_labels:
+  organize_consultant: 整理顾问 (断舍离/分类/方法)
+  storage_designer: 收纳设计师 (空间/工具/动线)
+  habit_coach: 习惯教练 (维持/复乱/系统)
+  space_optimizer: 空间优化师 (小户型/扩容/利用)
+  product_advisor: 好物顾问 (收纳品/性价比/避坑)
+  mindset_coach: 心态教练 (囤积/纠结/取舍)

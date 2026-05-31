@@ -32,6 +32,9 @@ EVOLVERS = [
     ("p12_code_self_update","代码自更新(三重双保险)", "L7"),
     ("p13_model_discovery","模型自动发现 (LMSYS/LiteLLM)", "L6"),
     ("p14_skill_discovery","Skill/MCP 自发现 (GitHub)",   "L9"),
+    ("p15_team_evolve",   "主管自演化 (ELO + Shadow 14天)", "L3"),
+    ("p16_knowledge_curator", "知识策展员 (8 层知识库充实)", "L2"),
+    ("p17_trend_monitor",  "趋势监控 (扫外部 → 提案入待审池)", "L7"),
 ]
 
 
@@ -125,6 +128,73 @@ def observations(req: ObservationIn) -> dict:
 
 
 _attach_upgrade_log()
+
+
+# ============== v6 修脱节 #2: 真接 APScheduler 让 P0-P16 自动跑 ==============
+
+_SCHEDULER = None
+
+
+def _run_all_evolvers_serial() -> None:
+    """02:00 cron 调用. 串行 P0→P16, 间隔 60 秒, 失败不影响下一个."""
+    import importlib, time as _t
+    for evolver, _label, _layer in EVOLVERS:
+        try:
+            mod = importlib.import_module(f"app.evolution_coordinator.evolvers.{evolver}")
+            out = mod.run()
+            rid = "ev-cron-" + uuid.uuid4().hex[:10]
+            with _conn() as c:
+                c.execute(
+                    "INSERT INTO evolution_log VALUES (?,?,?,?,?,?,?)",
+                    (rid, int(_t.time()), evolver, out.get("status", "unknown"),
+                     str(out)[:1000], "cron", ""),
+                )
+        except Exception as e:
+            rid = "ev-cron-fail-" + uuid.uuid4().hex[:10]
+            with _conn() as c:
+                c.execute(
+                    "INSERT INTO evolution_log VALUES (?,?,?,?,?,?,?)",
+                    (rid, int(_t.time()), evolver, "error", str(e)[:1000], "cron", ""),
+                )
+        _t.sleep(60)
+
+
+def start_scheduler() -> dict:
+    """main.py lifespan startup 时调. 失败 (缺 APScheduler) 静默, 不影响业务."""
+    global _SCHEDULER
+    if _SCHEDULER is not None:
+        return {"started": False, "reason": "already_started"}
+    try:
+        from apscheduler.schedulers.asyncio import AsyncIOScheduler
+        from apscheduler.triggers.cron import CronTrigger
+    except ImportError:
+        return {"started": False, "reason": "apscheduler_not_installed",
+                "hint": "pip install apscheduler"}
+    sch = AsyncIOScheduler()
+    sch.add_job(_run_all_evolvers_serial, CronTrigger(hour=2, minute=0),
+                id="ev_all_02", replace_existing=True)
+    sch.start()
+    _SCHEDULER = sch
+    return {"started": True, "cron": "daily 02:00", "evolvers": [e for e, _, _ in EVOLVERS]}
+
+
+def stop_scheduler() -> None:
+    global _SCHEDULER
+    if _SCHEDULER is not None:
+        try:
+            _SCHEDULER.shutdown(wait=False)
+        except Exception:
+            pass
+        _SCHEDULER = None
+
+
+@coordinator_router.get("/scheduler-status")
+def scheduler_status() -> dict:
+    return {
+        "running": _SCHEDULER is not None,
+        "jobs": [{"id": j.id, "next_run": str(j.next_run_time)}
+                 for j in (_SCHEDULER.get_jobs() if _SCHEDULER else [])],
+    }
 
 
 # v5-F 升级日志 + 一键回滚 端点

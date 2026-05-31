@@ -1,0 +1,17 @@
+mode_id: private_domain
+label: 私域社群运营
+scenario_description: 微信/社群/会员运营
+departments:
+- private_strategist
+- community_operator
+- ip_builder
+- conversion_designer
+- retention_expert
+- tool_advisor
+department_labels:
+  private_strategist: 私域战略师 (引流/承接/转化/复购)
+  community_operator: 社群运营师 (活跃/活动/氛围)
+  ip_builder: 人设打造师 (朋友圈/信任/专业感)
+  conversion_designer: 成交设计师 (话术/SOP/路径)
+  retention_expert: 复购留存师 (会员/裂变/LTV)
+  tool_advisor: 工具顾问 (SCRM/自动化/合规)

@@ -34,15 +34,16 @@ const STEPS = [
 ];
 
 const overlay: CSSProperties = {
-  position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)",
+  position: "fixed", inset: 0, background: "var(--overlay)",
   display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 24,
 };
 const modal: CSSProperties = {
-  background: "#1a1a1f", borderRadius: 16, padding: 32, width: "min(480px,94vw)",
-  border: "1px solid rgba(255,255,255,0.1)", textAlign: "center",
+  background: "var(--bg-card)", color: "var(--text)",  // 显式白字, 防父级 color 失效 → 黑底黑字
+  borderRadius: 16, padding: 32, width: "min(480px,94vw)",
+  border: "1px solid var(--border)", textAlign: "center",
 };
 const dot: CSSProperties = {
-  width: 8, height: 8, borderRadius: 4, background: "rgba(255,255,255,0.15)", display: "inline-block", margin: "0 3px",
+  width: 8, height: 8, borderRadius: 4, background: "var(--border)", display: "inline-block", margin: "0 3px",
 };
 
 export function Onboarding() {
@@ -69,11 +70,11 @@ export function Onboarding() {
     <div style={overlay} onClick={close}>
       <div style={modal} onClick={(e) => e.stopPropagation()}>
         <div style={{ fontSize: 56, marginBottom: 16 }}>{s.emoji}</div>
-        <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 12 }}>{s.title}</div>
-        <div style={{ fontSize: 14, opacity: 0.8, lineHeight: 1.7, marginBottom: 24 }}>{s.body}</div>
+        <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 12, color: "var(--text)" }}>{s.title}</div>
+        <div style={{ fontSize: 14, color: "var(--text-dim)", lineHeight: 1.7, marginBottom: 24 }}>{s.body}</div>
         <div style={{ marginBottom: 20 }}>
           {STEPS.map((_, i) => (
-            <span key={i} style={{ ...dot, background: i === step ? "#facc15" : "rgba(255,255,255,0.15)" }} />
+            <span key={i} style={{ ...dot, background: i === step ? "var(--accent)" : "var(--border)" }} />
           ))}
         </div>
         <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
@@ -96,10 +97,10 @@ export function Onboarding() {
 
 const btnPrimary: CSSProperties = {
   padding: "10px 24px", borderRadius: 8, border: "none",
-  background: "#facc15", color: "#000", cursor: "pointer", fontWeight: 600,
+  background: "var(--accent)", color: "#000", cursor: "pointer", fontWeight: 600,
 };
 const btnGhost: CSSProperties = {
   padding: "10px 16px", borderRadius: 8,
-  border: "1px solid rgba(255,255,255,0.15)", background: "transparent",
-  color: "inherit", cursor: "pointer",
+  border: "1px solid var(--border)", background: "transparent",
+  color: "var(--text)", cursor: "pointer",  // 显式白字
 };

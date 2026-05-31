@@ -1,0 +1,17 @@
+mode_id: cooking_recipe
+label: 烹饪料理
+scenario_description: 做菜/菜谱/厨艺提升
+departments:
+- chef_advisor
+- ingredient_expert
+- nutrition_balancer
+- flavor_designer
+- kitchen_advisor
+- cuisine_specialist
+department_labels:
+  chef_advisor: 主厨顾问 (菜式/火候/技法)
+  ingredient_expert: 食材专家 (选购/搭配/时令)
+  nutrition_balancer: 营养搭配师 (均衡/健康/热量)
+  flavor_designer: 调味设计师 (味型/酱汁/层次)
+  kitchen_advisor: 厨房顾问 (工具/效率/储存)
+  cuisine_specialist: 菜系专家 (中西日/地方/创新)

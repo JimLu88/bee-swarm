@@ -1,0 +1,17 @@
+mode_id: cross_border
+label: 跨境电商外贸
+scenario_description: 亚马逊/独立站/外贸
+departments:
+- market_strategist
+- platform_operator
+- logistics_expert
+- compliance_advisor
+- payment_advisor
+- brand_builder
+department_labels:
+  market_strategist: 市场战略师 (选品/选市场/定位)
+  platform_operator: 平台运营师 (Listing/广告/排名)
+  logistics_expert: 物流供应链 (头程/海外仓/时效)
+  compliance_advisor: 合规顾问 (关税/认证/VAT/知产)
+  payment_advisor: 收款风控师 (收款/汇率/封号)
+  brand_builder: 品牌出海师 (品牌/独立站/红人)

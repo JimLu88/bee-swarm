@@ -1,0 +1,17 @@
+mode_id: rent_buy_house
+label: 租房买房
+scenario_description: 租房或购房的选择与谈判
+departments:
+- location_analyst
+- price_negotiator
+- legal_checker
+- finance_planner
+- inspection_expert
+- risk_advisor
+department_labels:
+  location_analyst: 地段分析师 (交通/学区/配套/升值)
+  price_negotiator: 议价谈判师 (砍价策略/市场行情/底价)
+  legal_checker: 产权法务 (产权/合同/抵押/纠纷排查)
+  finance_planner: 贷款规划师 (首付/月供/利率/组合贷)
+  inspection_expert: 验房专家 (质量/隐患/朝向/噪音)
+  risk_advisor: 风险顾问 (政策/烂尾/二手坑)

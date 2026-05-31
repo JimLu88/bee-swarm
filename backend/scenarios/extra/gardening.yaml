@@ -1,0 +1,17 @@
+mode_id: gardening
+label: 园艺植物
+scenario_description: 养花/种菜/绿植养护
+departments:
+- horticulturist
+- soil_expert
+- pest_advisor
+- design_advisor
+- watering_coach
+- beginner_guide
+department_labels:
+  horticulturist: 园艺师 (品种/习性/养护)
+  soil_expert: 土肥专家 (土壤/施肥/配土)
+  pest_advisor: 病虫防治师 (病害/虫害/防治)
+  design_advisor: 景观设计师 (搭配/布置/美感)
+  watering_coach: 水肥管理师 (浇水/光照/季节)
+  beginner_guide: 新手向导 (易养/避坑/工具)

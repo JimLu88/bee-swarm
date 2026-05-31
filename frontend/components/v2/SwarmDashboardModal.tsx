@@ -15,7 +15,7 @@ export type DeptHeat = {
 const overlay: CSSProperties = {
   position: "fixed",
   inset: 0,
-  background: "rgba(0,0,0,0.6)",
+  background: "var(--overlay)",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
@@ -24,31 +24,31 @@ const overlay: CSSProperties = {
 };
 
 const modal: CSSProperties = {
-  background: "#1a1a1f",
+  background: "var(--bg-card)",
   borderRadius: 12,
   padding: 20,
   width: "min(720px, 96vw)",
   maxHeight: "92vh",
   overflowY: "auto",
-  border: "1px solid rgba(255,255,255,0.1)",
+  border: "1px solid var(--border)",
 };
 
 const section: CSSProperties = {
   padding: 12,
   borderRadius: 8,
-  background: "rgba(255,255,255,0.04)",
-  border: "1px solid rgba(255,255,255,0.06)",
+  background: "var(--bg-subtle)",
+  border: "1px solid var(--bg-hover)",
 };
 
 function HeatBar({ heat }: { heat: number }) {
   const pct = Math.max(0, Math.min(1, heat)) * 100;
   return (
-    <div style={{ background: "rgba(0,0,0,0.4)", borderRadius: 4, height: 8, overflow: "hidden" }}>
+    <div style={{ background: "var(--overlay)", borderRadius: 4, height: 8, overflow: "hidden" }}>
       <div
         style={{
           width: pct + "%",
           height: "100%",
-          background: heat > 0.7 ? "#ef4444" : heat > 0.4 ? "#facc15" : "#22c55e",
+          background: heat > 0.7 ? "#ef4444" : heat > 0.4 ? "var(--accent)" : "#22c55e",
           transition: "width 0.4s",
         }}
       />

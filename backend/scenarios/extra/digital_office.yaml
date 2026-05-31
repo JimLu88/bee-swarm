@@ -1,0 +1,17 @@
+mode_id: digital_office
+label: 数码办公选购
+scenario_description: 电脑/手机/办公设备选购
+departments:
+- device_analyst
+- value_hunter
+- durability_expert
+- ecosystem_advisor
+- scenario_matcher
+- anti_trap_advisor
+department_labels:
+  device_analyst: 数码分析师 (需求匹配/参数/对标)
+  value_hunter: 性价比猎手 (价格/促销/平替)
+  durability_expert: 耐用评估师 (做工/寿命/售后)
+  ecosystem_advisor: 生态顾问 (系统/配件/互联)
+  scenario_matcher: 场景匹配师 (办公/创作/游戏)
+  anti_trap_advisor: 防坑顾问 (翻新/虚标/陷阱)

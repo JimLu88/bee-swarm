@@ -31,8 +31,8 @@ const container: CSSProperties = {
   gap: 8,
   padding: "10px 12px",
   borderRadius: 10,
-  border: "1px solid rgba(255,255,255,0.08)",
-  background: "rgba(255,255,255,0.04)",
+  border: "1px solid var(--bg-hover)",
+  background: "var(--bg-subtle)",
 };
 
 const row: CSSProperties = { display: "flex", gap: 6 };
@@ -40,24 +40,23 @@ const tier: CSSProperties = {
   flex: 1,
   padding: "10px 8px",
   borderRadius: 8,
-  border: "1px solid rgba(255,255,255,0.12)",
-  background: "rgba(0,0,0,0.2)",
+  border: "1px solid var(--border)",
+  background: "var(--bg-subtle)",
   cursor: "pointer",
   textAlign: "center",
   color: "inherit",
   fontFamily: "inherit",
 };
-const tierActive: CSSProperties = { ...tier, borderColor: "#facc15", background: "rgba(250,204,21,0.18)" };
+const tierActive: CSSProperties = { ...tier, borderColor: "var(--accent)", background: "var(--accent-bg)" };
 const tierAi: CSSProperties = { ...tier, borderStyle: "dashed", borderColor: "#22d3ee" };
 
-export function DifficultySlider({ value, aiSuggested, aiReason, estimateText, onChange }: Props) {
+export function DifficultySlider({ value, aiSuggested, aiReason, onChange }: Props) {
   return (
     <div style={container}>
       {aiSuggested && (
         <div style={{ fontSize: 12, opacity: 0.85 }}>
           AI 建议 <strong>{DIFFICULTY_INFO[aiSuggested].emoji} {DIFFICULTY_INFO[aiSuggested].name}</strong>
           {aiReason && <span style={{ opacity: 0.6 }}> ({aiReason})</span>}
-          {estimateText && <span style={{ marginLeft: 8 }}>· {estimateText}</span>}
         </div>
       )}
       <div style={row}>
@@ -74,7 +73,6 @@ export function DifficultySlider({ value, aiSuggested, aiReason, estimateText, o
             >
               <div style={{ fontSize: 18 }}>{info.emoji}</div>
               <div style={{ fontWeight: 600 }}>{info.name}</div>
-              <div style={{ fontSize: 10, opacity: 0.6 }}>{info.cost}</div>
               <div style={{ fontSize: 10, opacity: 0.5 }}>{info.desc}</div>
             </button>
           );

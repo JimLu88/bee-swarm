@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, get_args
+from typing import Any
 
 from .models import DeptName, ModeInfo
 
 _EXTRA_DIR = Path(__file__).resolve().parent.parent / "scenarios" / "extra"
-_ALLOWED: frozenset[str] = frozenset(get_args(DeptName))
+# v6-A: DeptName 改 str 后不再有 Literal 白名单, 接受任意字符串 dept_id (AI 自由命名)
 
 
 def extra_modes_dir() -> Path:
@@ -49,8 +49,8 @@ def _parse_mode_file(path: Path, *, skip_mode_ids: frozenset[str]) -> ModeInfo |
     depts: list[DeptName] = []
     for d in depts_raw:
         s = str(d).strip()
-        if s in _ALLOWED:
-            depts.append(s)  # type: ignore[assignment]
+        if s:
+            depts.append(s)
     if not depts:
         return None
 

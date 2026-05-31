@@ -1,0 +1,17 @@
+mode_id: debate_speech
+label: 辩论口才
+scenario_description: 辩论/即兴表达/沟通力
+departments:
+- argument_strategist
+- rhetoric_coach
+- logic_analyst
+- delivery_coach
+- rebuttal_specialist
+- audience_reader
+department_labels:
+  argument_strategist: 论证战略师 (立论/框架/攻防)
+  rhetoric_coach: 修辞教练 (表达/感染力/金句)
+  logic_analyst: 逻辑分析师 (谬误/漏洞/反驳)
+  delivery_coach: 台风教练 (气场/节奏/临场)
+  rebuttal_specialist: 反驳专家 (质询/拆解/反击)
+  audience_reader: 受众洞察师 (评委/听众/说服)

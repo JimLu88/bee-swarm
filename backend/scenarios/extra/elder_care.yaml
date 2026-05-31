@@ -1,0 +1,17 @@
+mode_id: elder_care
+label: 老人赡养照护
+scenario_description: 父母养老/照护/医疗安排
+departments:
+- geriatric_advisor
+- care_planner
+- finance_coordinator
+- legal_advisor
+- psych_support
+- emergency_planner
+department_labels:
+  geriatric_advisor: 老年医学顾问 (慢病/用药/认知)
+  care_planner: 照护规划师 (居家/机构/护工方案)
+  finance_coordinator: 养老财务师 (费用/养老金/资产)
+  legal_advisor: 法务顾问 (遗嘱/赡养/财产)
+  psych_support: 心理支持师 (老人情绪/家属压力)
+  emergency_planner: 应急预案师 (突发/就医/联络)

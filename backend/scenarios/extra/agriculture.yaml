@@ -1,0 +1,17 @@
+mode_id: agriculture
+label: 农业种植养殖
+scenario_description: 种植/养殖/农业经营
+departments:
+- agronomist
+- animal_husbandry
+- market_advisor
+- cost_planner
+- tech_advisor
+- policy_advisor
+department_labels:
+  agronomist: 农艺师 (品种/土壤/栽培/病虫)
+  animal_husbandry: 畜牧师 (饲养/防疫/繁育)
+  market_advisor: 市场顾问 (行情/销路/品牌/电商)
+  cost_planner: 成本核算师 (投入/产出/补贴)
+  tech_advisor: 农技顾问 (设备/灌溉/智慧农业)
+  policy_advisor: 政策顾问 (补贴/土地/合作社)

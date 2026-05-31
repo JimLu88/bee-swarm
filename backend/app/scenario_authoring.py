@@ -17,7 +17,13 @@ class ScenarioValidation:
     normalized: dict[str, Any]
 
 
-_ALLOWED_DEPTS: frozenset[str] = frozenset(get_args(DeptName))
+## v6-A: DeptName 改 str 后白名单从 Literal get_args 变成动态从 modes 列举.
+def _allowed_depts() -> frozenset[str]:
+    from .catalog import list_dept_names
+    return frozenset(list_dept_names())
+
+
+_ALLOWED_DEPTS: frozenset[str] = _allowed_depts()
 _ROOT_ALLOWED_KEYS: frozenset[str] = frozenset(
     [
         "mode_id",

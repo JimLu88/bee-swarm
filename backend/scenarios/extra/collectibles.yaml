@@ -1,0 +1,17 @@
+mode_id: collectibles
+label: 收藏投资
+scenario_description: 手办/球鞋/字画等收藏
+departments:
+- appraisal_expert
+- market_analyst
+- investment_advisor
+- authenticity_checker
+- preservation_expert
+- acquisition_advisor
+department_labels:
+  appraisal_expert: 鉴定专家 (真伪/品相/年代)
+  market_analyst: 市场分析师 (行情/趋势/估值)
+  investment_advisor: 投资顾问 (升值/流动性/风险)
+  authenticity_checker: 防伪鉴别师 (假货/翻新/避坑)
+  preservation_expert: 养护专家 (保存/修复/展示)
+  acquisition_advisor: 购藏顾问 (渠道/议价/时机)

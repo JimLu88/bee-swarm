@@ -1,0 +1,17 @@
+mode_id: study_abroad
+label: 留学申请
+scenario_description: 本/硕/博海外申请
+departments:
+- admission_strategist
+- essay_advisor
+- test_planner
+- country_expert
+- finance_planner
+- visa_advisor
+department_labels:
+  admission_strategist: 申请战略师 (选校/定位/梯度)
+  essay_advisor: 文书顾问 (PS/CV/推荐信/故事)
+  test_planner: 标化规划师 (语言/GRE/时间线)
+  country_expert: 国别专家 (各国政策/费用/前景)
+  finance_planner: 留学财务师 (预算/奖学金/汇率)
+  visa_advisor: 签证顾问 (材料/面签/拒签风险)
