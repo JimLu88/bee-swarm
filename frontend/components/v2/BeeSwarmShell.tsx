@@ -190,7 +190,7 @@ export function BeeSwarmShell() {
   const [currentDecisionId, setCurrentDecisionId] = useState<string | null>(null);
   const [runMeta, setRunMeta] = useState<{ route: string; rounds_band: string; difficulty: string } | null>(null);
   // v10 C: 提问后先弹"确认阵容"(preflight 建议部门), 用户增减后才真跑
-  const [planConfirm, setPlanConfirm] = useState<{ task: string; depts: string[]; allDepts: string[] } | null>(null);
+  const [planConfirm, setPlanConfirm] = useState<{ task: string; depts: string[]; allDepts: string[]; switchedTo?: string; noMatch?: boolean } | null>(null);
   const [planLoading, setPlanLoading] = useState(false);
 
   // thinking frameworks (AI 自动选; SettingsDrawer 可手动改)
@@ -394,12 +394,35 @@ export function BeeSwarmShell() {
     if (EFFORT_MAP[difficulty].route === "ceo_only") { submitTask(t); return; }
     setPlanLoading(true);
     (async () => {
+      // 1) 先让 AI 判断属于哪个场景; 确信匹配且与当前不同 → 自动切场景 (LLM 异常/无匹配则静默不动, 不骚扰)
+      let useMode = mode;
+      let switchedTo: string | undefined;
+      let noMatch = false;
+      try {
+        const cr = await fetchWithTimeout(
+          `${backendUrl}/api/modes/classify`,
+          { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ task: t }) },
+          TIMEOUT_MS.decisionStart,
+        );
+        if (cr.ok) {
+          const cj = await cr.json();
+          if (cj?.matched && cj?.mode_id && cj.mode_id !== mode) {
+            useMode = cj.mode_id as string;
+            switchedTo = (cj.mode_label as string) || useMode;
+            setMode(useMode);
+          } else if (cj && cj.matched === false && cj.mode_id === null) {
+            noMatch = true; // 仅作温和提示, 不阻断
+          }
+        }
+      } catch { /* 分类失败 → 用当前场景, 不影响 */ }
+
+      // 2) 用(可能已切换的)场景做部门预判
       let depts: string[] = [];
       let allDepts: string[] = [];
       try {
         const res = await fetchWithTimeout(
           `${backendUrl}/api/decision/preflight`,
-          { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ task: t, mode_id: mode }) },
+          { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ task: t, mode_id: useMode }) },
           TIMEOUT_MS.decisionStart,
         );
         if (res.ok) {
@@ -408,7 +431,7 @@ export function BeeSwarmShell() {
           allDepts = (j?.all_depts || []) as string[];
         }
       } catch { /* 预判失败 → 给空列表, 用户自己加, 或直接开跑用全部 */ }
-      setPlanConfirm({ task: t, depts, allDepts });
+      setPlanConfirm({ task: t, depts, allDepts, switchedTo, noMatch });
       setPlanLoading(false);
     })();
   }, [busy, planLoading, difficulty, mode, backendUrl, submitTask]);
@@ -643,6 +666,16 @@ export function BeeSwarmShell() {
       )}
       {planConfirm && (
         <div style={{ marginBottom: 10 }}>
+          {planConfirm.switchedTo && (
+            <div style={{ marginBottom: 8, padding: "7px 11px", borderRadius: 10, background: "var(--accent-bg)", color: "var(--accent)", fontSize: 12.5, display: "flex", alignItems: "center", gap: 6 }}>
+              <Icon name="swap_horiz" size={16} /> 这个问题更像「{planConfirm.switchedTo}」场景，已自动切换
+            </div>
+          )}
+          {planConfirm.noMatch && (
+            <div style={{ marginBottom: 8, padding: "7px 11px", borderRadius: 10, background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-dim)", fontSize: 12 }}>
+              没匹配到现成场景 · 本次先用当前场景；如需可在 设置 → 场景 新建自定义场景
+            </div>
+          )}
           <RouteFlow
             heats={planConfirm.depts.map((d) => ({ dept: d, heat: 0, confidence: 0, status: "idle" as const }))}
             labels={deptLabels}
