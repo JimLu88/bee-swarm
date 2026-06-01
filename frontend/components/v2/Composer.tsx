@@ -61,6 +61,10 @@ export function Composer({
   const taRef = useRef<HTMLTextAreaElement>(null);
   const [fwOpen, setFwOpen] = useState(false);
   const [effOpen, setEffOpen] = useState(false);
+  // SSR/hydration 安全: 首次渲染(服务端+客户端首帧)一律未就绪, 挂载后再按 value 计算,
+  // 避免 task 从 localStorage 恢复导致 send 按钮 className 服务端/客户端不一致 (hydration mismatch).
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
   const sel = frameworks ?? [];
   const fwSummary = sel.length === 0
     ? "AI 自动"
@@ -74,7 +78,7 @@ export function Composer({
     ta.style.height = Math.min(ta.scrollHeight, 170) + "px";
   }, [value]);
 
-  const ready = value.trim().length > 0 && !busy;
+  const ready = mounted && value.trim().length > 0 && !busy;
 
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
