@@ -734,6 +734,7 @@ export function BeeSwarmShell() {
                           <ResultPanel
                             summary={turn.summary}
                             effort={turn.effort}
+                            labels={deptLabels}
                             onRerunDept={isLast ? rerunDept : undefined}
                             rerunningDept={rerunningDept}
                             onFeedback={isLast && runMeta ? sendFeedback : undefined}

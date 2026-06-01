@@ -40,7 +40,14 @@ type Props = {
   onRegenerate?: () => void;
   /** 操作条元信息: 努力程度 1-4 */
   effort?: number;
+  /** 部门 id → 中文名 (来自 /api/modes department_labels, 含横切部门); 没有则回退 id */
+  labels?: Record<string, string>;
 };
+
+/** 中文标签取「括号前」短名: "内科 (常见病/慢病)" → "内科" */
+function shortDeptLabel(name: string): string {
+  return name.split(/[\s(（]/)[0] || name;
+}
 
 function avg(arr: number[]): number {
   if (arr.length === 0) return 0;
@@ -51,7 +58,7 @@ function dissentLabel(v: number): string {
   return v >= 0.7 ? "高" : v >= 0.4 ? "中" : "低";
 }
 
-export function ResultPanel({ summary, onRerunDept, rerunningDept, onFeedback, onRegenerate, effort }: Props) {
+export function ResultPanel({ summary, onRerunDept, rerunningDept, onFeedback, onRegenerate, effort, labels }: Props) {
   const [acOpen, setAcOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [fb, setFb] = useState<null | "up" | "down">(null);
@@ -132,7 +139,8 @@ export function ResultPanel({ summary, onRerunDept, rerunningDept, onFeedback, o
           <div className="accord-body">
             {reports.map((r, i) => {
               const conf = Number(r.confidence_score ?? 0);
-              const name = r.dept ?? "?";
+              const rawDept = r.dept ?? "?";
+              const name = labels?.[rawDept] ? shortDeptLabel(labels[rawDept]) : rawDept;
               return (
                 <div key={i} className="dept">
                   <div className="dept-top">
