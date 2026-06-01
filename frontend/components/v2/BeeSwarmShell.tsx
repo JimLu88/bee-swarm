@@ -38,9 +38,6 @@ import { sceneSuggestions } from "../../lib/scenes";
 // v10: 场景"自动识别"哨兵 — 选它时由本地模型按问题判断场景; 手动选具体场景则跳过识别.
 const AUTO_MODE = "__auto__";
 
-// v10: 技术专用横切部门 — 只对"程序管理"等技术场景有意义, 不应出现在美食/旅行等日常场景的阵容里.
-// (通用的"破局思考 out_of_box_breakthrough / 外部平行架构对比 parallel_architecture_scout"保留.)
-const TECH_ONLY_CROSSCUT = new Set(["benchmark", "xlab", "security", "arch"]);
 
 type View = "welcome" | "thread";
 
@@ -711,10 +708,7 @@ export function BeeSwarmShell() {
           <RouteFlow
             heats={planConfirm.depts.map((d) => ({ dept: d, heat: 0, confidence: 0, status: "idle" as const }))}
             labels={deptLabels}
-            candidates={Array.from(new Set([
-              ...planConfirm.allDepts,
-              ...Object.keys(deptLabels),
-            ])).filter((d) => !TECH_ONLY_CROSSCUT.has(d))}
+            candidates={Array.from(new Set([...planConfirm.allDepts, ...Object.keys(deptLabels)]))}
             editable
             planMode
             busy={busy}

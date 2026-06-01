@@ -437,10 +437,18 @@ def modes_lookup(mode_id: str) -> dict:
     """Resolve a ``mode_id`` and report whether it came from built-ins, YAML extras, or fallback."""
     m, registry = resolve_mode(mode_id)
     mode_dict = m.model_dump()
-    # v9 合并横切部门中文名 (parallel_architecture_scout 等动态注入部门), 让前端 chip 不显示英文 id.
-    # 顺序: 横切默认在前, mode 自己的 label 覆盖之 (同 id 时以场景定义为准).
-    from .modes import CROSSCUTTING_DEPT_LABELS
-    merged_labels = {**CROSSCUTTING_DEPT_LABELS, **(mode_dict.get("department_labels") or {})}
+    # v10 重新设计: 只合并"对本场景真正适用"的横切部门中文名, 不再无脑塞全部 6 个.
+    #   - 通用视野拓展(每个场景都注入): UNIVERSAL_CROSSCUT_DEPTS = 外部·小众视角 / 破局思考
+    #   - 技术专用(benchmark/xlab/security/arch): 只有当该场景自己 departments 里真的用到才显示
+    # 避免"杭州吃什么"冒出 对标基准/安全合规/架构设计 这类技术部门。
+    from .modes import CROSSCUTTING_DEPT_LABELS, UNIVERSAL_CROSSCUT_DEPTS
+    own_labels = mode_dict.get("department_labels") or {}
+    own_depts = set(own_labels.keys()) | set(mode_dict.get("departments") or [])
+    applicable_cc = {
+        k: v for k, v in CROSSCUTTING_DEPT_LABELS.items()
+        if k in UNIVERSAL_CROSSCUT_DEPTS or k in own_depts
+    }
+    merged_labels = {**applicable_cc, **own_labels}
     mode_dict["department_labels"] = merged_labels
     return {
         "requested_mode_id": mode_id,

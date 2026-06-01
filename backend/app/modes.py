@@ -32,14 +32,19 @@ def reload_mode_yaml_cache() -> None:
 # v9 横切/动态注入部门的中文名 — 这些部门(视野拓展部 + 通用横切)由 dispatcher/run_decision
 # 动态加进 departments, 不在任何 mode 的 department_labels 里, 之前在前端 chip 显示成英文 id。
 # /api/modes/lookup 会把本表合并进返回的 department_labels, 一处定义、所有场景生效。
+# 横切部门: 跨场景的通用/技术角色.
+# - 通用(每个场景都注入, 见 VISION_EXPANSION_DEPTS): out_of_box_breakthrough / parallel_architecture_scout
+# - 技术专用(仅程序管理等技术场景, 不进美食/旅行等日常场景): benchmark / xlab / security / arch
 CROSSCUTTING_DEPT_LABELS: dict[str, str] = {
-    "parallel_architecture_scout": "外部平行架构对比",
+    "parallel_architecture_scout": "外部·小众视角",  # 找外网/国外/小众渠道的优质结果(非技术架构)
     "out_of_box_breakthrough": "破局思考",
     "benchmark": "对标基准",
     "xlab": "破局思考部 (X-Lab)",
     "security": "安全合规",
     "arch": "架构设计",
 }
+# 仅这两个是"每个场景都会注入"的通用横切部门 (与 team_generator.VISION_EXPANSION_DEPTS 对齐).
+UNIVERSAL_CROSSCUT_DEPTS = ("parallel_architecture_scout", "out_of_box_breakthrough")
 
 
 MODES: dict[str, ModeInfo] = {
