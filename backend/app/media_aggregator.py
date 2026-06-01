@@ -105,6 +105,48 @@ _DEFAULT_PLATFORMS = ["zhihu", "wikipedia", "reddit"]
 _VIDEO_DOMAINS = ("youtube.com", "youtu.be", "bilibili.com", "douyin.com", "tiktok.com", "v.qq.com", "vimeo.com")
 _IMAGE_EXTS = (".jpg", ".jpeg", ".png", ".webp", ".gif")
 
+# ---- 方向1: 域名黑名单 (内容农场 / SEO 站群 / AI 水文站, 命中即丢) ----
+_DOMAIN_DENY: tuple[str, ...] = (
+    "zhjsw.cn", "zhjsw.com",  # 用户实测企业站群, 全 AI 水文
+)
+
+# ---- 方向4: 来源权威度权重 (越高越靠前; 真实 UGC / 权威站加权) ----
+_AUTHORITY: dict[str, int] = {
+    # 高: 真实点评 / 高质 UGC / 权威百科
+    "dianping.com": 3, "xiaohongshu.com": 3, "zhihu.com": 3, "mafengwo.cn": 3,
+    "douban.com": 3, "wikipedia.org": 3, "xueqiu.com": 3,
+    # 中: 社区 / 视频 / 电商 / 工具站
+    "bilibili.com": 2, "xiachufang.com": 2, "weibo.com": 2, "smzdm.com": 2,
+    "jd.com": 2, "taobao.com": 2, "reddit.com": 2, "stackexchange.com": 2,
+    "github.com": 2, "medium.com": 2, "pinterest.com": 2,
+}
+
+# 方向5: 兜底 LLM 质检模型 (最便宜的快模型)
+_QUALITY_MODEL = "openai/deepseek-v4-flash"
+_QUALITY_PROMPT = (
+    "你是内容质检员。下面是为「{task}」聚合的资料条目 (序号|来源|标题摘要)。\n"
+    "请挑出**低质应丢弃**的条目序号: AI 水文/SEO 站群软文/纯广告/与任务无关/无信息量/标题党。\n"
+    "保留: 真实点评、有具体信息(数字/地址/亲历)、权威或 UGC 优质内容。\n"
+    '严格只输出 JSON: {"drop":[序号,...]}; 没有要丢的输出 {"drop":[]}。\n\n{items}\n'
+)
+
+
+def _is_denied(url: str) -> bool:
+    """方向1: 命中黑名单域名 → True (直接丢)."""
+    d = _domain(url)
+    return any(bad in d for bad in _DOMAIN_DENY)
+
+
+def _authority_score(url: str, source: str) -> int:
+    """方向4: 来源权威度 0-3. 杂域查表; 平台 scrape 来源(非域名)给 2; 未知给 0."""
+    d = _domain(url)
+    for dom, w in _AUTHORITY.items():
+        if dom in d:
+            return w
+    if source and "." not in source:  # source 是平台名 (垂直 scrape) → 中等可信
+        return 2
+    return 0
+
 
 def _domain(url: str) -> str:
     try:
@@ -194,23 +236,56 @@ def _collect_sync(task: str, mode_id: str) -> list[dict[str, Any]]:
         except Exception:
             continue
 
-    # 归一 + 去重 (按 url) + 优先带图 + 限量
+    # 归一 + 去重 (按 url) + 黑名单过滤(方向1) + 权威度打分(方向4) + 限量
     cards: list[dict[str, Any]] = []
     seen: set[str] = set()
     for item in raw:
         card = _classify(item)
         if not card:
             continue
-        key = card.get("url") or card.get("title") or ""
+        url = card.get("url") or ""
+        if _is_denied(url):  # 方向1: 内容农场/站群 直接丢
+            continue
+        key = url or card.get("title") or ""
         if key and key in seen:
             continue
         if key:
             seen.add(key)
+        card["_q"] = _authority_score(url, str(card.get("source") or ""))  # 方向4
         cards.append(card)
 
-    # 带图/视频的排前面 (信息流更好看), 再截断
-    cards.sort(key=lambda c: 0 if c.get("type") in ("image", "video") else 1)
+    # 排序: 权威度高 + 带图 优先, 再截断 (_q 在 gather 末尾清掉)
+    cards.sort(key=lambda c: (-(c.get("_q") or 0), 0 if c.get("type") in ("image", "video") else 1))
     return cards[:MAX_CARDS]
+
+
+async def _llm_quality_gate(task: str, cards: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """方向5: flash 一次性批量质检, 丢掉 AI 水文/广告/无关项. best-effort, 失败/误杀则原样返回."""
+    if os.environ.get("BEE_MEDIA_QUALITY", "1") == "0" or len(cards) <= 6:
+        return cards  # 条目太少不值得过滤
+    try:
+        from .llm.litellm_client import litellm_client
+        from .llm.parsing import _extract_json
+        lines = []
+        for i, c in enumerate(cards):
+            t = str(c.get("title") or "")[:60]
+            b = str(c.get("body") or "")[:80]
+            s = str(c.get("source") or "")
+            lines.append(f"{i}|{s}|{t} {b}".strip())
+        prompt = _QUALITY_PROMPT.replace("{task}", (task or "")[:120]).replace("{items}", "\n".join(lines))
+        resp = await litellm_client.complete(
+            model=_QUALITY_MODEL, prompt=prompt,
+            system="你只输出严格 JSON, 不要解释或 markdown 代码块。",
+        )
+        obj = _extract_json(resp.text or "") or {}
+        drop_raw = obj.get("drop") if isinstance(obj, dict) else None
+        if not isinstance(drop_raw, list):
+            return cards
+        drop = {int(x) for x in drop_raw if str(x).isdigit()}
+        kept = [c for i, c in enumerate(cards) if i not in drop]
+        return kept or cards  # 全被丢 → 判为误杀, 保留原样
+    except Exception:
+        return cards
 
 
 async def gather_media_cards(task: str, mode_id: str) -> list[dict[str, Any]]:
@@ -221,6 +296,10 @@ async def gather_media_cards(task: str, mode_id: str) -> list[dict[str, Any]]:
     if os.environ.get("BEE_MEDIA_FEED", "1") == "0":
         return []
     try:
-        return await asyncio.to_thread(_collect_sync, task, mode_id)
+        cards = await asyncio.to_thread(_collect_sync, task, mode_id)
+        cards = await _llm_quality_gate(task, cards)  # 方向5: flash 兜底质检
     except Exception:
         return []
+    for c in cards:  # 清掉内部排序字段, 不外泄给前端
+        c.pop("_q", None)
+    return cards

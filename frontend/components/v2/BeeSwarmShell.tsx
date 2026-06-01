@@ -17,7 +17,6 @@ import { SettingsDrawer } from "./SettingsDrawer";
 import { SwarmDashboardModal, type DeptHeat } from "./SwarmDashboardModal";
 import { Onboarding } from "./Onboarding";
 import { NotificationBell } from "./NotificationBell";
-import { PendingChangesDrawer } from "./PendingChangesDrawer";
 import { CommandPalette } from "./CommandPalette";
 import { useAutosave } from "../../lib/useAutosave";
 
@@ -783,7 +782,6 @@ export function BeeSwarmShell() {
               <Icon name={theme === "dark" ? "light_mode" : "dark_mode"} />
             </button>
             <NotificationBell backendUrl={backendUrl} />
-            <PendingChangesDrawer backendUrl={backendUrl} />
             <button type="button" className="ghost-btn" onClick={() => setDashOpen(true)} title="看顾问怎么协作" aria-label="帮助">
               <Icon name="help" />
             </button>

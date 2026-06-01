@@ -14,6 +14,7 @@ import { SandboxPanel } from "./engineer/SandboxPanel";
 import { ShadowABPanel } from "./engineer/ShadowABPanel";
 import { CoordinatorPanel } from "./engineer/CoordinatorPanel";
 import { LogsPanel } from "./LogsPanel";
+import { PendingChangesDrawer } from "./PendingChangesDrawer";
 import { ModePicker, BUILTIN_MODES } from "./ModePicker";
 import { TeamPanel } from "./TeamPanel";
 import { ModelBadgeBar } from "./ModelBadgeBar";
@@ -300,6 +301,11 @@ export function SettingsDrawer(props: Props) {
                 </ul>
                 普通用户不用碰这里; 自更新走 AI 大脑 tab 顶部的 "📦 系统自更新" 按钮即可.
               </div>
+              <div style={sectionTitle}>⚖️ 待审批改动 (演化器提案)</div>
+              <div style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 4 }}>
+                evolvers (p12/p15/p17 等) 跑出、需人工确认的改动在这里 approve / reject。
+              </div>
+              <PendingChangesDrawer backendUrl={backendUrl} />
               <div style={sectionTitle}>📋 系统日志 (7 服务聚合)</div>
               <LogsPanel backendUrl={backendUrl} />
               <SandboxPanel />

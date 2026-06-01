@@ -337,23 +337,8 @@ export function SettingsPanel() {
             background: "var(--accent)", color: "#1a1a1a", fontWeight: 700, fontSize: 13,
           }}
         >📦 系统自更新</button>
-        <a href="#pending" onClick={(e) => {
-          e.preventDefault();
-          (document.querySelector('[title*="待审"]') as HTMLButtonElement | null)?.click();
-        }} style={{
-          padding: "10px 18px", borderRadius: 8,
-          borderWidth: 1, borderStyle: "solid", borderColor: "var(--border-strong)",
-          background: "var(--bg-card)", color: "var(--text)", fontWeight: 600, fontSize: 13,
-          textDecoration: "none", display: "inline-flex", alignItems: "center",
-        }}>⚖️ 查看待审</a>
-        <a href="/trends" style={{
-          padding: "10px 18px", borderRadius: 8,
-          borderWidth: 1, borderStyle: "solid", borderColor: "var(--border-strong)",
-          background: "var(--bg-card)", color: "var(--text)", fontWeight: 600, fontSize: 13,
-          textDecoration: "none", display: "inline-flex", alignItems: "center",
-        }}>🌍 趋势仪表盘</a>
         <div style={{ flex: 1, fontSize: 11, color: "var(--text-dim)", alignSelf: "center", textAlign: "right" }}>
-          自更新会先扫错误日志 + ELO 低部门, 由 Opus 出 diff/人设改进提案, 全部走待审审批
+          自更新会先扫错误日志 + ELO 低部门, 由 Opus 出 diff/人设改进提案. 待审批改动在「🔧 技术」tab 里处理.
         </div>
       </div>
 
