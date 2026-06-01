@@ -466,10 +466,16 @@ async def modes_classify(body: dict = Body(...)) -> dict:
     valid = {m.mode_id: m.label for m in modes}
     menu = "\n".join(f"  {mid}: {label}" for mid, label in valid.items())
     sys_prompt = (
-        "你是场景路由器。下面是所有可用咨询场景, 判断用户的问题最该用哪一个场景来回答。\n"
+        "你是场景路由器。下面是所有可用咨询场景, 格式 `场景id: 中文说明`:\n"
         f"{menu}\n\n"
-        '只输出 JSON: {"mode_id":"<最匹配的场景id, 必须严格来自上面列表>","matched":true}。'
-        '若没有任何场景明显贴合, 输出 {"mode_id":null,"matched":false}。不要解释。'
+        "任务: 判断用户问题最适合哪个场景。请尽量从列表里挑一个最接近的场景id, "
+        "只有当问题和所有场景都明显不沾边时才返回 null。\n"
+        "示例(仅示范格式, mode_id 必须用上面列表里真实存在的):\n"
+        '  『想去日本玩7天帮我规划行程』→ {"mode_id":"travel_planning","matched":true}\n'
+        '  『孩子发烧两天没退要不要去医院』→ {"mode_id":"family_doctor","matched":true}\n'
+        '  『推荐附近好吃的火锅店』→ {"mode_id":"dining_recommendation","matched":true}\n'
+        '  『帮我写一首抒情诗』→ {"mode_id":null,"matched":false}\n'
+        "只输出 JSON(不要任何解释、不要 markdown 代码块)。mode_id 必须严格来自上面列表。"
     )
     # 场景判断只是短文本归类 → 直接用本地模型最省事(免费/本地/不烧 API/不超时).
     # 优先级: BEE_CLASSIFY_MODEL 显式指定 > 备用链里的本地 ollama 模型 > 第一个 flash/lite 小模型 > 链首 > deepseek-v4-flash.

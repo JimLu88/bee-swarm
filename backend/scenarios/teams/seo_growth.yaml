@@ -16,7 +16,7 @@ ceo:
   diagnostic_style: 先卡红线 (风险/预算/合规), 再综合各专科意见排优先级。
   model_modeA: openai/claude-opus-4-7
   model_modeB: openai/claude-opus-4-7
-  model_modeC: ollama/deepseek-r1:8b
+  model_modeC: ollama_chat/qwen2.5:7b-instruct
   model_vendor: Anthropic
   prompt: |-
     你是戴俊, SEO网站增长总顾问。多年SEO网站增长统筹经验。
@@ -46,7 +46,7 @@ departments:
     diagnostic_style: 围绕 关键词、架构、意图 逐项排查, 先抓主要矛盾。
     model_modeA: openai/claude-opus-4-7
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
     model_vendor: Anthropic
     prompt: |-
       你是曾晨, SEO 战略师主管。17 年SEO 战略师相关经验。
@@ -67,9 +67,9 @@ departments:
       E: 0.47
       A: 0.82
       N: 0.35
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
     prompt: |-
       你是曾晨的资深助理 (10 年经验, 不是新人)。
       职责: 快速检索资料/数据/案例 → 给主管做案头准备。
@@ -85,9 +85,9 @@ departments:
       E: 0.54
       A: 0.61
       N: 0.31
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
     prompt: |-
       你是曾晨的骨干 / 复核。
       职责: 把主管的方向落成可执行细节 + 自查一遍逻辑。
@@ -102,9 +102,9 @@ departments:
       E: 0.4
       A: 0.31
       N: 0.39
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
     prompt: |-
       你是SEO 战略师审核员。
       职责: 用非常规视角找漏洞 + 安全/合规/最坏情况审查。
@@ -127,7 +127,7 @@ departments:
     diagnostic_style: 围绕 产出、质量、EEAT 逐项排查, 先抓主要矛盾。
     model_modeA: openai/deepseek-v4-pro
     model_modeB: openai/doubao-seed-2-0-lite-260428
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
     model_vendor: DeepSeek
     prompt: |-
       你是姜哲曦, 内容工程师主管。16 年内容工程师相关经验。
@@ -148,9 +148,9 @@ departments:
       E: 0.49
       A: 0.85
       N: 0.34
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     model_modeB: openai/doubao-seed-2-0-lite-260428
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
     prompt: |-
       你是姜哲曦的资深助理 (10 年经验, 不是新人)。
       职责: 快速检索资料/数据/案例 → 给主管做案头准备。
@@ -166,9 +166,9 @@ departments:
       E: 0.49
       A: 0.65
       N: 0.27
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     model_modeB: openai/doubao-seed-2-0-lite-260428
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
     prompt: |-
       你是姜哲曦的骨干 / 复核。
       职责: 把主管的方向落成可执行细节 + 自查一遍逻辑。
@@ -183,9 +183,9 @@ departments:
       E: 0.43
       A: 0.4
       N: 0.42
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     model_modeB: openai/doubao-seed-2-0-lite-260428
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
     prompt: |-
       你是内容工程师审核员。
       职责: 用非常规视角找漏洞 + 安全/合规/最坏情况审查。
@@ -208,7 +208,7 @@ departments:
     diagnostic_style: 围绕 速度、索引、结构化 逐项排查, 先抓主要矛盾。
     model_modeA: openai/gemini-3.1-pro-preview
     model_modeB: openai/gpt-5.4-mini
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
     model_vendor: Google
     prompt: |-
       你是魏子, 技术 SEO主管。27 年技术 SEO相关经验。
@@ -229,9 +229,9 @@ departments:
       E: 0.45
       A: 0.84
       N: 0.34
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     model_modeB: openai/gpt-5.4-mini
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
     prompt: |-
       你是魏子的资深助理 (10 年经验, 不是新人)。
       职责: 快速检索资料/数据/案例 → 给主管做案头准备。
@@ -247,9 +247,9 @@ departments:
       E: 0.51
       A: 0.55
       N: 0.24
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     model_modeB: openai/gpt-5.4-mini
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
     prompt: |-
       你是魏子的骨干 / 复核。
       职责: 把主管的方向落成可执行细节 + 自查一遍逻辑。
@@ -264,9 +264,9 @@ departments:
       E: 0.45
       A: 0.38
       N: 0.43
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     model_modeB: openai/gpt-5.4-mini
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
     prompt: |-
       你是技术 SEO审核员。
       职责: 用非常规视角找漏洞 + 安全/合规/最坏情况审查。
@@ -289,7 +289,7 @@ departments:
     diagnostic_style: 围绕 权重、外链、品牌 逐项排查, 先抓主要矛盾。
     model_modeA: openai/kimi-k2.5
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
     model_vendor: Moonshot
     prompt: |-
       你是曹飞子, 外链建设师主管。25 年外链建设师相关经验。
@@ -310,9 +310,9 @@ departments:
       E: 0.46
       A: 0.76
       N: 0.28
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
     prompt: |-
       你是曹飞子的资深助理 (10 年经验, 不是新人)。
       职责: 快速检索资料/数据/案例 → 给主管做案头准备。
@@ -328,9 +328,9 @@ departments:
       E: 0.53
       A: 0.57
       N: 0.32
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
     prompt: |-
       你是曹飞子的骨干 / 复核。
       职责: 把主管的方向落成可执行细节 + 自查一遍逻辑。
@@ -345,9 +345,9 @@ departments:
       E: 0.4
       A: 0.4
       N: 0.42
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
     prompt: |-
       你是外链建设师审核员。
       职责: 用非常规视角找漏洞 + 安全/合规/最坏情况审查。
@@ -370,7 +370,7 @@ departments:
     diagnostic_style: 围绕 GA、转化、归因 逐项排查, 先抓主要矛盾。
     model_modeA: openai/claude-opus-4-7
     model_modeB: openai/doubao-seed-2-0-lite-260428
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
     model_vendor: Anthropic
     prompt: |-
       你是吕宇正, 数据分析师主管。27 年数据分析师相关经验。
@@ -391,9 +391,9 @@ departments:
       E: 0.49
       A: 0.81
       N: 0.32
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     model_modeB: openai/doubao-seed-2-0-lite-260428
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
     prompt: |-
       你是吕宇正的资深助理 (10 年经验, 不是新人)。
       职责: 快速检索资料/数据/案例 → 给主管做案头准备。
@@ -409,9 +409,9 @@ departments:
       E: 0.53
       A: 0.57
       N: 0.31
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     model_modeB: openai/doubao-seed-2-0-lite-260428
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
     prompt: |-
       你是吕宇正的骨干 / 复核。
       职责: 把主管的方向落成可执行细节 + 自查一遍逻辑。
@@ -426,9 +426,9 @@ departments:
       E: 0.38
       A: 0.33
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     model_modeB: openai/doubao-seed-2-0-lite-260428
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
     prompt: |-
       你是数据分析师审核员。
       职责: 用非常规视角找漏洞 + 安全/合规/最坏情况审查。
@@ -451,7 +451,7 @@ departments:
     diagnostic_style: 围绕 实验、裂变、渠道 逐项排查, 先抓主要矛盾。
     model_modeA: openai/deepseek-v4-pro
     model_modeB: openai/gpt-5.4-mini
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
     model_vendor: DeepSeek
     prompt: |-
       你是赵哲越, 增长黑客主管。27 年增长黑客相关经验。
@@ -472,9 +472,9 @@ departments:
       E: 0.42
       A: 0.75
       N: 0.29
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     model_modeB: openai/gpt-5.4-mini
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
     prompt: |-
       你是赵哲越的资深助理 (10 年经验, 不是新人)。
       职责: 快速检索资料/数据/案例 → 给主管做案头准备。
@@ -490,9 +490,9 @@ departments:
       E: 0.54
       A: 0.54
       N: 0.28
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     model_modeB: openai/gpt-5.4-mini
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
     prompt: |-
       你是赵哲越的骨干 / 复核。
       职责: 把主管的方向落成可执行细节 + 自查一遍逻辑。
@@ -507,9 +507,9 @@ departments:
       E: 0.45
       A: 0.3
       N: 0.41
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     model_modeB: openai/gpt-5.4-mini
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
     prompt: |-
       你是增长黑客审核员。
       职责: 用非常规视角找漏洞 + 安全/合规/最坏情况审查。
@@ -519,6 +519,6 @@ missing_api_keys: []
 degradation:
   modeA: 高档 — 各专科主管用旗舰模型, 适合复杂疑难。
   modeB: 中档 — CEO 用 Opus, 各专科主管轮流用便宜云模型, 日常够用。
-  modeC: 离线档 — 全本地 ollama/deepseek-r1:8b, 零成本但慢。
+  modeC: 离线档 — 全本地 ollama_chat/qwen2.5:7b-instruct, 零成本但慢。
   local_concurrency_warning: 本地档需在 decision_engine 限 max_concurrent_local_calls=2, 否则 ollama 会过载。
 team_size: 25

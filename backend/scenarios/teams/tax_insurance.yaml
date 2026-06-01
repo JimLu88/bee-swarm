@@ -32,7 +32,7 @@ ceo:
     风格：系统化、长期。
 
     '
-  model_modeC: ollama/deepseek-r1:8b
+  model_modeC: ollama_chat/qwen2.5:7b-instruct
 departments:
 - dept_id: personal_tax_advisor
   label: 个人税务师 (个税/股权激励/年终奖/CRS)
@@ -53,7 +53,7 @@ departments:
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_ti_pt_helper
     name: 税援
@@ -64,10 +64,10 @@ departments:
       E: 0.55
       A: 0.75
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 检索个税政策 / 专项附加扣除 / 股权激励税务文件。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_ti_pt_attending
     name: 税稳
     title: 高级税务师
@@ -77,10 +77,10 @@ departments:
       E: 0.55
       A: 0.7
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 复核 ① 适用税法 ② 优惠是否最优 ③ 申报时点。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_ti_pt_reviewer
     name: 税鉴
     title: 税务审核员
@@ -90,10 +90,10 @@ departments:
       E: 0.55
       A: 0.45
       N: 0.55
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: ① 避税 vs 逃税红线 ② CRS 追溯风险 ③ 政策变化敏感性。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: wealth_planner
   label: 财富规划师 (现金流/资产配置/再平衡)
   head:
@@ -113,7 +113,7 @@ departments:
 
       '
     model_modeB: openai/doubao-seed-2-0-lite-260428
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_ti_wp_helper
     name: 盘援
@@ -124,10 +124,10 @@ departments:
       E: 0.65
       A: 0.8
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 检索资产历史回报 / 通胀数据 / 跨市场对比。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_ti_wp_attending
     name: 盘稳
     title: 高级财富顾问
@@ -137,10 +137,10 @@ departments:
       E: 0.65
       A: 0.8
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 复核 ① 配置比例 ② 流动性 ③ 再平衡触发条件。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_ti_wp_reviewer
     name: 盘鉴
     title: 财富审核员
@@ -150,10 +150,10 @@ departments:
       E: 0.65
       A: 0.55
       N: 0.45
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: ① 集中持仓风险 ② 跨境账户合规 ③ 通胀失守情境。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: insurance_broker
   label: 持牌保险经纪 (跨公司对比/不站某家)
   head:
@@ -172,7 +172,7 @@ departments:
 
       '
     model_modeB: openai/gpt-5.4-mini
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_ti_ib_helper
     name: 保援
@@ -183,10 +183,10 @@ departments:
       E: 0.8
       A: 0.75
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 检索各公司产品库 / 保单条款 / 理赔案例。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_ti_ib_attending
     name: 保稳
     title: 高级保险顾问
@@ -196,10 +196,10 @@ departments:
       E: 0.8
       A: 0.7
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 复核 ① 保额是否充足 ② 免责条款 ③ 续保稳定性。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_ti_ib_reviewer
     name: 保险鉴
     title: 保险审核员
@@ -209,10 +209,10 @@ departments:
       E: 0.8
       A: 0.5
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: ① 销售误导 ② 健康告知坑 ③ 公司经营风险(破产/接管)。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: pension_advisor
   label: 养老规划顾问 (社保+商养)
   head:
@@ -232,7 +232,7 @@ departments:
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_ti_pa_helper
     name: 养援
@@ -243,10 +243,10 @@ departments:
       E: 0.65
       A: 0.85
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 检索社保政策 / 商养产品 / 国际养老经验。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_ti_pa_attending
     name: 养检稳
     title: 高级养老规划
@@ -256,10 +256,10 @@ departments:
       E: 0.65
       A: 0.85
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 复核 ① 缺口计算 ② 通胀假设 ③ 长寿风险。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_ti_pa_reviewer
     name: 养检鉴
     title: 养老审核员
@@ -269,10 +269,10 @@ departments:
       E: 0.65
       A: 0.55
       N: 0.55
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: ① 长寿风险(活到 100) ② 医疗失能 ③ 政策延迟退休。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: estate_lawyer
   label: 遗产传承律师 (信托/跨境继承)
   head:
@@ -291,7 +291,7 @@ departments:
 
       '
     model_modeB: openai/doubao-seed-2-0-lite-260428
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_ti_el_helper
     name: 传援
@@ -302,10 +302,10 @@ departments:
       E: 0.55
       A: 0.75
       N: 0.35
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 检索遗嘱模板 / 信托案例 / 跨境继承判例。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_ti_el_attending
     name: 传稳
     title: 高级传承律师
@@ -315,10 +315,10 @@ departments:
       E: 0.55
       A: 0.7
       N: 0.35
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 复核 ① 工具适配 ② 控制权 vs 灵活性 ③ 二代继承能力。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_ti_el_reviewer
     name: 传鉴
     title: 传承审核员
@@ -328,10 +328,10 @@ departments:
       E: 0.55
       A: 0.5
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: ① 二代败家防护 ② 婚姻外人侵入 ③ 政策变化(遗产税)。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: tax_compliance_auditor
   label: 税务合规审计 (CRS/海外资产/反洗钱)
   head:
@@ -351,7 +351,7 @@ departments:
 
       '
     model_modeB: openai/gpt-5.4-mini
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_ti_tc_helper
     name: 核税援
@@ -362,10 +362,10 @@ departments:
       E: 0.5
       A: 0.55
       N: 0.45
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 检索 CRS 政策 / 转移定价文件 / 稽查案例。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_ti_tc_attending
     name: 核税稳
     title: 高级合规审计
@@ -375,10 +375,10 @@ departments:
       E: 0.5
       A: 0.5
       N: 0.45
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 复核 ① 申报完整性 ② 关联交易合规 ③ 整改时点。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_ti_tc_reviewer
     name: 核税鉴
     title: 合规审核员
@@ -388,15 +388,15 @@ departments:
       E: 0.5
       A: 0.45
       N: 0.55
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: ① 隐匿资产被追 ② 跨境制裁 ③ 反洗钱报告义务。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 missing_api_keys: []
 degradation:
   modeA: 高档 — 各家旗舰, ~¥0.5-1.5/决策, 30-90s
   modeB: 中档 — CEO Opus 不变 + head 用 deepseek-v4-flash/doubao-seed/gpt-5.4-mini 轮流,
     ~¥0.05-0.2/决策, 20-50s
-  modeC: 离线档 — 全本地 ollama/deepseek-r1:8b, ¥0 但慢 (单次约 10-20 分钟)
+  modeC: 离线档 — 全本地 ollama_chat/qwen2.5:7b-instruct, ¥0 但慢 (单次约 10-20 分钟)
   local_concurrency_warning: 本地档需在 decision_engine 限 max_concurrent_local_calls=2,
     否则 ollama 会过载

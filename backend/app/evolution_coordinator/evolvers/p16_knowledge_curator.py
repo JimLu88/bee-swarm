@@ -102,7 +102,7 @@ async def _ask_opus(prompt: str, system: str = "Output ONLY valid JSON.") -> dic
     BEE_CURATOR_MODEL env 可改回 Opus."""
     import os
     model = os.environ.get("BEE_CURATOR_MODEL", "deepseek/deepseek-chat")
-    fb = os.environ.get("BEE_CURATOR_FALLBACK", "anthropic/claude-sonnet-4-6,ollama/deepseek-r1:8b").split(",")
+    fb = os.environ.get("BEE_CURATOR_FALLBACK", "anthropic/claude-sonnet-4-6,ollama_chat/qwen2.5:7b-instruct").split(",")
     try:
         from ...llm.litellm_client import litellm_client
     except Exception:

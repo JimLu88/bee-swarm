@@ -80,7 +80,7 @@ async def _ceo_distill(mode_id: str, persona_id: str, items: list[dict[str, Any]
     model = os.environ.get("BEE_DIGEST_MODEL", "deepseek/deepseek-chat")
     fb = os.environ.get(
         "BEE_DIGEST_FALLBACK",
-        "anthropic/claude-sonnet-4-6,ollama/deepseek-r1:8b",
+        "anthropic/claude-sonnet-4-6,ollama_chat/qwen2.5:7b-instruct",
     ).split(",")
     try:
         from ..llm.litellm_client import litellm_client

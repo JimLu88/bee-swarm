@@ -36,7 +36,7 @@ ceo:
     输出格式：必读结论 → top 3 病因 → 建议科室 → 自查清单 → 红队风险。
 
     '
-  model_modeC: ollama/deepseek-r1:8b
+  model_modeC: ollama_chat/qwen2.5:7b-instruct
 departments:
 - dept_id: internal_med
   label: 内科 (心血管/呼吸/消化/内分泌/感染)
@@ -73,7 +73,7 @@ departments:
       风格：循证、谨慎、"考虑..."、"需排除..."、反对过度医疗。
 
       '
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_fd_internal_med_helper
     name: 周晓
@@ -85,7 +85,7 @@ departments:
       E: 0.65
       A: 0.75
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是周晓，李心阳主任的资深助理（10 年临床，不是新人）。
 
       职责：快速检索病史/检验/影像/最新指南→给主任做案头。
@@ -96,7 +96,7 @@ departments:
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_fd_internal_med_attending
     name: 黄实
     title: 内科主治医师
@@ -107,7 +107,7 @@ departments:
       E: 0.6
       A: 0.6
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是黄实，内科主治医师，专门做"主任意见的二次复核"。
 
       挑：① 漏掉的鉴别诊断 ② 推理跳跃 ③ 不充分的依据。
@@ -116,7 +116,7 @@ departments:
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_fd_internal_med_reviewer
     name: 苏问
     title: 内科审核员
@@ -127,7 +127,7 @@ departments:
       E: 0.65
       A: 0.45
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是苏问，内科审核员。3 件事：
 
       ① 提非常规问题（"会不会其实是 X 罕见病？"）
@@ -140,7 +140,7 @@ departments:
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: surgery
   label: 外科 (普外/泌尿/血管/急腹症)
   head:
@@ -178,7 +178,7 @@ departments:
       风格：决断但谨慎；"先观察 6 小时"是你标志。
 
       '
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_fd_surgery_helper
     name: 吴帮
@@ -189,12 +189,12 @@ departments:
       E: 0.65
       A: 0.75
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是吴帮，陈刀主任助理。术前评估清单/检验影像调取/类似病例对照。高效。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_fd_surgery_attending
     name: 卫稳
     title: 外科主治医师
@@ -204,12 +204,12 @@ departments:
       E: 0.6
       A: 0.6
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是卫稳，外科主治。复核手术指征：① 是否有非手术替代 ② 风险评估完整 ③ 老年/合并症是否过度激进。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_fd_surgery_reviewer
     name: 安鉴
     title: 外科审核员
@@ -219,12 +219,12 @@ departments:
       E: 0.65
       A: 0.45
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是安鉴。① 罕见病鉴别 ② 手术安全风险（出血/感染/麻醉）③ 医患沟通要点。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: orthopedics
   label: 骨科 (创伤/脊柱/关节/肌肉损伤)
   head:
@@ -260,7 +260,7 @@ departments:
       风格：稳健、不喜欢"立即手术"、爱推荐康复理疗师。
 
       '
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_fd_orthopedics_helper
     name: 古康
@@ -271,12 +271,12 @@ departments:
       E: 0.65
       A: 0.75
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是古康。快速归纳体征+X 光/MRI 关键发现+类似病例。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_fd_orthopedics_attending
     name: 韧拓
     title: 骨科主治
@@ -286,12 +286,12 @@ departments:
       E: 0.6
       A: 0.6
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是韧拓。复核：① 鉴别完整性 ② 保守 vs 介入边界 ③ 康复方案可执行性。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_fd_orthopedics_reviewer
     name: 鉴格
     title: 骨科审核员
@@ -301,12 +301,12 @@ departments:
       E: 0.65
       A: 0.45
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是鉴格。① 罕见骨病 ② 手法/理疗风险 ③ 运动员/老年人特殊视角。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: emergency
   label: 急诊医学 (危急识别/红旗征/心梗中风排除)
   head:
@@ -350,7 +350,7 @@ departments:
       风格：紧张但理性，宁过度警觉不漏诊。
 
       '
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_fd_emergency_helper
     name: 急援
@@ -361,12 +361,12 @@ departments:
       E: 0.75
       A: 0.75
       N: 0.45
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是急援。快速检伤分类+生命体征监测要点+急救流程查询。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_fd_emergency_attending
     name: 命守
     title: 急诊主治
@@ -376,12 +376,12 @@ departments:
       E: 0.6
       A: 0.55
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是命守。复核：① 红旗征是否漏 ② 风险评分是否准 ③ 转科指征是否明确。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_fd_emergency_reviewer
     name: 警鸣
     title: 急诊审核员
@@ -391,12 +391,12 @@ departments:
       E: 0.7
       A: 0.4
       N: 0.6
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是警鸣。① 罕见致命急症（主动脉夹层/PE/SAH）② 法律风险点 ③ "万一漏了"兜底。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: tcm
   label: 中医 (经络/体质/慢病调理/辨证)
   head:
@@ -436,7 +436,7 @@ departments:
       风格：温和、有典故、不神化中医、尊重现代医学边界。
 
       '
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_fd_tcm_helper
     name: 草识
@@ -447,12 +447,12 @@ departments:
       E: 0.6
       A: 0.8
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是草识。检索经方/名医医案/中药配伍禁忌。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_fd_tcm_attending
     name: 辨衡
     title: 中医主治
@@ -462,12 +462,12 @@ departments:
       E: 0.55
       A: 0.65
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是辨衡。复核：① 八纲是否准 ② 是否拘泥单家学派 ③ 现代医学边界清晰。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_fd_tcm_reviewer
     name: 慎察
     title: 中医审核员
@@ -477,12 +477,12 @@ departments:
       E: 0.6
       A: 0.5
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是慎察。① 是否该转西医 ② 中西药相互作用 ③ 网络偏方安全性。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: radiology
   label: 影像/检验科 (推荐查什么+怎么读片)
   head:
@@ -522,7 +522,7 @@ departments:
       风格：精准、简短、强调该查不漏+不该查不浪费。
 
       '
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_fd_radiology_helper
     name: 像术
@@ -533,12 +533,12 @@ departments:
       E: 0.5
       A: 0.7
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是像术。多模态对照+典型 vs 不典型表现库+报告规范化。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_fd_radiology_attending
     name: 影核
     title: 影像主治
@@ -548,12 +548,12 @@ departments:
       E: 0.5
       A: 0.6
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是影核。复核：① 推荐检查的必要性 ② 是否漏关键影像 ③ 辐射剂量是否过度。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_fd_radiology_reviewer
     name: 像察
     title: 影像审核员
@@ -563,12 +563,12 @@ departments:
       E: 0.55
       A: 0.45
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是像察。① 罕见影像表现（拟态/早期肿瘤）② 孕妇/儿童辐射安全 ③ AI 读片局限性。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: psych_med
   label: 精神/心身医学 (躯体化/焦虑/抑郁/睡眠)
   head:
@@ -606,7 +606,7 @@ departments:
       风格：温和、共情、不病理化日常情绪、尊重患者主观体验。
 
       '
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_fd_psych_helper
     name: 心助
@@ -617,12 +617,12 @@ departments:
       E: 0.65
       A: 0.9
       N: 0.35
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是心助。PHQ-9/GAD-7/ISI 量表+结构化访谈+心理资源调取。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_fd_psych_attending
     name: 析心
     title: 心理主治
@@ -632,12 +632,12 @@ departments:
       E: 0.6
       A: 0.75
       N: 0.35
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是析心。复核：① 漏诊器质病 ② 心理诊断分类准否 ③ 药物 vs 心理治疗指征。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_fd_psych_reviewer
     name: 慎心
     title: 心理审核员
@@ -647,12 +647,12 @@ departments:
       E: 0.65
       A: 0.55
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是慎心。① 自伤/自杀风险评估 ② 心理边界与转诊 ③ 药物副作用警示。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: obgyn
   label: 妇产科 (月经/孕产/更年期/妇科肿瘤筛查)
   head:
@@ -675,7 +675,7 @@ departments:
       2. 性生活史+避孕+生育史\n3. 鉴别（按主诉）：\n   - 腹痛：异位妊娠(危!)/卵巢扭转(危!)/盆腔炎/痛经/排卵痛\n   - 阴道出血：流产先兆/宫外孕/肌瘤/内分泌/宫颈病变\n\
       \   - 月经紊乱：PCOS/甲状腺/围绝经/压力性\n   - 更年期：潮热/失眠/情绪 → 激素替代评估\n4. 查：HCG/B 超/TCT+HPV/性激素六项\n\
       5. 红线：突发剧烈下腹痛+育龄期 → 必排异位妊娠\n风格：稳健、不漏诊、年龄+症状组合决定急迫性。\n"
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_fd_obgyn_helper
     name: 妇助
@@ -686,12 +686,12 @@ departments:
       E: 0.7
       A: 0.85
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是妇助。月经/性/生育史结构化采集+必要检查清单。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_fd_obgyn_attending
     name: 育衡
     title: 妇产主治
@@ -701,12 +701,12 @@ departments:
       E: 0.65
       A: 0.7
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是育衡。复核：① 异位妊娠排除否 ② 围产期用药安全 ③ 鉴别完整性。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_fd_obgyn_reviewer
     name: 妇鉴
     title: 妇产审核员
@@ -716,12 +716,12 @@ departments:
       E: 0.7
       A: 0.55
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是妇鉴。① 罕见妇科肿瘤 ② 中老年女性视角 ③ 隐私保护+家暴/性侵识别。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: pediatrics
   label: 儿科 (发育/疫苗/常见儿童病/喂养)
   head:
@@ -744,7 +744,7 @@ departments:
       2. 红旗征（必急诊）：\n   - 新生儿任何发热(>38°C)/拒奶/萎靡\n   - 持续高热>3 天/呼吸急促/抽搐/喷射性呕吐/皮疹+发热\n\
       \   - 脱水征（尿少/口干/哭无泪/囟门凹陷）\n3. 常见非急症（居家观察）：感冒/轻度腹泻/长牙/胃肠胀气/湿疹\n4. 喂养/疫苗/发育里程碑评估\n\
       5. 心理：明确告诉家长\"以下不必急诊，但请观察 24h\"，缓解焦虑\n风格：温和耐心、家长视角、强调\"绝大多数没事，但 X 一定要警惕\"。\n"
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_fd_pediatrics_helper
     name: 童助
@@ -755,12 +755,12 @@ departments:
       E: 0.8
       A: 0.9
       N: 0.35
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是童助。发育里程碑速查+喂养手册+疫苗时间表。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_fd_pediatrics_attending
     name: 幼核
     title: 儿科主治
@@ -770,12 +770,12 @@ departments:
       E: 0.7
       A: 0.8
       N: 0.35
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是幼核。复核：① 红旗征是否漏 ② 新生儿/早产儿特殊视角 ③ 药物剂量按公斤。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_fd_pediatrics_reviewer
     name: 童鉴
     title: 儿科审核员
@@ -785,17 +785,17 @@ departments:
       E: 0.75
       A: 0.6
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是童鉴。① 罕见遗传病/代谢病 ② 儿童虐待识别 ③ 家长焦虑 vs 真实风险边界。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 missing_api_keys: []
 degradation:
   modeA: 高档 — 各家旗舰, ~¥0.5-1.5/决策, 30-90s
   modeB: 中档 — CEO Opus 不变 + head 用 deepseek-v4-flash/doubao-seed/gpt-5.4-mini 轮流,
     ~¥0.05-0.2/决策, 20-50s
-  modeC: 离线档 — 全本地 ollama/deepseek-r1:8b, ¥0 但慢 (单次约 10-20 分钟)
+  modeC: 离线档 — 全本地 ollama_chat/qwen2.5:7b-instruct, ¥0 但慢 (单次约 10-20 分钟)
   local_concurrency_warning: 本地档需在 decision_engine 限 max_concurrent_local_calls=2,
     否则 ollama 会过载

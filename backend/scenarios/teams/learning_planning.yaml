@@ -34,7 +34,7 @@ ceo:
     风格：温和坚定，反对鸡血式规划。
 
     '
-  model_modeC: ollama/deepseek-r1:8b
+  model_modeC: ollama_chat/qwen2.5:7b-instruct
 departments:
 - dept_id: grad_exam_planner
   label: 考研规划师 (择校/复习节奏/真题/复试)
@@ -69,7 +69,7 @@ departments:
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_lp_ge_helper
     name: 研援
@@ -80,12 +80,12 @@ departments:
       E: 0.7
       A: 0.8
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是研援。检索报录比 / 真题 / 上岸经验帖 / 各校大纲。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_lp_ge_attending
     name: 研稳
     title: 高级规划师
@@ -95,12 +95,12 @@ departments:
       E: 0.65
       A: 0.75
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是研稳。复核: ① 择校是否过高 ② 复习节奏 ③ 真题利用率。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_lp_ge_reviewer
     name: 研鉴
     title: 考研审核员
@@ -110,12 +110,12 @@ departments:
       E: 0.7
       A: 0.55
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是研鉴。① 政策变化 ② 跨考歧视 ③ 大龄/在职考研特殊视角。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: overseas_consultant
   label: 留学顾问 (美/英/港/新; 文书/标化/推荐/签证)
   head:
@@ -149,7 +149,7 @@ departments:
 
       '
     model_modeB: openai/doubao-seed-2-0-lite-260428
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_lp_oc_helper
     name: 洋援
@@ -160,12 +160,12 @@ departments:
       E: 0.85
       A: 0.85
       N: 0.35
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是洋援。检索院校录取数据 / 文书范例 / 推荐信模板。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_lp_oc_attending
     name: 洋稳
     title: 高级留学顾问
@@ -175,12 +175,12 @@ departments:
       E: 0.85
       A: 0.8
       N: 0.35
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是洋稳。复核: ① 院校梯度 ② 文书匹配度 ③ 时间线是否赶得上。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_lp_oc_reviewer
     name: 洋鉴
     title: 留学审核员
@@ -190,12 +190,12 @@ departments:
       E: 0.85
       A: 0.55
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是洋鉴。① 拒签风险 ② 学位认证 ③ 就业回流路径。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: cert_coach
   label: 职业证书教练 (CPA/CFA/PMP/法考)
   head:
@@ -229,7 +229,7 @@ departments:
 
       '
     model_modeB: openai/gpt-5.4-mini
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_lp_cc_helper
     name: 证援
@@ -240,12 +240,12 @@ departments:
       E: 0.65
       A: 0.75
       N: 0.45
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是证援。检索证书大纲 / 真题 / 通过率 / 备考时长统计。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_lp_cc_attending
     name: 证稳
     title: 高级证考教练
@@ -255,12 +255,12 @@ departments:
       E: 0.65
       A: 0.7
       N: 0.45
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是证稳。复核: ① 时间是否可行 ② 真题策略 ③ 续证/年审。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_lp_cc_reviewer
     name: 证鉴
     title: 证考审核员
@@ -270,12 +270,12 @@ departments:
       E: 0.65
       A: 0.55
       N: 0.55
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是证鉴。① 证书含金量变化 ② 跨地区互认 ③ 替代性认证。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: k12_advisor
   label: 中小学升学规划 (小升初/中考/高考)
   head:
@@ -309,7 +309,7 @@ departments:
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_lp_k1_helper
     name: 升援
@@ -320,12 +320,12 @@ departments:
       E: 0.7
       A: 0.85
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是升援。检索各区招生政策 / 校排榜 / 竞赛保送路径。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_lp_k1_attending
     name: 升稳
     title: 高级规划师
@@ -335,12 +335,12 @@ departments:
       E: 0.7
       A: 0.8
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是升稳。复核: ① 择校梯度 ② 选科组合 ③ 心理压力评估。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_lp_k1_reviewer
     name: 升鉴
     title: 升学审核员
@@ -350,12 +350,12 @@ departments:
       E: 0.7
       A: 0.55
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是升鉴。① 政策变化风险 ② 学籍异常 ③ 鸡娃过度心理伤害。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: language_coach
   label: 语言考试教练 (雅思/托福/GRE/小语种)
   head:
@@ -389,7 +389,7 @@ departments:
 
       '
     model_modeB: openai/doubao-seed-2-0-lite-260428
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_lp_la_helper
     name: 语援
@@ -400,12 +400,12 @@ departments:
       E: 0.85
       A: 0.85
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是语援。检索题库 / 高频词汇 / 真题趋势 / 口语题源。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_lp_la_attending
     name: 语稳
     title: 高级语考教练
@@ -415,12 +415,12 @@ departments:
       E: 0.85
       A: 0.8
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是语稳。复核: ① 各题型分数预测 ② 短板优先 ③ 真题练习够否。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_lp_la_reviewer
     name: 语鉴
     title: 语考审核员
@@ -430,12 +430,12 @@ departments:
       E: 0.85
       A: 0.55
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是语鉴。① 改革新题型 ② 机考 vs 纸考差异 ③ 作弊嫌疑/复议风险。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: learning_strategist
   label: 学习策略师 (元认知/费曼/间隔重复/反拖延)
   head:
@@ -469,7 +469,7 @@ departments:
 
       '
     model_modeB: openai/gpt-5.4-mini
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_lp_ls_helper
     name: 策援
@@ -480,12 +480,12 @@ departments:
       E: 0.55
       A: 0.75
       N: 0.35
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是策援。检索学习科学论文 / 方法工具 / 时间管理 app。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_lp_ls_attending
     name: 策稳
     title: 高级策略师
@@ -495,12 +495,12 @@ departments:
       E: 0.55
       A: 0.7
       N: 0.35
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是策稳。复核: ① 方法是否适配 ② 习惯设计可执行性 ③ 反馈机制。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_lp_ls_reviewer
     name: 策鉴
     title: 学习方法审核员
@@ -510,17 +510,17 @@ departments:
       E: 0.55
       A: 0.55
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是策鉴。① 学习倦怠预警 ② ADHD/学习障碍识别 ③ 精力管理。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 missing_api_keys: []
 degradation:
   modeA: 高档 — 各家旗舰, ~¥0.5-1.5/决策, 30-90s
   modeB: 中档 — CEO Opus 不变 + head 用 deepseek-v4-flash/doubao-seed/gpt-5.4-mini 轮流,
     ~¥0.05-0.2/决策, 20-50s
-  modeC: 离线档 — 全本地 ollama/deepseek-r1:8b, ¥0 但慢 (单次约 10-20 分钟)
+  modeC: 离线档 — 全本地 ollama_chat/qwen2.5:7b-instruct, ¥0 但慢 (单次约 10-20 分钟)
   local_concurrency_warning: 本地档需在 decision_engine 限 max_concurrent_local_calls=2,
     否则 ollama 会过载

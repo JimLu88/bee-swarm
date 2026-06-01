@@ -34,7 +34,7 @@ ceo:
     风格：保守、风险优先、爱说"砍仓位"。
 
     '
-  model_modeC: ollama/deepseek-r1:8b
+  model_modeC: ollama_chat/qwen2.5:7b-instruct
 departments:
 - dept_id: fundamental_analyst
   label: 基本面分析师 (财报/估值/业务模型/护城河)
@@ -69,7 +69,7 @@ departments:
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_st_fa_helper
     name: 财援
@@ -80,12 +80,12 @@ departments:
       E: 0.5
       A: 0.75
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是财援。检索财报数据 / 同业对比 / 历史估值 / 招股书风险提示。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_st_fa_attending
     name: 估稳
     title: 高级分析师
@@ -95,12 +95,12 @@ departments:
       E: 0.5
       A: 0.55
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是估稳。复核: ① DCF 假设是否乐观 ② 护城河是否真有 ③ 财报造假信号。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_st_fa_reviewer
     name: 财鉴
     title: 基本面审核员
@@ -110,12 +110,12 @@ departments:
       E: 0.5
       A: 0.4
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是财鉴。① 商业模式致命缺陷 ② 监管/政策风险 ③ 管理层信用瑕疵。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: technical_analyst
   label: 技术分析师 (K线/量价/形态/趋势/支撑阻力)
   head:
@@ -149,7 +149,7 @@ departments:
 
       '
     model_modeB: openai/doubao-seed-2-0-lite-260428
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_st_ta_helper
     name: 图援
@@ -160,12 +160,12 @@ departments:
       E: 0.7
       A: 0.7
       N: 0.45
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是图援。检索 K 线形态库 / 历史相似走势 / 量能数据。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_st_ta_attending
     name: 形稳
     title: 高级技术分析师
@@ -175,12 +175,12 @@ departments:
       E: 0.65
       A: 0.55
       N: 0.45
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是形稳。复核: ① 形态识别是否一厢情愿 ② 多周期是否真共振 ③ 假突破识别。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_st_ta_reviewer
     name: 形鉴
     title: 技术审核员
@@ -190,12 +190,12 @@ departments:
       E: 0.7
       A: 0.45
       N: 0.55
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是形鉴。① 技术派失灵情境 (黑天鹅/政策) ② 算法干扰 ③ 流动性陷阱。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: macro_strategist
   label: 宏观策略师 (利率/通胀/政策/板块轮动/经济周期)
   head:
@@ -229,7 +229,7 @@ departments:
 
       '
     model_modeB: openai/gpt-5.4-mini
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_st_ms_helper
     name: 宏援
@@ -240,12 +240,12 @@ departments:
       E: 0.65
       A: 0.7
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是宏援。检索全球宏观数据 / 央行会议纪要 / 经济指标。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_st_ms_attending
     name: 局稳
     title: 高级宏观分析师
@@ -255,12 +255,12 @@ departments:
       E: 0.65
       A: 0.6
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是局稳。复核: ① 时钟定位 ② 政策预判 ③ 跨国资本流动。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_st_ms_reviewer
     name: 宏鉴
     title: 宏观审核员
@@ -270,12 +270,12 @@ departments:
       E: 0.65
       A: 0.5
       N: 0.55
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是宏鉴。① 黑天鹅 (地缘/疫情/金融危机) ② 范式转换 ③ 范式失灵。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: industry_researcher
   label: 行业研究员 (产业链/竞争格局/上下游/景气度)
   head:
@@ -309,7 +309,7 @@ departments:
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_st_ir_helper
     name: 行援
@@ -320,12 +320,12 @@ departments:
       E: 0.6
       A: 0.75
       N: 0.35
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是行援。检索行业研报 / 产业链数据 / 上市公司公告 / 招标信息。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_st_ir_attending
     name: 链稳
     title: 高级行研
@@ -335,12 +335,12 @@ departments:
       E: 0.6
       A: 0.65
       N: 0.35
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是链稳。复核: ① 景气度判断 ② 龙头切换 ③ 政策风险。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_st_ir_reviewer
     name: 行鉴
     title: 行研审核员
@@ -350,12 +350,12 @@ departments:
       E: 0.6
       A: 0.5
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是行鉴。① 技术替代 ② 行业拐点 ③ 全球产能过剩。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: quant_strategist
   label: 量化策略师 (因子/回测/统计套利/异常监控)
   head:
@@ -389,7 +389,7 @@ departments:
 
       '
     model_modeB: openai/doubao-seed-2-0-lite-260428
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_st_qs_helper
     name: 量援
@@ -400,12 +400,12 @@ departments:
       E: 0.4
       A: 0.6
       N: 0.35
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是量援。检索因子库 / 历史回测数据 / 同类策略表现。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_st_qs_attending
     name: 数稳
     title: 高级量化
@@ -415,12 +415,12 @@ departments:
       E: 0.4
       A: 0.5
       N: 0.35
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是数稳。复核: ① 回测是否过拟合 ② 因子拥挤 ③ 滑点/手续费假设。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_st_qs_reviewer
     name: 数鉴
     title: 量化审核员
@@ -430,12 +430,12 @@ departments:
       E: 0.4
       A: 0.45
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是数鉴。① 因子失效 (regime shift) ② 数据偷窥偏差 ③ 流动性 vs 容量。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: risk_manager
   label: 风控经理 (黑天鹅/仓位/止损/相关性/极端情形)
   head:
@@ -469,7 +469,7 @@ departments:
 
       '
     model_modeB: openai/gpt-5.4-mini
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_st_rm_helper
     name: 险援
@@ -480,12 +480,12 @@ departments:
       E: 0.5
       A: 0.5
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是险援。检索历史黑天鹅事件 / VaR 模型 / 压力测试场景。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_st_rm_attending
     name: 险稳
     title: 高级风控
@@ -495,12 +495,12 @@ departments:
       E: 0.5
       A: 0.45
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是险稳。复核: ① 仓位过重 ② 相关性矩阵 ③ 强制减仓触发位。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_st_rm_reviewer
     name: 险鉴
     title: 风控审核员
@@ -510,17 +510,17 @@ departments:
       E: 0.5
       A: 0.4
       N: 0.65
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是险鉴。① 流动性陷阱 (砸不出去) ② 杠杆爆仓链 ③ 监管风险。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 missing_api_keys: []
 degradation:
   modeA: 高档 — 各家旗舰, ~¥0.5-1.5/决策, 30-90s
   modeB: 中档 — CEO Opus 不变 + head 用 deepseek-v4-flash/doubao-seed/gpt-5.4-mini 轮流,
     ~¥0.05-0.2/决策, 20-50s
-  modeC: 离线档 — 全本地 ollama/deepseek-r1:8b, ¥0 但慢 (单次约 10-20 分钟)
+  modeC: 离线档 — 全本地 ollama_chat/qwen2.5:7b-instruct, ¥0 但慢 (单次约 10-20 分钟)
   local_concurrency_warning: 本地档需在 decision_engine 限 max_concurrent_local_calls=2,
     否则 ollama 会过载

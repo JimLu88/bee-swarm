@@ -22,17 +22,31 @@ class LiteLlmClient:
     - rate-limit retries
     """
 
-    def _extra(self) -> dict[str, Any]:
+    def _extra(self, model: str = "") -> dict[str, Any]:
         extra: dict[str, Any] = {}
-        if llm_rag_settings.litellm_base_url:
-            extra["api_base"] = llm_rag_settings.litellm_base_url
-        # v6-U 显式传 api_key (防 LiteLLM 找不到 env 而 silent fail)
-        api_key = getattr(llm_rag_settings, "openai_api_key", None)
-        if not api_key:
+        # v10 关键修复: 本地 ollama 模型必须发到本机 ollama 服务, 不能套云网关 base_url,
+        # 否则会拼成 https://<gateway>/v1/api/chat → "Invalid URL" → 本地档/分类全失败.
+        is_local = model.lower().startswith(("ollama", "local"))
+        if is_local:
             import os as _os
-            api_key = _os.environ.get("OPENAI_API_KEY")
-        if api_key:
-            extra["api_key"] = api_key
+            extra["api_base"] = _os.environ.get("OLLAMA_API_BASE", "http://localhost:11434")
+            # 本地模型不需要云网关 key (ollama 不校验), 显式不传, 避免误用.
+            # v10 关键: ollama 默认 num_ctx 仅 2048 → 长 prompt(如 63 场景菜单)被静默截断 →
+            # 模型看不全 → 乱答/兜底。显式调大上下文窗口, 让完整 prompt 进得去.
+            try:
+                extra["num_ctx"] = int(_os.environ.get("OLLAMA_NUM_CTX", "8192"))
+            except ValueError:
+                extra["num_ctx"] = 8192
+        else:
+            if llm_rag_settings.litellm_base_url:
+                extra["api_base"] = llm_rag_settings.litellm_base_url
+            # v6-U 显式传 api_key (防 LiteLLM 找不到 env 而 silent fail)
+            api_key = getattr(llm_rag_settings, "openai_api_key", None)
+            if not api_key:
+                import os as _os
+                api_key = _os.environ.get("OPENAI_API_KEY")
+            if api_key:
+                extra["api_key"] = api_key
         # v6-U 显式 timeout 150s (大 prompt 给 Opus 留余量) + 禁 LiteLLM 内部重试 (我们自己重试)
         extra["timeout"] = 150.0
         extra["num_retries"] = 0
@@ -41,6 +55,46 @@ class LiteLlmClient:
         # 给足额度让 consensus+conflicts+评分 JSON 完整输出.
         extra["max_tokens"] = 4000
         return extra
+
+    async def _ollama_chat(
+        self,
+        model: str,
+        system: str,
+        user_text: str,
+        images: list[str] | None = None,
+    ) -> str:
+        """v10: 直连本机 ollama /api/chat。绕开 litellm 的 ollama 封装(会丢 num_ctx/温度乱来)。
+        temperature 低 + num_ctx 大, 保证长 prompt(场景菜单/人设)不被截断、输出稳定。"""
+        import os as _os
+        import httpx  # FastAPI 栈已依赖
+
+        base = _os.environ.get("OLLAMA_API_BASE", "http://localhost:11434").rstrip("/")
+        name = model.split("/", 1)[1] if "/" in model else model
+        try:
+            num_ctx = int(_os.environ.get("OLLAMA_NUM_CTX", "8192"))
+        except ValueError:
+            num_ctx = 8192
+        user_msg: dict[str, Any] = {"role": "user", "content": user_text}
+        if images:
+            b64: list[str] = []
+            for u in images:
+                if isinstance(u, str) and u.strip().startswith("data:") and "," in u:
+                    b64.append(u.split(",", 1)[1])  # 去掉 data:...;base64, 前缀
+                elif isinstance(u, str):
+                    b64.append(u)
+            if b64:
+                user_msg["images"] = b64
+        body = {
+            "model": name,
+            "messages": [{"role": "system", "content": system}, user_msg],
+            "stream": False,
+            "options": {"num_ctx": num_ctx, "temperature": 0.2, "num_predict": 4000},
+        }
+        async with httpx.AsyncClient(timeout=180.0) as cli:
+            r = await cli.post(f"{base}/api/chat", json=body)
+            r.raise_for_status()
+            data = r.json()
+        return str((data.get("message") or {}).get("content", "") or "")
 
     @staticmethod
     def _is_retryable(err: Exception) -> bool:
@@ -102,8 +156,14 @@ class LiteLlmClient:
 
         last_err: Exception | None = None
         for m in models:
+            is_local = m.lower().startswith(("ollama", "local"))
             for attempt in range(llm_rag_settings.litellm_max_retries + 1):
                 try:
+                    # v10: 本地 ollama 直接走原生 /api/chat — litellm 的 ollama 封装会丢 num_ctx/
+                    # 乱用默认温度, 导致长 prompt 被截断 + 模型乱答兜底。直连稳定可控。
+                    if is_local:
+                        text = await self._ollama_chat(m, sys_msg, prompt, images)
+                        return LlmResponse(text=text, raw={"model": m, "via": "ollama_native"})
                     resp = await acompletion(
                         model=m,
                         messages=[
@@ -113,7 +173,7 @@ class LiteLlmClient:
                             },
                             {"role": "user", "content": user_content},
                         ],
-                        **self._extra(),
+                        **self._extra(m),
                     )
                     text = ""
                     try:

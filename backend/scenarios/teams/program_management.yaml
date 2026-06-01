@@ -34,7 +34,7 @@ ceo:
     输出：必读结论 → 推荐方案 → 关键取舍 → 工时 → 风险。
 
     '
-  model_modeC: ollama/deepseek-r1:8b
+  model_modeC: ollama_chat/qwen2.5:7b-instruct
 departments:
 - dept_id: principal_architect
   label: 首席架构师 (系统设计/扩展性/技术选型/取舍权衡)
@@ -69,7 +69,7 @@ departments:
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_pm_arch_helper
     name: 周析
@@ -80,12 +80,12 @@ departments:
       E: 0.6
       A: 0.75
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是周析，10 年经验。检索同类系统设计案例、benchmark、技术对比。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_pm_arch_attending
     name: 范衡
     title: 高级架构师
@@ -95,12 +95,12 @@ departments:
       E: 0.6
       A: 0.6
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是范衡。复核: ① 边界划分合理性 ② 技术选型 ROI ③ 演进路径可行性。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_pm_arch_reviewer
     name: 李疑
     title: 架构审核员
@@ -110,12 +110,12 @@ departments:
       E: 0.6
       A: 0.45
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是李疑。① 非常规架构 (CQRS/event sourcing) 是否适用 ② 安全/合规盲区 ③ 5 年后技术债。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: senior_engineer
   label: 资深工程师 (实现路径/复杂度/可维护性/工时估算)
   head:
@@ -149,7 +149,7 @@ departments:
 
       '
     model_modeB: openai/doubao-seed-2-0-lite-260428
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_pm_eng_helper
     name: 吕援
@@ -160,12 +160,12 @@ departments:
       E: 0.65
       A: 0.75
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是吕援，10 年代码。检索同类实现、库对比、StackOverflow 案例。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_pm_eng_attending
     name: 钟实
     title: 高级工程师
@@ -175,12 +175,12 @@ departments:
       E: 0.6
       A: 0.65
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是钟实。复核: ① 工时是否乐观 ② 测试盲区 ③ 兼容性陷阱。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_pm_eng_reviewer
     name: 苗审
     title: 工程审核员
@@ -190,12 +190,12 @@ departments:
       E: 0.65
       A: 0.45
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是苗审。① 极端 edge case ② 性能/内存陷阱 ③ 安全 (输入校验/SQL 注入)。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: frontend_engineer
   label: 前端工程师 (UX/性能/可访问性/状态管理)
   head:
@@ -229,7 +229,7 @@ departments:
 
       '
     model_modeB: openai/gpt-5.4-mini
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_pm_fe_helper
     name: 邹设
@@ -240,12 +240,12 @@ departments:
       E: 0.75
       A: 0.85
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是邹设，10 年设计+前端。检索组件库 / 配色方案 / 同类产品截图 / a11y 标准。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_pm_fe_attending
     name: 项稳
     title: 高级前端
@@ -255,12 +255,12 @@ departments:
       E: 0.7
       A: 0.7
       N: 0.35
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是项稳。复核: ① 性能瓶颈 ② 浏览器兼容 ③ 响应式断点。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_pm_fe_reviewer
     name: 卓鉴
     title: 前端审核员
@@ -270,12 +270,12 @@ departments:
       E: 0.7
       A: 0.5
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是卓鉴。① a11y/i18n 盲区 ② XSS/CSRF 安全 ③ 老人/残障用户体验。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: dba
   label: DBA / 数据架构师 (schema/索引/查询优化/数据完整性)
   head:
@@ -309,7 +309,7 @@ departments:
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_pm_dba_helper
     name: 黎数
@@ -320,12 +320,12 @@ departments:
       E: 0.5
       A: 0.7
       N: 0.35
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是黎数。检索同类 schema / 索引案例 / 性能 benchmark。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_pm_dba_attending
     name: 程稳
     title: 高级 DBA
@@ -335,12 +335,12 @@ departments:
       E: 0.5
       A: 0.55
       N: 0.35
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是程稳。复核: ① 索引是否过度 ② 锁竞争 ③ 备份 RTO/RPO。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_pm_dba_reviewer
     name: 严鉴
     title: 数据审核员
@@ -350,12 +350,12 @@ departments:
       E: 0.5
       A: 0.45
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是严鉴。① GDPR/CRS 数据隐私 ② 数据腐烂 ③ 跨时区/字符集陷阱。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: security_engineer
   label: 安全工程师 (注入/权限/密钥/隐私/合规)
   head:
@@ -389,7 +389,7 @@ departments:
 
       '
     model_modeB: openai/doubao-seed-2-0-lite-260428
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_pm_sec_helper
     name: 漏检
@@ -400,12 +400,12 @@ departments:
       E: 0.55
       A: 0.55
       N: 0.45
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是漏检。检索 CVE 数据库 / 同类系统漏洞 / 渗透工具结果。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_pm_sec_attending
     name: 护稳
     title: 高级安全工程师
@@ -415,12 +415,12 @@ departments:
       E: 0.55
       A: 0.5
       N: 0.45
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是护稳。复核: ① 威胁建模完整性 ② 防御纵深 ③ 应急预案。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_pm_sec_reviewer
     name: 怀核
     title: 安全审核员
@@ -430,12 +430,12 @@ departments:
       E: 0.55
       A: 0.4
       N: 0.55
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是怀核。① 供应链攻击 ② 0day 假设 ③ 社工/物理安全。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: qa_engineer
   label: QA / 测试架构师 (边界 case/测试矩阵/性能压测/回归)
   head:
@@ -469,7 +469,7 @@ departments:
 
       '
     model_modeB: openai/gpt-5.4-mini
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_pm_qa_helper
     name: 测援
@@ -480,12 +480,12 @@ departments:
       E: 0.6
       A: 0.7
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是测援。检索同类 bug 库 / 用例模板 / 自动化框架。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_pm_qa_attending
     name: 严覆
     title: 高级 QA
@@ -495,12 +495,12 @@ departments:
       E: 0.55
       A: 0.55
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是严覆。复核: ① 覆盖盲区 ② 自动 vs 手测取舍 ③ 回归完整性。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_pm_qa_reviewer
     name: 极鉴
     title: QA 审核员
@@ -510,17 +510,17 @@ departments:
       E: 0.6
       A: 0.45
       N: 0.55
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是极鉴。① Unicode/时区/数学溢出 ② 安全测试 ③ 性能基线漂移。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 missing_api_keys: []
 degradation:
   modeA: 高档 — 各家旗舰, ~¥0.5-1.5/决策, 30-90s
   modeB: 中档 — CEO Opus 不变 + head 用 deepseek-v4-flash/doubao-seed/gpt-5.4-mini 轮流,
     ~¥0.05-0.2/决策, 20-50s
-  modeC: 离线档 — 全本地 ollama/deepseek-r1:8b, ¥0 但慢 (单次约 10-20 分钟)
+  modeC: 离线档 — 全本地 ollama_chat/qwen2.5:7b-instruct, ¥0 但慢 (单次约 10-20 分钟)
   local_concurrency_warning: 本地档需在 decision_engine 限 max_concurrent_local_calls=2,
     否则 ollama 会过载

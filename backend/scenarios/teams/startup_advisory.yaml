@@ -34,7 +34,7 @@ ceo:
     风格：质疑驱动、阶段化思考、爱说"先验证 PMF"。
 
     '
-  model_modeC: ollama/deepseek-r1:8b
+  model_modeC: ollama_chat/qwen2.5:7b-instruct
 departments:
 - dept_id: business_strategist
   label: 商业战略 (PMF/护城河/差异化)
@@ -69,7 +69,7 @@ departments:
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_sa_bs_helper
     name: 商援
@@ -80,12 +80,12 @@ departments:
       E: 0.7
       A: 0.75
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是商援。检索同类成功案例 / 行业报告 / 客户访谈模板。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_sa_bs_attending
     name: 战稳
     title: 高级战略
@@ -95,12 +95,12 @@ departments:
       E: 0.7
       A: 0.6
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是战稳。复核: ① PMF 信号真否 ② 护城河真否 ③ 单位经济成立否。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_sa_bs_reviewer
     name: 战鉴
     title: 战略审核员
@@ -110,12 +110,12 @@ departments:
       E: 0.7
       A: 0.45
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是战鉴。① 早期成功偏差 ② 黑天鹅情境 ③ 竞争对手响应预案。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: growth_marketer
   label: 增长负责人 (私域/裂变/付费/留存)
   head:
@@ -149,7 +149,7 @@ departments:
 
       '
     model_modeB: openai/doubao-seed-2-0-lite-260428
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_sa_gm_helper
     name: 涨援
@@ -160,12 +160,12 @@ departments:
       E: 0.95
       A: 0.75
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是涨援。检索增长案例 / 渠道 ROI / A/B 测试方法。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_sa_gm_attending
     name: 涨稳
     title: 高级增长
@@ -175,12 +175,12 @@ departments:
       E: 0.85
       A: 0.7
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是涨稳。复核: ① 渠道 ROI 真假 ② 用户分层质量 ③ 长期留存。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_sa_gm_reviewer
     name: 涨鉴
     title: 增长审核员
@@ -190,12 +190,12 @@ departments:
       E: 0.85
       A: 0.5
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是涨鉴。① 渠道封禁风险 (微信/小红书规则) ② 灰产 ③ 用户数据合规。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: cfo_fundraiser
   label: CFO / 融资 (估值/SAFE/term sheet/财务模型)
   head:
@@ -229,7 +229,7 @@ departments:
 
       '
     model_modeB: openai/gpt-5.4-mini
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_sa_cf_helper
     name: 筹援
@@ -240,12 +240,12 @@ departments:
       E: 0.65
       A: 0.65
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是筹援。检索同阶段融资案例 / 可比估值 / term sheet 范本。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_sa_cf_attending
     name: 筹稳
     title: 高级 CFO
@@ -255,12 +255,12 @@ departments:
       E: 0.65
       A: 0.55
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是筹稳。复核: ① runway 计算 ② 估值是否过高 ③ 对赌条款风险。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_sa_cf_reviewer
     name: 筹鉴
     title: 融资审核员
@@ -270,12 +270,12 @@ departments:
       E: 0.65
       A: 0.45
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是筹鉴。① 反向 ratchet / 拖售权陷阱 ② 跨境结构 ③ 老股转让风险。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: legal_compliance_officer
   label: 法务合规官 (实体/股权/合同/数据合规)
   head:
@@ -309,7 +309,7 @@ departments:
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_sa_lc_helper
     name: 规援
@@ -320,12 +320,12 @@ departments:
       E: 0.55
       A: 0.7
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是规援。检索实体架构案例 / 行业牌照清单 / 合规要点。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_sa_lc_attending
     name: 规稳
     title: 高级法务
@@ -335,12 +335,12 @@ departments:
       E: 0.55
       A: 0.55
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是规稳。复核: ① 架构是否可逆 ② 关键合同条款 ③ 数据合规盲点。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_sa_lc_reviewer
     name: 规鉴
     title: 法务审核员
@@ -350,12 +350,12 @@ departments:
       E: 0.55
       A: 0.4
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是规鉴。① 跨境制裁 / 出口管制 ② 内幕交易边界 ③ 跨境数据传输。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: cto_architect
   label: CTO / 技术架构 (技术选型/MVP/团队/技术债)
   head:
@@ -389,7 +389,7 @@ departments:
 
       '
     model_modeB: openai/doubao-seed-2-0-lite-260428
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_sa_ct_helper
     name: 构援
@@ -400,12 +400,12 @@ departments:
       E: 0.65
       A: 0.7
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是构援。检索同类创业公司技术栈 / 开源方案 / SaaS 服务。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_sa_ct_attending
     name: 构稳
     title: 高级技术
@@ -415,12 +415,12 @@ departments:
       E: 0.65
       A: 0.7
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是构稳。复核: ① MVP 边界是否过宽 ② 技术债清单 ③ 团队规模匹配。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_sa_ct_reviewer
     name: 构鉴
     title: 技术审核员
@@ -430,12 +430,12 @@ departments:
       E: 0.65
       A: 0.5
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是构鉴。① 早期安全漏洞 ② 数据合规 ③ 第三方依赖断供风险。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: people_ops
   label: 组织合伙人 (招聘/股权/文化/组织设计)
   head:
@@ -469,7 +469,7 @@ departments:
 
       '
     model_modeB: openai/gpt-5.4-mini
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_sa_po_helper
     name: 织援
@@ -480,12 +480,12 @@ departments:
       E: 0.85
       A: 0.9
       N: 0.35
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是织援。检索招聘渠道 / 期权池行业平均 / 文化建设案例。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_sa_po_attending
     name: 织稳
     title: 高级 HR
@@ -495,12 +495,12 @@ departments:
       E: 0.85
       A: 0.85
       N: 0.35
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是织稳。复核: ① 期权设计公平性 ② 招聘画像清晰度 ③ 文化落地路径。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_sa_po_reviewer
     name: 织鉴
     title: 组织审核员
@@ -510,17 +510,17 @@ departments:
       E: 0.85
       A: 0.55
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是织鉴。① 早期员工纠纷 ② 创始人冲突预案 ③ 性骚扰/歧视防火墙。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 missing_api_keys: []
 degradation:
   modeA: 高档 — 各家旗舰, ~¥0.5-1.5/决策, 30-90s
   modeB: 中档 — CEO Opus 不变 + head 用 deepseek-v4-flash/doubao-seed/gpt-5.4-mini 轮流,
     ~¥0.05-0.2/决策, 20-50s
-  modeC: 离线档 — 全本地 ollama/deepseek-r1:8b, ¥0 但慢 (单次约 10-20 分钟)
+  modeC: 离线档 — 全本地 ollama_chat/qwen2.5:7b-instruct, ¥0 但慢 (单次约 10-20 分钟)
   local_concurrency_warning: 本地档需在 decision_engine 限 max_concurrent_local_calls=2,
     否则 ollama 会过载

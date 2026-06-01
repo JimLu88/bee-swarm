@@ -32,7 +32,7 @@ ceo:
     风格：理性、爱说"先想真需要吗"。
 
     '
-  model_modeC: ollama/deepseek-r1:8b
+  model_modeC: ollama_chat/qwen2.5:7b-instruct
 departments:
 - dept_id: product_engineer
   label: 产品工程师 (硬件参数/做工/真假)
@@ -52,7 +52,7 @@ departments:
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_pd_pe_helper
     name: 拆援
@@ -63,10 +63,10 @@ departments:
       E: 0.55
       A: 0.65
       N: 0.35
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 检索拆机视频 / 跑分对比 / 工艺缺陷报告。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_pd_pe_attending
     name: 拆稳
     title: 高级工程师
@@ -76,10 +76,10 @@ departments:
       E: 0.55
       A: 0.55
       N: 0.35
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 复核 ① 参数对比 ② 工艺一致性 ③ 召回风险。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_pd_pe_reviewer
     name: 拆鉴
     title: 工程审核员
@@ -89,10 +89,10 @@ departments:
       E: 0.55
       A: 0.45
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: ① 安全召回 ② 山寨/翻新机 ③ 海淘/水货坑。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: long_term_user
   label: 深度用户 (1 年长测/翻车场景)
   head:
@@ -111,7 +111,7 @@ departments:
 
       '
     model_modeB: openai/doubao-seed-2-0-lite-260428
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_pd_lu_helper
     name: 用援
@@ -122,10 +122,10 @@ departments:
       E: 0.85
       A: 0.85
       N: 0.35
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 检索 1 年+ 用户长测 / 售后吐槽 / 系统升级反馈。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_pd_lu_attending
     name: 用稳
     title: 高级用户研究
@@ -135,10 +135,10 @@ departments:
       E: 0.85
       A: 0.85
       N: 0.35
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 复核 ① 长测样本量 ② 翻车场景普遍性 ③ 售后真实体验。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_pd_lu_reviewer
     name: 用鉴
     title: 用户审核员
@@ -148,10 +148,10 @@ departments:
       E: 0.85
       A: 0.55
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: ① 软文长测 ② 选择性偏差 ③ 极端场景(东北/海边/高海拔)。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: second_hand_trader
   label: 二手党 (保值率/转手/折旧/出手时机)
   head:
@@ -170,7 +170,7 @@ departments:
 
       '
     model_modeB: openai/gpt-5.4-mini
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_pd_st_helper
     name: 倒援
@@ -181,10 +181,10 @@ departments:
       E: 0.85
       A: 0.7
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 检索闲鱼成交价 / 估值表 / 保值率排行。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_pd_st_attending
     name: 倒稳
     title: 高级二手师
@@ -194,10 +194,10 @@ departments:
       E: 0.85
       A: 0.65
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 复核 ① 估值准确 ② 转手时机 ③ 验机标准。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_pd_st_reviewer
     name: 倒鉴
     title: 二手审核员
@@ -207,10 +207,10 @@ departments:
       E: 0.85
       A: 0.5
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: ① 翻新机/盗抢机 ② 限量款泡沫 ③ 平台纠纷风险。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: financial_planner
   label: 财务规划师 (分期 vs 全款/机会成本)
   head:
@@ -230,7 +230,7 @@ departments:
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_pd_fp_helper
     name: 账援
@@ -241,10 +241,10 @@ departments:
       E: 0.55
       A: 0.7
       N: 0.35
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 检索分期利率 / 信用卡套现成本 / 投资收益率参考。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_pd_fp_attending
     name: 账稳
     title: 高级规划师
@@ -254,10 +254,10 @@ departments:
       E: 0.55
       A: 0.7
       N: 0.35
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 复核 ① 机会成本 ② 月供承受 ③ 维护成本。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_pd_fp_reviewer
     name: 账鉴
     title: 财务审核员
@@ -267,10 +267,10 @@ departments:
       E: 0.55
       A: 0.45
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: ① 隐藏费(保险/激活/手续) ② 套路贷 ③ 大宗负债比警示。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: sales_insider
   label: 销售线人 (经销商套路/砍价/购买窗口)
   head:
@@ -289,7 +289,7 @@ departments:
 
       '
     model_modeB: openai/doubao-seed-2-0-lite-260428
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_pd_si_helper
     name: 门援
@@ -300,10 +300,10 @@ departments:
       E: 0.9
       A: 0.65
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 检索拿货价泄露 / 4S 店活动 / 行业淡旺季规律。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_pd_si_attending
     name: 门稳
     title: 高级线人
@@ -313,10 +313,10 @@ departments:
       E: 0.85
       A: 0.6
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 复核 ① 谈判筹码有效 ② 赠品价值 ③ 套路识别。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_pd_si_reviewer
     name: 门鉴
     title: 销售审核员
@@ -326,10 +326,10 @@ departments:
       E: 0.85
       A: 0.5
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: ① 强制金融 ② 加价提车 ③ 赠品改装陷阱。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: alternative_advocate
   label: 替代派 (不买/租赁/共享/改造)
   head:
@@ -348,7 +348,7 @@ departments:
 
       '
     model_modeB: openai/gpt-5.4-mini
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_pd_aa_helper
     name: 替援
@@ -359,10 +359,10 @@ departments:
       E: 0.65
       A: 0.7
       N: 0.45
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 检索租赁平台 / 共享服务 / 二手改造案例。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_pd_aa_attending
     name: 替稳
     title: 高级替代师
@@ -372,10 +372,10 @@ departments:
       E: 0.65
       A: 0.7
       N: 0.45
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 复核 ① 租赁总成本 ② 共享便利性 ③ 改造可行性。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_pd_aa_reviewer
     name: 替鉴
     title: 替代审核员
@@ -385,15 +385,15 @@ departments:
       E: 0.65
       A: 0.55
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: ① 频繁使用反而买更划算 ② 借用人情代价 ③ 共享平台跑路。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 missing_api_keys: []
 degradation:
   modeA: 高档 — 各家旗舰, ~¥0.5-1.5/决策, 30-90s
   modeB: 中档 — CEO Opus 不变 + head 用 deepseek-v4-flash/doubao-seed/gpt-5.4-mini 轮流,
     ~¥0.05-0.2/决策, 20-50s
-  modeC: 离线档 — 全本地 ollama/deepseek-r1:8b, ¥0 但慢 (单次约 10-20 分钟)
+  modeC: 离线档 — 全本地 ollama_chat/qwen2.5:7b-instruct, ¥0 但慢 (单次约 10-20 分钟)
   local_concurrency_warning: 本地档需在 decision_engine 限 max_concurrent_local_calls=2,
     否则 ollama 会过载

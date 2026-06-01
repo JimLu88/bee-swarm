@@ -33,7 +33,7 @@ ceo:
     风格：循证、长期主义、反对极端。
 
     '
-  model_modeC: ollama/deepseek-r1:8b
+  model_modeC: ollama_chat/qwen2.5:7b-instruct
 departments:
 - dept_id: personal_trainer
   label: 私人教练 (动作处方/分化/周期化)
@@ -54,7 +54,7 @@ departments:
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_nf_pt_helper
     name: 训援
@@ -65,10 +65,10 @@ departments:
       E: 0.9
       A: 0.85
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 检索训练动作库 / 进阶方案 / 名教练课程。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_nf_pt_attending
     name: 训稳
     title: 高级教练
@@ -78,10 +78,10 @@ departments:
       E: 0.85
       A: 0.85
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 复核 ① 动作风险 ② 周期合理性 ③ 进阶速度。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_nf_pt_reviewer
     name: 训鉴
     title: 教练审核员
@@ -91,10 +91,10 @@ departments:
       E: 0.85
       A: 0.55
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: ① 受伤高危动作 ② 类固醇/兴奋剂诱导 ③ 训练成瘾。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: dietitian
   label: 注册营养师 (宏量/赤字盈余/食谱)
   head:
@@ -113,7 +113,7 @@ departments:
 
       '
     model_modeB: openai/doubao-seed-2-0-lite-260428
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_nf_di_helper
     name: 膳援
@@ -124,10 +124,10 @@ departments:
       E: 0.7
       A: 0.85
       N: 0.35
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 检索 DRI / 食物营养库 / 食谱模板 / 补剂研究。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_nf_di_attending
     name: 膳稳
     title: 高级营养师
@@ -137,10 +137,10 @@ departments:
       E: 0.7
       A: 0.85
       N: 0.35
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 复核 ① 宏量算准 ② 微量充足 ③ 可持续性。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_nf_di_reviewer
     name: 膳鉴
     title: 营养审核员
@@ -150,10 +150,10 @@ departments:
       E: 0.7
       A: 0.6
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: ① 极端节食陷阱 ② 补剂依赖 ③ 进食障碍预警。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: sports_medicine_doc
   label: 运动医学医生 (受伤+慢病+激素+心率)
   head:
@@ -172,7 +172,7 @@ departments:
 
       '
     model_modeB: openai/gpt-5.4-mini
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_nf_sm_helper
     name: 医援
@@ -183,10 +183,10 @@ departments:
       E: 0.6
       A: 0.8
       N: 0.45
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 检索运动损伤指南 / 慢病运动处方 / 心率算法。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_nf_sm_attending
     name: 医稳
     title: 高级运医
@@ -196,10 +196,10 @@ departments:
       E: 0.6
       A: 0.75
       N: 0.45
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 复核 ① 慢病禁忌 ② 心率区间 ③ 用药+运动冲突。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_nf_sm_reviewer
     name: 医鉴
     title: 运医审核员
@@ -209,10 +209,10 @@ departments:
       E: 0.6
       A: 0.5
       N: 0.55
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: ① 心脏猝死(高强度风险) ② 横纹肌溶解 ③ 运动性贫血/低钠。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: rehab_therapist
   label: 康复理疗师 (代偿/筋膜/活动度/疼痛)
   head:
@@ -232,7 +232,7 @@ departments:
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_nf_rt_helper
     name: 康援
@@ -243,10 +243,10 @@ departments:
       E: 0.65
       A: 0.85
       N: 0.35
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 检索筋膜技术 / 拉伸方案 / FMS 评估表。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_nf_rt_attending
     name: 康稳
     title: 高级理疗师
@@ -256,10 +256,10 @@ departments:
       E: 0.65
       A: 0.85
       N: 0.35
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 复核 ① 代偿链分析 ② 拉伸时机 ③ 疼痛性质判断。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_nf_rt_reviewer
     name: 康鉴
     title: 康复审核员
@@ -269,10 +269,10 @@ departments:
       E: 0.65
       A: 0.55
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: ① 错误手法二次伤害 ② 慢性疼痛识别 ③ 何时转骨科。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: mindset_coach
   label: 运动心理教练 (坚持/反弹/动机/习惯)
   head:
@@ -291,7 +291,7 @@ departments:
 
       '
     model_modeB: openai/doubao-seed-2-0-lite-260428
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_nf_mc_helper
     name: 心援
@@ -302,10 +302,10 @@ departments:
       E: 0.85
       A: 0.9
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 检索行为改变模型 / 习惯研究 / 心理量表。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_nf_mc_attending
     name: 心稳
     title: 高级心理教练
@@ -315,10 +315,10 @@ departments:
       E: 0.85
       A: 0.9
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 复核 ① 动机真实性 ② 习惯设计可行 ③ 反弹预案。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_nf_mc_reviewer
     name: 心鉴
     title: 心理审核员
@@ -328,10 +328,10 @@ departments:
       E: 0.85
       A: 0.55
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: ① 健身成瘾 ② 身材焦虑/BDD ③ 进食障碍预警。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: gear_reviewer
   label: 装备评测员 (鞋/服/器械/可穿戴)
   head:
@@ -350,7 +350,7 @@ departments:
 
       '
     model_modeB: openai/gpt-5.4-mini
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_nf_gr_helper
     name: 装援
@@ -361,10 +361,10 @@ departments:
       E: 0.85
       A: 0.75
       N: 0.35
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 检索装备评测榜 / 用户长测 / 价格走势。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_nf_gr_attending
     name: 装稳
     title: 高级评测员
@@ -374,10 +374,10 @@ departments:
       E: 0.85
       A: 0.7
       N: 0.35
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 复核 ① 评测客观 ② 长期耐用 ③ 售后服务。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_nf_gr_reviewer
     name: 装鉴
     title: 装备审核员
@@ -387,15 +387,15 @@ departments:
       E: 0.85
       A: 0.5
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: ① 假货识别 ② 软广 KOL ③ 新品翻车风险。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 missing_api_keys: []
 degradation:
   modeA: 高档 — 各家旗舰, ~¥0.5-1.5/决策, 30-90s
   modeB: 中档 — CEO Opus 不变 + head 用 deepseek-v4-flash/doubao-seed/gpt-5.4-mini 轮流,
     ~¥0.05-0.2/决策, 20-50s
-  modeC: 离线档 — 全本地 ollama/deepseek-r1:8b, ¥0 但慢 (单次约 10-20 分钟)
+  modeC: 离线档 — 全本地 ollama_chat/qwen2.5:7b-instruct, ¥0 但慢 (单次约 10-20 分钟)
   local_concurrency_warning: 本地档需在 decision_engine 限 max_concurrent_local_calls=2,
     否则 ollama 会过载

@@ -34,7 +34,7 @@ ceo:
     风格：温和有边界、引用教育研究。
 
     '
-  model_modeC: ollama/deepseek-r1:8b
+  model_modeC: ollama_chat/qwen2.5:7b-instruct
 departments:
 - dept_id: early_childhood_specialist
   label: 幼教专家 (0-6 岁; 蒙台梭利+华德福)
@@ -69,7 +69,7 @@ departments:
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_ce_ec_helper
     name: 育援
@@ -80,12 +80,12 @@ departments:
       E: 0.85
       A: 0.95
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是育援。检索发展里程碑 / 蒙特梭利教具 / 绘本书单。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_ce_ec_attending
     name: 育稳
     title: 高级幼教
@@ -95,12 +95,12 @@ departments:
       E: 0.8
       A: 0.9
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是育稳。复核: ① 是否落后/超前 ② 环境适配 ③ 父母焦虑投射。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_ce_ec_reviewer
     name: 育鉴
     title: 幼教审核员
@@ -110,12 +110,12 @@ departments:
       E: 0.8
       A: 0.7
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是育鉴。① 发育警示信号 (自闭/迟缓) ② 育儿误区 ③ 创伤性教育识别。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: academic_tutor
   label: 学科辅导师 (海淀名校经验/不鸡不卷)
   head:
@@ -149,7 +149,7 @@ departments:
 
       '
     model_modeB: openai/doubao-seed-2-0-lite-260428
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_ce_at_helper
     name: 学援
@@ -160,12 +160,12 @@ departments:
       E: 0.8
       A: 0.85
       N: 0.35
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是学援。检索教材 / 高频考点 / 错题归类 / 学习方法。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_ce_at_attending
     name: 学稳
     title: 高级学科导师
@@ -175,12 +175,12 @@ departments:
       E: 0.75
       A: 0.8
       N: 0.35
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是学稳。复核: ① 知识漏洞定位 ② 解题策略适配 ③ 进度合理性。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_ce_at_reviewer
     name: 学鉴
     title: 学科审核员
@@ -190,12 +190,12 @@ departments:
       E: 0.75
       A: 0.55
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是学鉴。① 厌学预警 ② 学习障碍 (ADHD/读写障碍) ③ 课外班选择陷阱。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: child_psychologist
   label: 儿童心理咨询师 (沙盘/CBT/亲子关系)
   head:
@@ -229,7 +229,7 @@ departments:
 
       '
     model_modeB: openai/gpt-5.4-mini
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_ce_cp_helper
     name: 心育援
@@ -240,12 +240,12 @@ departments:
       E: 0.7
       A: 0.95
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是心育援。检索儿童心理量表 / 干预案例 / 绘本疗法。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_ce_cp_attending
     name: 心育稳
     title: 高级心理师
@@ -255,12 +255,12 @@ departments:
       E: 0.7
       A: 0.9
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是心育稳。复核: ① 评估准确性 ② 干预匹配 ③ 家庭参与度。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_ce_cp_reviewer
     name: 心育鉴
     title: 心理审核员
@@ -270,12 +270,12 @@ departments:
       E: 0.7
       A: 0.6
       N: 0.55
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是心育鉴。① 自伤/虐待识别 ② 边界 (心理 vs 精神科) ③ 数字成瘾/校园霸凌。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: talent_coach
   label: 特长教练 (兴趣判别+持续动机)
   head:
@@ -309,7 +309,7 @@ departments:
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_ce_tc_helper
     name: 艺援
@@ -320,12 +320,12 @@ departments:
       E: 0.85
       A: 0.85
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是艺援。检索各特长班 / 考级路径 / 比赛信息 / 老师口碑。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_ce_tc_attending
     name: 艺稳
     title: 高级特长教练
@@ -335,12 +335,12 @@ departments:
       E: 0.8
       A: 0.8
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是艺稳。复核: ① 兴趣是否真喜欢 ② 进度合理 ③ 父母投射 vs 孩子意愿。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_ce_tc_reviewer
     name: 艺鉴
     title: 特长审核员
@@ -350,12 +350,12 @@ departments:
       E: 0.8
       A: 0.55
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是艺鉴。① 过度训练身心伤害 ② 选机构陷阱 ③ 升学加分政策变化。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: family_therapist
   label: 家庭关系治疗师 (萨提亚; 处理夫妻教育分歧)
   head:
@@ -389,7 +389,7 @@ departments:
 
       '
     model_modeB: openai/doubao-seed-2-0-lite-260428
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_ce_ft_helper
     name: 家援
@@ -400,12 +400,12 @@ departments:
       E: 0.75
       A: 0.95
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是家援。检索家庭治疗案例 / 沟通工具 / 婚姻关系研究。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_ce_ft_attending
     name: 家稳
     title: 高级治疗师
@@ -415,12 +415,12 @@ departments:
       E: 0.75
       A: 0.9
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是家稳。复核: ① 系统诊断准确 ② 干预可执行 ③ 父母配合度。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_ce_ft_reviewer
     name: 家鉴
     title: 家庭治疗审核员
@@ -430,12 +430,12 @@ departments:
       E: 0.75
       A: 0.6
       N: 0.55
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是家鉴。① 隐性家暴/PUA 识别 ② 离异家庭特殊视角 ③ 二胎/再婚家庭。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: pediatric_nutritionist
   label: 儿童营养师 (协和儿保科; 过敏+挑食)
   head:
@@ -469,7 +469,7 @@ departments:
 
       '
     model_modeB: openai/gpt-5.4-mini
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_ce_pn_helper
     name: 养援
@@ -480,12 +480,12 @@ departments:
       E: 0.7
       A: 0.85
       N: 0.35
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是养援。检索 DRI / 各年龄食谱 / 过敏源指南。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_ce_pn_attending
     name: 养稳
     title: 高级营养师
@@ -495,12 +495,12 @@ departments:
       E: 0.7
       A: 0.85
       N: 0.35
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是养稳。复核: ① 生长发育评估 ② 缺乏元素判断 ③ 辅食方案。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_ce_pn_reviewer
     name: 养鉴
     title: 营养审核员
@@ -510,17 +510,17 @@ departments:
       E: 0.7
       A: 0.6
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是养鉴。① 过敏 / 食物不耐受 ② 进食障碍 (厌食/暴食) ③ 网红营养品陷阱。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 missing_api_keys: []
 degradation:
   modeA: 高档 — 各家旗舰, ~¥0.5-1.5/决策, 30-90s
   modeB: 中档 — CEO Opus 不变 + head 用 deepseek-v4-flash/doubao-seed/gpt-5.4-mini 轮流,
     ~¥0.05-0.2/决策, 20-50s
-  modeC: 离线档 — 全本地 ollama/deepseek-r1:8b, ¥0 但慢 (单次约 10-20 分钟)
+  modeC: 离线档 — 全本地 ollama_chat/qwen2.5:7b-instruct, ¥0 但慢 (单次约 10-20 分钟)
   local_concurrency_warning: 本地档需在 decision_engine 限 max_concurrent_local_calls=2,
     否则 ollama 会过载

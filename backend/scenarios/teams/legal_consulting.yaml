@@ -34,7 +34,7 @@ ceo:
     风格：务实、调解优先、不鼓励无谓诉讼。
 
     '
-  model_modeC: ollama/deepseek-r1:8b
+  model_modeC: ollama_chat/qwen2.5:7b-instruct
 departments:
 - dept_id: contract_law
   label: 合同法律师 (买卖/服务/合作; 风险条款 + 漏洞)
@@ -69,7 +69,7 @@ departments:
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_lc_cl_helper
     name: 约援
@@ -80,12 +80,12 @@ departments:
       E: 0.65
       A: 0.7
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是约援。检索同类合同模板 / 判例 / 行业惯例。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_lc_cl_attending
     name: 约稳
     title: 高级合同律师
@@ -95,12 +95,12 @@ departments:
       E: 0.6
       A: 0.55
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是约稳。复核: ① 漏洞条款 ② 法定 vs 约定优先级 ③ 跨境合同冲突法。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_lc_cl_reviewer
     name: 约鉴
     title: 合同审核员
@@ -110,12 +110,12 @@ departments:
       E: 0.6
       A: 0.45
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是约鉴。① 极端情形条款 ② 反垄断 ③ 数据合规 ④ 监管变更风险。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: labor_law
   label: 劳动法律师 (劳动合同/工伤/裁员/竞业/社保)
   head:
@@ -149,7 +149,7 @@ departments:
 
       '
     model_modeB: openai/doubao-seed-2-0-lite-260428
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_lc_ll_helper
     name: 劳援
@@ -160,12 +160,12 @@ departments:
       E: 0.7
       A: 0.8
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是劳援。检索仲裁判例 / 最低工资 / 工伤标准 / 社保政策。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_lc_ll_attending
     name: 劳稳
     title: 高级劳动法律师
@@ -175,12 +175,12 @@ departments:
       E: 0.65
       A: 0.7
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是劳稳。复核: ① 赔偿准确 ② 时效是否过期 ③ 证据够否。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_lc_ll_reviewer
     name: 劳鉴
     title: 劳动法审核员
@@ -190,12 +190,12 @@ departments:
       E: 0.7
       A: 0.55
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是劳鉴。① 隐性歧视 (性别/年龄/孕产) ② 灵活用工陷阱 ③ 跨地区适用法。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: marriage_inherit
   label: 婚姻继承律师 (离婚/财产分割/抚养/遗产/赡养)
   head:
@@ -229,7 +229,7 @@ departments:
 
       '
     model_modeB: openai/gpt-5.4-mini
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_lc_mi_helper
     name: 家援
@@ -240,12 +240,12 @@ departments:
       E: 0.65
       A: 0.85
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是家援。检索同类离婚判例 / 抚养标准 / 遗嘱模板。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_lc_mi_attending
     name: 家稳
     title: 高级婚姻律师
@@ -255,12 +255,12 @@ departments:
       E: 0.65
       A: 0.8
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是家稳。复核: ① 财产分割公平 ② 抚养权依据 ③ 遗嘱有效性。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_lc_mi_reviewer
     name: 家鉴
     title: 婚姻审核员
@@ -270,12 +270,12 @@ departments:
       E: 0.7
       A: 0.55
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是家鉴。① 家暴/胁迫识别 ② 跨境婚姻 ③ 同性伴侣权益。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: ip_law
   label: 知识产权律师 (商标/版权/专利/商业秘密)
   head:
@@ -309,7 +309,7 @@ departments:
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_lc_ip_helper
     name: 创援
@@ -320,12 +320,12 @@ departments:
       E: 0.55
       A: 0.65
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是创援。检索专利库 / 商标公告 / 侵权判例 / 行业惯例。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_lc_ip_attending
     name: 权稳
     title: 高级 IP 律师
@@ -335,12 +335,12 @@ departments:
       E: 0.55
       A: 0.55
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是权稳。复核: ① 权利稳定性 ② 在先权利冲突 ③ 国际注册必要性。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_lc_ip_reviewer
     name: 权鉴
     title: IP 审核员
@@ -350,12 +350,12 @@ departments:
       E: 0.55
       A: 0.45
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是权鉴。① 跨境侵权 (US/EU/JP) ② AI 训练数据版权 ③ 商业秘密保护。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: company_law
   label: 公司法律师 (股权/章程/治理/兼并收购/股东纠纷)
   head:
@@ -389,7 +389,7 @@ departments:
 
       '
     model_modeB: openai/doubao-seed-2-0-lite-260428
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_lc_co_helper
     name: 治援
@@ -400,12 +400,12 @@ departments:
       E: 0.6
       A: 0.65
       N: 0.35
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是治援。检索章程模板 / 上市公司案例 / 投资协议范本。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_lc_co_attending
     name: 治稳
     title: 高级公司法律师
@@ -415,12 +415,12 @@ departments:
       E: 0.6
       A: 0.55
       N: 0.35
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是治稳。复核: ① 控制权稀释 ② 股东纠纷预案 ③ 上市路径合规。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_lc_co_reviewer
     name: 治鉴
     title: 公司法审核员
@@ -430,12 +430,12 @@ departments:
       E: 0.6
       A: 0.45
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是治鉴。① 反垄断 ② VIE 跨境架构 ③ 上市后股东诉讼风险。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: litigation
   label: 诉讼律师 (民商事; 证据+管辖+程序+胜诉率)
   head:
@@ -469,7 +469,7 @@ departments:
 
       '
     model_modeB: openai/gpt-5.4-mini
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_lc_li_helper
     name: 诉援
@@ -480,12 +480,12 @@ departments:
       E: 0.75
       A: 0.55
       N: 0.45
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是诉援。检索判例 / 起诉状模板 / 证据组织。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_lc_li_attending
     name: 诉稳
     title: 高级诉讼律师
@@ -495,12 +495,12 @@ departments:
       E: 0.75
       A: 0.5
       N: 0.45
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是诉稳。复核: ① 证据链漏洞 ② 时效抗辩 ③ 反诉风险。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_lc_li_reviewer
     name: 诉鉴
     title: 诉讼审核员
@@ -510,17 +510,17 @@ departments:
       E: 0.75
       A: 0.4
       N: 0.55
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是诉鉴。① 法官倾向 / 当地司法风格 ② 执行难度 ③ 调解 vs 强判取舍。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 missing_api_keys: []
 degradation:
   modeA: 高档 — 各家旗舰, ~¥0.5-1.5/决策, 30-90s
   modeB: 中档 — CEO Opus 不变 + head 用 deepseek-v4-flash/doubao-seed/gpt-5.4-mini 轮流,
     ~¥0.05-0.2/决策, 20-50s
-  modeC: 离线档 — 全本地 ollama/deepseek-r1:8b, ¥0 但慢 (单次约 10-20 分钟)
+  modeC: 离线档 — 全本地 ollama_chat/qwen2.5:7b-instruct, ¥0 但慢 (单次约 10-20 分钟)
   local_concurrency_warning: 本地档需在 decision_engine 限 max_concurrent_local_calls=2,
     否则 ollama 会过载

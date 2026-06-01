@@ -161,7 +161,7 @@ def _resolve_model() -> tuple[str, list[str]]:
         m = _resolve_ceo_model()
         return m, (_smart_fallback_for(m) or [])
     except Exception:
-        return "deepseek/deepseek-chat", ["ollama/deepseek-r1:8b"]
+        return "deepseek/deepseek-chat", ["ollama_chat/qwen2.5:7b-instruct"]
 
 
 def _role_brief(role: str) -> str:

@@ -93,10 +93,10 @@ vendors:
     good_for_roles: [head_eu_compliance, head_localization]
 
 local_models:
-  - api_id: ollama/deepseek-r1:8b
-    label: DeepSeek-R1 8B (本地)
-    strengths: [推理还行, 中文 OK, 免费无限, 隐私不出本机]
-    weaknesses: [慢, 复杂任务勉强]
+  - api_id: ollama_chat/qwen2.5:7b-instruct
+    label: Qwen2.5 7B Instruct (本地)
+    strengths: [指令清晰, 中文母语级, JSON干净, 免费无限, 隐私不出本机]
+    weaknesses: [复杂推理勉强, 7B 体量上限]
     good_for_roles: [staff_general, staff_resident, staff_junior]
     price_in_per_M: 0
     price_out_per_M: 0

@@ -238,7 +238,7 @@ def _user_model_chain_hint() -> str:
         lines.append("备用 / 候选 head 模型 (按优先级):")
         for i, m in enumerate(fallbacks[:12], 1):
             lines.append(f"  {i}. {m}")
-    lines.append("staff 一律用 ollama/deepseek-r1:8b (本地, 免费)")
+    lines.append("staff 一律用 ollama_chat/qwen2.5:7b-instruct (本地, 免费)")
     return "\n".join(lines)
 
 
@@ -452,7 +452,7 @@ def _build_prompt(mode_id: str, scenario_label: str, dept_list: list[tuple[str, 
 1. **CEO**: 选 Opus 4.7 当 CEO, 给写 system prompt (300-500 字), 含: 综合各部门意见, 主持多学科会诊, 拒绝乱编, 对用户负责
 2. **每个部门**:
    - 配 1 个 **head** (部门主管 / 主任医师 / 总师), 从快照里挑**最适合该部门特色的旗舰** (例: 影像类用 Gemini, 中文专科用 DeepSeek, 法律用 Kimi)
-   - 配 **3 个 staff** (职员 / 主治 / 助手), 全部用 `ollama/deepseek-r1:8b` 走本地
+   - 配 **3 个 staff** (职员 / 主治 / 助手), 全部用 `ollama_chat/qwen2.5:7b-instruct` 走本地
    - 每个角色都要有: 名字 + 头衔 + sub_specialty (子专业) + ocean (五维 0-1 浮点) + personality + diagnostic_style + 完整 system prompt (200-400 字)
 3. **多样性**: head 之间用**不同公司**的模型, 不要全 Opus; staff 之间用不同 OCEAN 分布
 
@@ -492,7 +492,7 @@ def _build_prompt(mode_id: str, scenario_label: str, dept_list: list[tuple[str, 
           "ocean": {{"O": ..., "C": ..., "E": ..., "A": ..., "N": ...}},
           "personality": "<>",
           "diagnostic_style": "<>",
-          "model_modeA": "ollama/deepseek-r1:8b",
+          "model_modeA": "ollama_chat/qwen2.5:7b-instruct",
           "model_modeB": "anthropic/claude-haiku-4-5",
           "prompt": "<200-400 字 system prompt>"
         }}
@@ -645,7 +645,7 @@ async def regenerate_persona(mode_id: str, dept_id: str, persona_id: str) -> dic
         for p in ([dept.get("head") or {}] + (dept.get("staff") or []))
         if p.get("persona_id") != persona_id
     ]
-    model_hint = "某家旗舰 api_id (见快照)" if is_head else "ollama/deepseek-r1:8b"
+    model_hint = "某家旗舰 api_id (见快照)" if is_head else "ollama_chat/qwen2.5:7b-instruct"
     vendor_line = '"model_vendor": "<>",' if is_head else ''
     prompt = f"""为 {dept_id} 部门重新设计一个 {role_label}, 替换原来的:
   原: {old.get('name', '?')} - {old.get('sub_specialty', '?')} - {old.get('personality', '')}
@@ -724,7 +724,7 @@ def _stub_team(mode_id: str, dept_list: list[tuple[str, str]]) -> dict[str, Any]
                         "sub_specialty": "(stub)",
                         "ocean": {"O": 0.5, "C": 0.5, "E": 0.5, "A": 0.5, "N": 0.5},
                         "personality": "(stub)", "diagnostic_style": "(stub)",
-                        "model_modeA": "ollama/deepseek-r1:8b",
+                        "model_modeA": "ollama_chat/qwen2.5:7b-instruct",
                         "model_modeB": "anthropic/claude-haiku-4-5",
                         "prompt": "(尚未生成)",
                     } for i in range(3)

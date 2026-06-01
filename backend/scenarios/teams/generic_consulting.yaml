@@ -32,7 +32,7 @@ ceo:
     风格：MECE、强调框架。
 
     '
-  model_modeC: ollama/deepseek-r1:8b
+  model_modeC: ollama_chat/qwen2.5:7b-instruct
 departments:
 - dept_id: strategic_advisor
   label: 战略顾问 (MECE 拆解/框架化)
@@ -52,7 +52,7 @@ departments:
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_gc_sa_helper
     name: 策援
@@ -63,10 +63,10 @@ departments:
       E: 0.7
       A: 0.7
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 检索行业框架 / SWOT / Porter's 5 Forces / 案例库。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_gc_sa_attending
     name: 策稳
     title: 高级战略
@@ -76,10 +76,10 @@ departments:
       E: 0.7
       A: 0.6
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 复核 ① MECE 完整性 ② 假设可验证 ③ 优先级排序。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_gc_sa_reviewer
     name: 策鉴
     title: 战略审核员
@@ -89,10 +89,10 @@ departments:
       E: 0.7
       A: 0.45
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: ① 黑天鹅情境 ② 框架失灵 ③ 跨文化差异。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: domain_researcher
   label: 领域研究员 (学术+行业报告+KOL)
   head:
@@ -111,7 +111,7 @@ departments:
 
       '
     model_modeB: openai/doubao-seed-2-0-lite-260428
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_gc_dr_helper
     name: 博援
@@ -122,10 +122,10 @@ departments:
       E: 0.55
       A: 0.75
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 检索 arxiv / Google Scholar / 行业报告 / KOL 观点。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_gc_dr_attending
     name: 博稳
     title: 高级研究员
@@ -135,10 +135,10 @@ departments:
       E: 0.55
       A: 0.7
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 复核 ① 来源可信度 ② 引用准确 ③ 时效性。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_gc_dr_reviewer
     name: 博鉴
     title: 研究审核员
@@ -148,10 +148,10 @@ departments:
       E: 0.55
       A: 0.55
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: ① 论文造假/水文 ② 利益冲突 ③ 信息茧房/一面之词。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: data_analyst
   label: 数据分析师 (统计+可视化+回归)
   head:
@@ -170,7 +170,7 @@ departments:
 
       '
     model_modeB: openai/gpt-5.4-mini
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_gc_da_helper
     name: 数援
@@ -181,10 +181,10 @@ departments:
       E: 0.45
       A: 0.6
       N: 0.35
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 检索数据集 / 统计方法 / 可视化模板。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_gc_da_attending
     name: 数稳
     title: 高级数据分析
@@ -194,10 +194,10 @@ departments:
       E: 0.45
       A: 0.55
       N: 0.35
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 复核 ① 统计显著性 ② 因果 vs 相关 ③ 可视化误导。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_gc_da_reviewer
     name: 数鉴
     title: 数据审核员
@@ -207,10 +207,10 @@ departments:
       E: 0.45
       A: 0.45
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: ① 辛普森悖论 ② 数据偷窥 ③ p-hacking。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: user_psychologist
   label: 用户心理学家 (认知偏差/行为科学)
   head:
@@ -229,7 +229,7 @@ departments:
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_gc_up_helper
     name: 心理援
@@ -240,10 +240,10 @@ departments:
       E: 0.7
       A: 0.9
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 检索行为科学论文 / 偏差清单 / 干预案例。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_gc_up_attending
     name: 心理稳
     title: 高级心理学家
@@ -253,10 +253,10 @@ departments:
       E: 0.7
       A: 0.85
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 复核 ① 偏差识别 ② 动机分析 ③ 干预伦理。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_gc_up_reviewer
     name: 心理鉴
     title: 心理审核员
@@ -266,10 +266,10 @@ departments:
       E: 0.7
       A: 0.55
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: ① dark pattern ② 操纵性助推 ③ 文化差异(WEIRD bias)。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: devils_advocate
   label: 魔鬼代言人 (反方/找漏洞)
   head:
@@ -288,7 +288,7 @@ departments:
 
       '
     model_modeB: openai/doubao-seed-2-0-lite-260428
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_gc_dv_helper
     name: 杠援
@@ -299,10 +299,10 @@ departments:
       E: 0.7
       A: 0.35
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 检索反例 / 失败案例 / 反向论文 / 异见者观点。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_gc_dv_attending
     name: 杠稳
     title: 高级反方
@@ -312,10 +312,10 @@ departments:
       E: 0.7
       A: 0.3
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 复核 ① 反方论据扎实 ② 是否为反而反 ③ 反例普遍性。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_gc_dv_reviewer
     name: 杠鉴
     title: 反方审核员
@@ -325,10 +325,10 @@ departments:
       E: 0.7
       A: 0.35
       N: 0.55
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: ① 终极假设挑战 ② 整个框架失效情境 ③ 默认前提的盲点。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: futurist
   label: 未来学家 (S 曲线/5-10 年外推)
   head:
@@ -348,7 +348,7 @@ departments:
 
       '
     model_modeB: openai/gpt-5.4-mini
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_gc_fu_helper
     name: 远援
@@ -359,10 +359,10 @@ departments:
       E: 0.7
       A: 0.65
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 检索趋势研究 / 弱信号 / 长周期数据 / 历史范式案例。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_gc_fu_attending
     name: 远稳
     title: 高级未来学家
@@ -372,10 +372,10 @@ departments:
       E: 0.7
       A: 0.6
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 复核 ① 趋势真实性 ② 外推合理 ③ 不确定性表达。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_gc_fu_reviewer
     name: 远鉴
     title: 未来审核员
@@ -385,15 +385,15 @@ departments:
       E: 0.7
       A: 0.5
       N: 0.55
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: ① 技术乌托邦偏差 ② 历史循环 vs 直线 ③ 地缘政治打断。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 missing_api_keys: []
 degradation:
   modeA: 高档 — 各家旗舰, ~¥0.5-1.5/决策, 30-90s
   modeB: 中档 — CEO Opus 不变 + head 用 deepseek-v4-flash/doubao-seed/gpt-5.4-mini 轮流,
     ~¥0.05-0.2/决策, 20-50s
-  modeC: 离线档 — 全本地 ollama/deepseek-r1:8b, ¥0 但慢 (单次约 10-20 分钟)
+  modeC: 离线档 — 全本地 ollama_chat/qwen2.5:7b-instruct, ¥0 但慢 (单次约 10-20 分钟)
   local_concurrency_warning: 本地档需在 decision_engine 限 max_concurrent_local_calls=2,
     否则 ollama 会过载

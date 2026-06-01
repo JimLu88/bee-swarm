@@ -34,7 +34,7 @@ ceo:
     风格：实用浪漫并存，反对"赶集式打卡"。
 
     '
-  model_modeC: ollama/deepseek-r1:8b
+  model_modeC: ollama_chat/qwen2.5:7b-instruct
 departments:
 - dept_id: itinerary_planner
   label: 行程规划师 (节奏+衔接+签证+机票)
@@ -69,7 +69,7 @@ departments:
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_tp_ip_helper
     name: 行援
@@ -80,12 +80,12 @@ departments:
       E: 0.6
       A: 0.8
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是行援。检索签证政策 / 机票比价 / 当地交通。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_tp_ip_attending
     name: 程稳
     title: 高级规划师
@@ -95,12 +95,12 @@ departments:
       E: 0.6
       A: 0.7
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是程稳。复核: ① 节奏过紧 ② 衔接漏洞 ③ 签证时间风险。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_tp_ip_reviewer
     name: 程鉴
     title: 行程审核员
@@ -110,12 +110,12 @@ departments:
       E: 0.6
       A: 0.5
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是程鉴。① 极端天气/罢工/疫情应急 ② 跨时区适应 ③ 老人/儿童节奏。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: local_guide
   label: 当地向导 (小众路线/绕陷阱/避人海)
   head:
@@ -149,7 +149,7 @@ departments:
 
       '
     model_modeB: openai/doubao-seed-2-0-lite-260428
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_tp_lg_helper
     name: 地援
@@ -160,12 +160,12 @@ departments:
       E: 0.75
       A: 0.85
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是地援。检索本地论坛 / Reddit / 小红书本地号 / 节庆日历。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_tp_lg_attending
     name: 地稳
     title: 高级向导
@@ -175,12 +175,12 @@ departments:
       E: 0.7
       A: 0.75
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是地稳。复核: ① 小众路线安全性 ② 季节匹配 ③ 文化体验深度。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_tp_lg_reviewer
     name: 地鉴
     title: 向导审核员
@@ -190,12 +190,12 @@ departments:
       E: 0.7
       A: 0.5
       N: 0.55
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是地鉴。① 治安 ② 文化禁忌触雷 ③ 反殖民/反猎奇视角。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: foodie_scout
   label: 美食侦察员 (本地老店/特吃菜单/拒旅游店)
   head:
@@ -229,7 +229,7 @@ departments:
 
       '
     model_modeB: openai/gpt-5.4-mini
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_tp_fs_helper
     name: 馋援
@@ -240,12 +240,12 @@ departments:
       E: 0.9
       A: 0.85
       N: 0.25
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是馋援。检索本地美食榜 / 点评本地用户排名 / Reddit eat。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_tp_fs_attending
     name: 味稳
     title: 高级美食家
@@ -255,12 +255,12 @@ departments:
       E: 0.85
       A: 0.75
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是味稳。复核: ① 真本地 ② 性价比 ③ 卫生口碑。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_tp_fs_reviewer
     name: 馋鉴
     title: 美食审核员
@@ -270,12 +270,12 @@ departments:
       E: 0.85
       A: 0.5
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是馋鉴。① 食品安全/过敏 ② 宗教忌口 ③ 老人/儿童/孕妇饮食。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: budget_manager
   label: 预算管理员 (省钱/性价比/隐藏成本/汇率)
   head:
@@ -309,7 +309,7 @@ departments:
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_tp_bm_helper
     name: 算援
@@ -320,12 +320,12 @@ departments:
       E: 0.55
       A: 0.75
       N: 0.35
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是算援。检索酒店比价 / 机票早鸟规律 / 当地物价 / 汇率手续费。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_tp_bm_attending
     name: 账稳
     title: 高级预算师
@@ -335,12 +335,12 @@ departments:
       E: 0.55
       A: 0.7
       N: 0.35
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是账稳。复核: ① 隐藏成本漏算 ② 应急预算 ③ 汇率波动。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_tp_bm_reviewer
     name: 账鉴
     title: 预算审核员
@@ -350,12 +350,12 @@ departments:
       E: 0.55
       A: 0.5
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是账鉴。① 信用卡境外手续费 ② 现金 vs 卡比例 ③ 退税策略。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: safety_advisor
   label: 安全顾问 (治安/医疗/政治/自然/紧急联系)
   head:
@@ -389,7 +389,7 @@ departments:
 
       '
     model_modeB: openai/doubao-seed-2-0-lite-260428
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_tp_sa_helper
     name: 安援
@@ -400,12 +400,12 @@ departments:
       E: 0.55
       A: 0.6
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是安援。检索外交部预警 / 当地新闻 / 旅行保险 / 大使馆电话。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_tp_sa_attending
     name: 守稳
     title: 高级安全顾问
@@ -415,12 +415,12 @@ departments:
       E: 0.55
       A: 0.5
       N: 0.55
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是守稳。复核: ① 风险评估全否 ② 医疗保险覆盖 ③ 应急路径。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_tp_sa_reviewer
     name: 安鉴
     title: 安全审核员
@@ -430,12 +430,12 @@ departments:
       E: 0.55
       A: 0.45
       N: 0.6
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是安鉴。① 极端 (恐袭/政变/疫情) ② 女性独行 ③ LGBT 法律风险。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: experience_curator
   label: 体验策展人 (文化沉浸/灵魂时刻/纪念品/节庆)
   head:
@@ -469,7 +469,7 @@ departments:
 
       '
     model_modeB: openai/gpt-5.4-mini
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_tp_ec_helper
     name: 觉援
@@ -480,12 +480,12 @@ departments:
       E: 0.7
       A: 0.85
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是觉援。检索文化背景 / 非遗 / 节庆日历 / 工坊预约。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_tp_ec_attending
     name: 韵稳
     title: 高级策展人
@@ -495,12 +495,12 @@ departments:
       E: 0.7
       A: 0.8
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是韵稳。复核: ① 文化深度 ② 真实性 ③ 商业化陷阱。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_tp_ec_reviewer
     name: 韵鉴
     title: 体验审核员
@@ -510,17 +510,17 @@ departments:
       E: 0.7
       A: 0.5
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: '你是韵鉴。① 文化挪用 ② 宗教礼仪 ③ 摄影伦理。
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 missing_api_keys: []
 degradation:
   modeA: 高档 — 各家旗舰, ~¥0.5-1.5/决策, 30-90s
   modeB: 中档 — CEO Opus 不变 + head 用 deepseek-v4-flash/doubao-seed/gpt-5.4-mini 轮流,
     ~¥0.05-0.2/决策, 20-50s
-  modeC: 离线档 — 全本地 ollama/deepseek-r1:8b, ¥0 但慢 (单次约 10-20 分钟)
+  modeC: 离线档 — 全本地 ollama_chat/qwen2.5:7b-instruct, ¥0 但慢 (单次约 10-20 分钟)
   local_concurrency_warning: 本地档需在 decision_engine 限 max_concurrent_local_calls=2,
     否则 ollama 会过载

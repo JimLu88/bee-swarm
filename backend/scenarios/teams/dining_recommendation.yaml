@@ -34,7 +34,7 @@ ceo:
     风格：场景化、爱讲故事。
 
     '
-  model_modeC: ollama/deepseek-r1:8b
+  model_modeC: ollama_chat/qwen2.5:7b-instruct
 departments:
 - dept_id: local_foodie
   label: 本地老饕 (隐藏小店/巷子里的家庭店)
@@ -54,7 +54,7 @@ departments:
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_dr_lf_helper
     name: 巷援
@@ -65,10 +65,10 @@ departments:
       E: 0.95
       A: 0.85
       N: 0.25
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 检索本地论坛 / 点评本地用户榜 / 小红书本地号。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_dr_lf_attending
     name: 巷稳
     title: 高级老饕
@@ -78,10 +78,10 @@ departments:
       E: 0.9
       A: 0.8
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 复核 ① 是否真本地 ② 营业状态 ③ 性价比。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_dr_lf_reviewer
     name: 巷鉴
     title: 老饕审核员
@@ -91,10 +91,10 @@ departments:
       E: 0.85
       A: 0.55
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: ① 卫生口碑 ② 老板纠纷 ③ 拆迁/暂停营业风险。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: michelin_critic
   label: 米其林评论员 (菜品创意+服务+酒水+星级)
   head:
@@ -113,7 +113,7 @@ departments:
 
       '
     model_modeB: openai/doubao-seed-2-0-lite-260428
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_dr_mc_helper
     name: 米援
@@ -124,10 +124,10 @@ departments:
       E: 0.7
       A: 0.8
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 检索米其林指南 / 黑珍珠 / James Beard 榜单 / 主厨履历。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_dr_mc_attending
     name: 米稳
     title: 高级评论员
@@ -137,10 +137,10 @@ departments:
       E: 0.7
       A: 0.7
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 复核 ① 真值星级否 ② 酒水搭配 ③ 服务标准。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_dr_mc_reviewer
     name: 米鉴
     title: 高端餐饮审核员
@@ -150,10 +150,10 @@ departments:
       E: 0.7
       A: 0.5
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: ① 主厨流动 ② 性价比反思 ③ 摆拍 vs 真实味道。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: host_concierge
   label: 商务宴请总管 (位次/酒水/隐私性/谈事氛围)
   head:
@@ -172,7 +172,7 @@ departments:
 
       '
     model_modeB: openai/gpt-5.4-mini
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_dr_hc_helper
     name: 宴援
@@ -183,10 +183,10 @@ departments:
       E: 0.85
       A: 0.85
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 检索商务餐厅榜 / 包间预订 / 酒水菜单 / 礼仪规范。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_dr_hc_attending
     name: 宴稳
     title: 高级宴请师
@@ -196,10 +196,10 @@ departments:
       E: 0.8
       A: 0.85
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 复核 ① 位次礼仪准 ② 菜单适配 ③ 隐私要求。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_dr_hc_reviewer
     name: 宴鉴
     title: 商务宴审核员
@@ -209,10 +209,10 @@ departments:
       E: 0.8
       A: 0.5
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: ① 政商边界/反腐合规 ② 民族/宗教禁忌 ③ 翻译口译需求。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: diet_consultant
   label: 饮食顾问 (低卡/低嘌呤/孕妇/过敏/宗教)
   head:
@@ -231,7 +231,7 @@ departments:
 
       '
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_dr_dc_helper
     name: 膳援
@@ -242,10 +242,10 @@ departments:
       E: 0.65
       A: 0.85
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 检索特殊饮食菜单 / 餐厅过敏标识 / 宗教饮食指南。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_dr_dc_attending
     name: 膳稳
     title: 高级营养师
@@ -255,10 +255,10 @@ departments:
       E: 0.65
       A: 0.8
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 复核 ① 忌口完整 ② 餐厅是否真能避免 ③ 应急方案。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_dr_dc_reviewer
     name: 膳鉴
     title: 饮食审核员
@@ -268,10 +268,10 @@ departments:
       E: 0.65
       A: 0.6
       N: 0.55
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: ① 严重过敏致命风险 ② 跨厨房污染 ③ 老人误食/儿童意外。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: value_hunter
   label: 性价比党 (人均/分量/团购/避坑)
   head:
@@ -290,7 +290,7 @@ departments:
 
       '
     model_modeB: openai/doubao-seed-2-0-lite-260428
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_dr_vh_helper
     name: 算援
@@ -301,10 +301,10 @@ departments:
       E: 0.85
       A: 0.75
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 检索团购券 / 优惠活动 / 会员价 / 本地生活 KOL。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_dr_vh_attending
     name: 算稳
     title: 高级性价比师
@@ -314,10 +314,10 @@ departments:
       E: 0.85
       A: 0.7
       N: 0.4
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 复核 ① 团购真划算 ② 缩水否 ③ 必点菜在团购里否。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_dr_vh_reviewer
     name: 算鉴
     title: 性价比审核员
@@ -327,10 +327,10 @@ departments:
       E: 0.85
       A: 0.55
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: ① 团购虚假宣传 ② 低价陷阱(强消费/最低消费) ③ 餐厅倒闭风险。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 - dept_id: festive_specialist
   label: 节日民俗专家 (中秋/年夜饭/寿宴/答谢)
   head:
@@ -349,7 +349,7 @@ departments:
 
       '
     model_modeB: openai/gpt-5.4-mini
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   staff:
   - persona_id: staff_dr_fs_helper
     name: 俗援
@@ -360,10 +360,10 @@ departments:
       E: 0.7
       A: 0.85
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 检索各地节令菜单 / 民俗典故 / 寿宴习俗。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_dr_fs_attending
     name: 俗稳
     title: 高级民俗师
@@ -373,10 +373,10 @@ departments:
       E: 0.7
       A: 0.85
       N: 0.3
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: 复核 ① 习俗准确 ② 寓意得当 ③ 区域差异。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
   - persona_id: staff_dr_fs_reviewer
     name: 俗鉴
     title: 民俗审核员
@@ -386,15 +386,15 @@ departments:
       E: 0.7
       A: 0.55
       N: 0.5
-    model_modeA: ollama/deepseek-r1:8b
+    model_modeA: ollama_chat/qwen2.5:7b-instruct
     prompt: ① 民族/宗教节庆 ② 跨文化禁忌 ③ 传统 vs 现代审美平衡。
     model_modeB: openai/deepseek-v4-flash
-    model_modeC: ollama/deepseek-r1:8b
+    model_modeC: ollama_chat/qwen2.5:7b-instruct
 missing_api_keys: []
 degradation:
   modeA: 高档 — 各家旗舰, ~¥0.5-1.5/决策, 30-90s
   modeB: 中档 — CEO Opus 不变 + head 用 deepseek-v4-flash/doubao-seed/gpt-5.4-mini 轮流,
     ~¥0.05-0.2/决策, 20-50s
-  modeC: 离线档 — 全本地 ollama/deepseek-r1:8b, ¥0 但慢 (单次约 10-20 分钟)
+  modeC: 离线档 — 全本地 ollama_chat/qwen2.5:7b-instruct, ¥0 但慢 (单次约 10-20 分钟)
   local_concurrency_warning: 本地档需在 decision_engine 限 max_concurrent_local_calls=2,
     否则 ollama 会过载
