@@ -1015,6 +1015,12 @@ async def run_decision(*, decision_id: str, task: str, mode_id: str, debate_roun
     """
     mode = get_mode(mode_id)
 
+    # 群晖/无 GPU 部署: HSEMAS_DISABLE_LOCAL_TIER=1 时, C 档(本地 ollama) 自动降级到 B 档便宜云.
+    if tier == "C":
+        import os as _os
+        if _os.environ.get("HSEMAS_DISABLE_LOCAL_TIER", "0") == "1":
+            tier = "B"
+
     # v8: 把用户显式选的思维框架放进 contextvar, 供 _run_dept/finalize 注入 prompt;
     # 空列表时 _run_dept 会按 task 关键词自动选 (trigger_keywords).
     _active_frameworks.set(list(thinking_frameworks or []))

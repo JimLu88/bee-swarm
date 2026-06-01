@@ -1,27 +1,42 @@
+# H-SEMAS 群晖/Docker 部署 (主应用 + 爬虫 + 向量库)
+# - backend(8100): 后端 API + 内嵌前端静态站(同源, 手机/电脑都开 http://<NAS-IP>:8100)
+# - bee-scraper(8003): 联网搜索/图文/地图数据 (来自 ../AI 数据爬虫, 需与本仓库并排克隆)
+# - qdrant(6333): 向量库 (RAG; 不用可删本服务并把 RAG_BACKEND 设为 local/simulated)
+# C 档(本地 ollama)已通过 HSEMAS_DISABLE_LOCAL_TIER=1 关闭 (群晖无 GPU).
 services:
   backend:
-    image: h-semas-backend:dev
+    image: h-semas-backend:latest
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .                       # 仓库根 (Dockerfile 内同时构建前端静态站)
+      dockerfile: backend/Dockerfile
     ports:
-      - "8000:8000"
+      - "8100:8100"
     env_file:
-      - ./.env
+      - ./.env                         # AMAP_KEY / LLM Key / 各类开关
+    environment:
+      - HSEMAS_DISABLE_LOCAL_TIER=1     # 关闭 C 档离线档 → C 自动降级到 B 便宜云
+      - BEE_SCRAPER_URL=http://bee-scraper:8003
+      - BEE_BEARER_TOKEN=${BEE_BEARER_TOKEN:-dev-token-change-me}
+      - QDRANT_URL=http://qdrant:6333
     volumes:
-      - ./backend:/app
+      - ./backend/data:/app/data        # 决策历史/记忆/知识库 持久化
+    depends_on:
+      - bee-scraper
+      - qdrant
+    restart: unless-stopped
 
-  frontend:
-    image: h-semas-frontend:dev
+  bee-scraper:
+    image: bee-scraper:latest
     build:
-      context: ./frontend
+      context: "../AI 数据爬虫/backend"  # 与本仓库并排克隆 (update.sh 会一起 pull)
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "8003:8003"
     environment:
-      - NEXT_PUBLIC_BACKEND_URL=http://127.0.0.1:8000
-    depends_on:
-      - backend
+      - BEE_BEARER_TOKEN=${BEE_BEARER_TOKEN:-dev-token-change-me}
+      - TAVILY_API_KEY=${TAVILY_API_KEY:-}
+      - EXA_API_KEY=${EXA_API_KEY:-}
+    restart: unless-stopped
 
   qdrant:
     image: qdrant/qdrant:latest
@@ -29,4 +44,4 @@ services:
       - "6333:6333"
     volumes:
       - ./qdrant_storage:/qdrant/storage
-
+    restart: unless-stopped

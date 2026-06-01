@@ -1,9 +1,26 @@
 import type { ReactNode } from "react";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "智囊团 — H-SEMAS",
   description: "多智能体顾问 · 把你纠结的事交给一套 AI 顾问团",
+  manifest: "/manifest.webmanifest",
+  // iOS Safari「添加到主屏」→ 像 App 一样全屏打开
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "智囊团" },
+  icons: { icon: "/icon.svg", apple: "/icon.svg" },
+  formatDetection: { telephone: false },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  // 兼容刘海屏: 内容延伸到安全区, 由 CSS env(safe-area-inset-*) 兜底
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#070b14" },
+  ],
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

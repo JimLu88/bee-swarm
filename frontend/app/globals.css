@@ -538,3 +538,38 @@ body.rail-collapsed .rail { width: 0; margin-left: -1px; overflow: hidden; }
   body:not(.rail-collapsed) .rail { position: absolute; z-index: 40; height: 100%; box-shadow: var(--shadow-lg); }
   .sugs { grid-template-columns: 1fr; }
 }
+
+/* ===== 手机版 (响应式; 同一套代码, 跟随 Web 更新) ===== */
+@media (max-width: 640px) {
+  /* 侧栏在小屏作为浮层(复用 .rail-collapsed 开合机制), 不挤占正文宽度 */
+  .rail { position: absolute; z-index: 40; height: 100%; box-shadow: var(--shadow-lg); }
+  :root { --col: 100%; }
+
+  /* 顶栏更紧凑 + 安全区(刘海屏) */
+  .topbar { height: 54px; padding-left: max(10px, env(safe-area-inset-left)); padding-right: max(8px, env(safe-area-inset-right)); }
+  .topbar-l { gap: 4px; min-width: 0; }
+  .topbar-r { gap: 2px; }
+
+  /* 正文区: 缩小留白, 单列, 正文略大好读 */
+  .welcome { padding: 3vh 16px 32px; }
+  .greet { font-size: 26px; line-height: 1.25; }
+  .greet-sub { font-size: 15px; }
+  .thread { padding: 16px 14px 150px; gap: 22px; }
+  .user-bubble { max-width: 92%; }
+  .answer { font-size: 15px; }
+  .composer { padding: 0 4px; }
+
+  /* 指标/操作/建议 → 自适应窄屏 */
+  .kpis { grid-template-columns: repeat(2, 1fr) !important; }
+  .actions { flex-wrap: wrap; gap: 8px; }
+  .sugs { grid-template-columns: 1fr; }
+
+  /* 触摸目标放大, 防误点; 底部安全区(手势条) */
+  .ghost-btn, .rail-icon-btn { min-width: 40px; min-height: 40px; }
+  .scroll { padding-bottom: env(safe-area-inset-bottom); }
+}
+
+/* 超窄屏 (<=380): KPI 也单列 */
+@media (max-width: 380px) {
+  .kpis { grid-template-columns: 1fr !important; }
+}
