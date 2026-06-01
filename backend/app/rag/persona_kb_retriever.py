@@ -147,18 +147,19 @@ def format_bundle_for_prompt(bundle: KnowledgeBundle) -> str:
     if not bundle.fragments:
         return ""
     parts: list[str] = [
-        f"【你的专业知识库 (共 {len(bundle.fragments)} 条片段, 你必须在回答中带 [<ref_id>] 引用每个用到的片段)】",
+        f"【你的专业知识储备 (你读过的 {len(bundle.fragments)} 本书/资料的精华, 仅供你内化参考)】",
         "",
     ]
     for f in bundle.fragments:
-        head = f"[{f.ref_id}] {f.layer.upper()} · {f.title} (importance={f.importance})"
-        if f.source_url:
-            head += f" · {f.source_url}"
-        parts.append(head)
+        parts.append(f"· {f.title}")
         parts.append(f.content)
         parts.append("")
-    parts.append("规则: 回答 consensus / conflicts 时, 凡是用到了上面片段的论点, "
-                 "都要在那句末尾标上对应的 [k.xxx.N] 引用。不依赖片段的纯推理段可以不标。")
+    parts.append(
+        "用法(重要): 上面是你脑子里的专业积累, 请**消化后用自己的话给出具体结论**。"
+        "绝对不要在回答里出现 [k.book.x]、[k.xxx]、'RAG'、'知识库是否匹配'、'是否调用工具' 这类"
+        "内部过程字眼——用户只想看到你作为专家的直接、具体、可执行的答案本身。"
+        "知识没覆盖到的, 直接凭你的专业判断答, 不要解释'为什么没引用'。"
+    )
     return "\n".join(parts)
 
 

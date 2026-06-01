@@ -269,9 +269,14 @@ async def _run_dept(
                         f"分诊官下发（仅本部门）=\n{(dispatcher_context or '（无）')[:3500]}\n\n"
                         f"{ref_section_title}\n{rag_context_str}\n\n"
                         f"可用工具(可选, 不需要也行):\n{tools_brief}\n\n"
+                        "【输出铁律】consensus 必须是你作为本领域专家、针对用户问题给出的"
+                        "直接、具体、可落地的答案本身(真实的名称/地点/做法/数字/步骤), 像当面回答客户。"
+                        "严禁任何过程性元话语——不要提'我的人设/RAG/知识库匹不匹配/要不要调用工具/"
+                        "任务是否命中关键词/本部门职责'这类内部机制, 用户只看结论。"
+                        "conflicts 只写你与其他视角真正的分歧点(一句一条)。\n"
                         "请只输出 JSON, 格式如下:\n"
                         "{\n"
-                        '  "consensus": "...",\n'
+                        '  "consensus": "直接给具体答案本身, 不要写任何过程/机制的话",\n'
                         '  "conflicts": ["..."],\n'
                         '  "confidence_score": 0.0,\n'
                         '  "dissent_intensity": 0.0,\n'
