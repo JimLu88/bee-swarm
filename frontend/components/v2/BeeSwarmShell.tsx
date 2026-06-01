@@ -280,11 +280,14 @@ export function BeeSwarmShell() {
   useEffect(() => { refreshHistory(); }, [refreshHistory]);
 
   // 拉当前场景的部门中文名映射 (department_labels)
+  // "自动识别"时下拉 mode 是 __auto__(无效), 要用识别出的真实场景 autoResolved 去拉, 否则部门名是英文 id.
   useEffect(() => {
+    const lookupMode = mode === AUTO_MODE ? autoResolved : mode;
+    if (!lookupMode || lookupMode === AUTO_MODE) return;
     let aborted = false;
     (async () => {
       try {
-        const res = await fetchWithTimeout(`${backendUrl}/api/modes/lookup/${mode}`, undefined, TIMEOUT_MS.default);
+        const res = await fetchWithTimeout(`${backendUrl}/api/modes/lookup/${lookupMode}`, undefined, TIMEOUT_MS.default);
         if (!res.ok) return;
         const j = await res.json();
         const labels = (j?.department_labels ?? j?.mode?.department_labels) as Record<string, string> | undefined;
@@ -292,7 +295,7 @@ export function BeeSwarmShell() {
       } catch { /* 没有就回退英文 id */ }
     })();
     return () => { aborted = true; };
-  }, [backendUrl, mode]);
+  }, [backendUrl, mode, autoResolved]);
 
   // --- WebSocket 流 → 更新 live turn ---
   const attachStream = useCallback((decisionId: string, turnId: string) => {
@@ -693,7 +696,7 @@ export function BeeSwarmShell() {
         <div style={{ marginBottom: 10 }}>
           {planConfirm.switchedTo && (
             <div style={{ marginBottom: 8, padding: "7px 11px", borderRadius: 10, background: "var(--accent-bg)", color: "var(--accent)", fontSize: 12.5, display: "flex", alignItems: "center", gap: 6 }}>
-              <Icon name="auto_awesome" size={16} /> 自动识别为「{planConfirm.switchedTo}」场景（本次按此会诊；下拉仍是「自动识别」）
+              <Icon name="auto_awesome" size={16} /> 自动识别为「{planConfirm.switchedTo}」场景（本次按此讨论；下拉仍是「自动识别」）
             </div>
           )}
           {planConfirm.noMatch && (
@@ -704,7 +707,7 @@ export function BeeSwarmShell() {
           <RouteFlow
             heats={planConfirm.depts.map((d) => ({ dept: d, heat: 0, confidence: 0, status: "idle" as const }))}
             labels={deptLabels}
-            candidates={planConfirm.allDepts.length ? planConfirm.allDepts : Object.keys(deptLabels)}
+            candidates={Array.from(new Set([...planConfirm.allDepts, ...Object.keys(deptLabels)]))}
             editable
             planMode
             busy={busy}

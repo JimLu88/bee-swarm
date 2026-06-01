@@ -108,7 +108,7 @@ export function RouteFlow({ heats, labels, personas = [], candidates, editable =
               fontSize: 13.5, fontWeight: 600, opacity: busy || !effective.length ? 0.6 : 1,
             }}>
             <Icon name={busy ? "progress_activity" : "play_arrow"} className={busy ? "spinning" : ""} size={18} />
-            开始会诊（{effective.length} 位顾问）
+            开始讨论（{effective.length} 位顾问）
           </button>
         </div>
       </div>
@@ -148,7 +148,7 @@ export function RouteFlow({ heats, labels, personas = [], candidates, editable =
         <span style={{ fontSize: 11, color: "var(--text-faint)" }}>
           {planMode
             ? `打算让这 ${effective.length} 位顾问讨论 · 可增减后开跑`
-            : `分诊官调用了 ${effective.length} 个部门${editable ? " · 可增减后重新会诊" : ""}`}
+            : `分诊官调用了 ${effective.length} 个部门${editable ? " · 可增减后重新讨论" : ""}`}
         </span>
       </div>
 
@@ -261,7 +261,7 @@ export function RouteFlow({ heats, labels, personas = [], candidates, editable =
               fontSize: 12.5, fontWeight: 600, opacity: busy || !effective.length ? 0.6 : 1,
             }}>
             <Icon name={busy ? "progress_activity" : (planMode ? "play_arrow" : "refresh")} className={busy ? "spinning" : ""} size={16} />
-            {planMode ? "开始会诊" : "重新会诊"}（{effective.length} 部门）
+            {planMode ? "开始讨论" : "重新讨论"}（{effective.length} 部门）
           </button>
           {!planMode && (
             <button type="button" onClick={reset}
