@@ -73,17 +73,24 @@ export function ScenarioDropdown({ selected, onSelect, onManage, backendUrl }: P
     return () => document.removeEventListener("mousedown", onDoc);
   }, [open]);
 
+  const AUTO = "__auto__";
+  const isAuto = selected === AUTO;
   const cur = allModes.find((m) => m.mode_id === selected);
 
   return (
     <div style={wrap} ref={ref}>
       <button type="button" style={trigger} onClick={() => setOpen((v) => !v)}>
-        <span>{cur?.emoji || "🎬"}</span>
-        <span>{cur?.label || "选择场景"}</span>
+        <span>{isAuto ? "✨" : (cur?.emoji || "🎬")}</span>
+        <span>{isAuto ? "自动识别" : (cur?.label || "选择场景")}</span>
         <span style={{ opacity: 0.5, fontSize: 11 }}>▾</span>
       </button>
       {open && (
         <div style={menu}>
+          <div style={item(isAuto)} onClick={() => { onSelect(AUTO); setOpen(false); }}>
+            <span>✨</span>
+            <span style={{ flex: 1 }}>自动识别<span style={{ opacity: 0.55, fontSize: 11, marginLeft: 6 }}>AI 按你的问题选场景</span></span>
+          </div>
+          <div style={{ borderTop: "1px solid var(--border)", margin: "4px 0 6px" }} />
           {allModes.map((m) => (
             <div key={m.mode_id} style={item(m.mode_id === selected)}
               onClick={() => { onSelect(m.mode_id); setOpen(false); }}>

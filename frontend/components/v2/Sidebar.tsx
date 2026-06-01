@@ -102,13 +102,11 @@ export function Sidebar({
           <button type="button" className="foot-item" onClick={onOpenSettings}>
             <Icon name="settings" /> 设置
           </button>
-          <button type="button" className="foot-user" onClick={onUserClick} title="切换脑子档位">
+          <button type="button" className="foot-user" onClick={onUserClick} title="我">
             <div className="avatar">{userName.slice(0, 1)}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ font: "600 13px var(--font-sans)", color: "var(--fg-1)" }}>{userName}</div>
-              <div style={{ font: "400 11px var(--font-sans)", color: "var(--fg-3)" }}>{TIER_LABEL[tier]}</div>
             </div>
-            <Icon name="unfold_more" style={{ color: "var(--fg-3)", fontSize: 20 }} />
           </button>
         </div>
       </div>

@@ -35,6 +35,9 @@ import { sceneSuggestions } from "../../lib/scenes";
  * 决策链路(WebSocket / REST / bandit)完全沿用, 仅重排 UI.
  */
 
+// v10: 场景"自动识别"哨兵 — 选它时由本地模型按问题判断场景; 手动选具体场景则跳过识别.
+const AUTO_MODE = "__auto__";
+
 type View = "welcome" | "thread";
 
 type Turn = {
@@ -83,7 +86,7 @@ export function BeeSwarmShell() {
   const [railCollapsed, setRailCollapsed] = useState(false);
 
   // --- core decision state ---
-  const [mode, setMode] = useState<string>("program_management");
+  const [mode, setMode] = useState<string>(AUTO_MODE);
   const { value: task, setValue: setTask, clear: clearTaskBackup } = useAutosave<string>("task-input", "");
   const [difficulty, setDifficulty] = useState<Difficulty>(3);
   const [busy, setBusy] = useState(false);
@@ -333,11 +336,12 @@ export function BeeSwarmShell() {
   }, [wsBase, refreshHistory]);
 
   // --- 发起咨询 (Composer 发送 / 建议卡片 / 重新生成) ---
-  const submitTask = useCallback((text: string) => {
+  const submitTask = useCallback((text: string, modeOverride?: string) => {
     const t = text.trim();
     if (!t) { setError("先写一句话告诉我你要什么"); return; }
     if (busy) return;
     setError(null);
+    const runMode = modeOverride || mode;
 
     const eff = difficulty;
     const m = EFFORT_MAP[eff];
@@ -362,7 +366,7 @@ export function BeeSwarmShell() {
           {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              task: t, mode_id: mode,
+              task: t, mode_id: runMode,
               debate_rounds: Math.max(m.rounds, 1),
               thinking_frameworks: frameworks.length > 0 ? frameworks : undefined,
               tier, images: curImages, files: curDocs,
@@ -391,32 +395,43 @@ export function BeeSwarmShell() {
     if (!t) { setError("先写一句话告诉我你要什么"); return; }
     if (busy || planLoading) return;
     setError(null);
-    if (EFFORT_MAP[difficulty].route === "ceo_only") { submitTask(t); return; }
     setPlanLoading(true);
     (async () => {
-      // 1) 先让 AI 判断属于哪个场景; 确信匹配且与当前不同 → 自动切场景 (LLM 异常/无匹配则静默不动, 不骚扰)
+      // 1) 场景解析:
+      //    - "自动识别"(AUTO_MODE) → 调本地模型按问题判断场景; 命中则切过去, 无匹配/超时则退到通用咨询
+      //    - 已手动选具体场景 → 跳过识别, 直接用该场景
       let useMode = mode;
       let switchedTo: string | undefined;
       let noMatch = false;
-      try {
-        const cr = await fetchWithTimeout(
-          `${backendUrl}/api/modes/classify`,
-          { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ task: t }) },
-          15000,  // 分类只给 15s, 慢模型超时就快速降级到当前场景, 不让用户傻等
-        );
-        if (cr.ok) {
-          const cj = await cr.json();
-          if (cj?.matched && cj?.mode_id && cj.mode_id !== mode) {
-            useMode = cj.mode_id as string;
-            switchedTo = (cj.mode_label as string) || useMode;
-            setMode(useMode);
-          } else if (cj && cj.matched === false && cj.mode_id === null) {
-            noMatch = true; // 仅作温和提示, 不阻断
+      if (mode === AUTO_MODE) {
+        useMode = "generic_consulting"; // 兜底
+        try {
+          const cr = await fetchWithTimeout(
+            `${backendUrl}/api/modes/classify`,
+            { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ task: t }) },
+            15000,  // 分类只给 15s, 慢模型超时就退到通用咨询, 不让用户傻等
+          );
+          if (cr.ok) {
+            const cj = await cr.json();
+            if (cj?.matched && cj?.mode_id) {
+              useMode = cj.mode_id as string;
+              switchedTo = (cj.mode_label as string) || useMode;
+            } else {
+              noMatch = true; // 没匹配到现成场景 → 用通用咨询 + 温和提示可新建
+            }
           }
-        }
-      } catch { /* 分类失败 → 用当前场景, 不影响 */ }
+        } catch { /* 分类失败 → 用通用咨询兜底 */ }
+        setMode(useMode); // 把"自动识别"落到识别出的具体场景(本轮可见)
+      }
 
-      // 2) 用(可能已切换的)场景做部门预判
+      // 努力程度=简单(ceo_only) → 不开部门, 直接用解析后的场景开跑
+      if (EFFORT_MAP[difficulty].route === "ceo_only") {
+        setPlanLoading(false);
+        submitTask(t, useMode);
+        return;
+      }
+
+      // 2) 用解析后的场景做部门预判
       let depts: string[] = [];
       let allDepts: string[] = [];
       try {
@@ -620,6 +635,7 @@ export function BeeSwarmShell() {
     setError(null);
     setHeats([]); setProgress(0);
     setCurrentDecisionId(null);
+    setMode(AUTO_MODE); // 新咨询回到"自动识别"
   }, []);
 
   const openSettings = useCallback((tab?: "scenario" | "ai" | "memory" | "advanced" | "tech") => {
