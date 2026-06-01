@@ -77,6 +77,11 @@ def _load_libs() -> dict[str, dict]:
         libs["travel_planning"] = tp
     except Exception as e:
         print(f"[warn] travel_planning 书库加载失败: {e!r}")
+    try:
+        from .lib_dining_recommendation import LIBRARIES as dr
+        libs["dining_recommendation"] = dr
+    except Exception as e:
+        print(f"[warn] dining_recommendation 书库加载失败: {e!r}")
     # 后续场景书库在这里追加: libs["<mode>"] = ...
     return libs
 
