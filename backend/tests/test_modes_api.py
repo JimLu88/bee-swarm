@@ -18,10 +18,11 @@ class ModesApiTests(unittest.TestCase):
         self.assertEqual(r.status_code, 200)
         data = r.json()
         self.assertIsInstance(data, list)
+        from app.modes import list_extra_mode_ids
         ids = [row["mode_id"] for row in data]
-        self.assertEqual(len(ids), len(MODES) + 2)
-        self.assertIn("generic_consulting", ids)
-        self.assertIn("ops_review", ids)
+        self.assertEqual(len(ids), len(MODES) + len(list_extra_mode_ids()))
+        self.assertIn("generic_consulting", ids)  # 已提升为 builtin, 仍应在列表里
+        self.assertIn("ops_review", ids)           # 仍为 extra yaml 场景
 
     def test_post_modes_reload_disabled_by_default(self) -> None:
         with TestClient(app) as c:
@@ -42,7 +43,7 @@ class ModesApiTests(unittest.TestCase):
     def test_modes_lookup_builtin_extra_fallback(self) -> None:
         with TestClient(app) as c:
             r1 = c.get("/api/modes/lookup/program_management")
-            r2 = c.get("/api/modes/lookup/generic_consulting")
+            r2 = c.get("/api/modes/lookup/ops_review")
             r3 = c.get("/api/modes/lookup/no_such_mode_zzzz")
         self.assertEqual(r1.status_code, 200)
         self.assertEqual(r1.json().get("registry"), "builtin")

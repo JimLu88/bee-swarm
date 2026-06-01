@@ -3,7 +3,7 @@ scenario_description: |
   股票交易助手场景：强调信息时效、非投资建议免责声明、与数据源可追溯性。
 default_task_hint: "复盘某标的近一周量价与资金面，列出 3 条可验证假设与对应失效条件。"
 department_labels:
-  macro_policy: "宏观政策（模板）"
+  macro_strategist: "宏观策略（模板）"
 gene_seeds:
-  macro_policy: "区分事实陈述与推断；标注关键假设与数据截至日；避免单一叙事。"
-  security: "突出合规表述：非投顾建议、适当性提示与信息来源标注。"
+  macro_strategist: "区分事实陈述与推断；标注关键假设与数据截至日；避免单一叙事。"
+  risk_manager: "突出合规表述：非投顾建议、适当性提示与信息来源标注。"

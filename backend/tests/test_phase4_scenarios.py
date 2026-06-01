@@ -33,18 +33,18 @@ class ModesYamlOverlayTests(unittest.TestCase):
         self.assertEqual(m.scenario_yaml, "program_management.yaml")
         self.assertIn("YAML", m.label)
         self.assertTrue(m.scenario_description)
-        self.assertIn("架构部（模板）", m.department_labels.get("arch", ""))
+        self.assertIn("首席架构师（模板）", m.department_labels.get("principal_architect", ""))
 
     def test_stock_trading_yaml_applied(self) -> None:
         m = get_mode("stock_trading")
         self.assertEqual(m.scenario_yaml, "stock_trading.yaml")
         self.assertTrue(m.scenario_description)
-        self.assertIn("模板", m.department_labels.get("macro_policy", ""))
+        self.assertIn("模板", m.department_labels.get("macro_strategist", ""))
 
 
 class GeneDefaultsTests(unittest.TestCase):
     def test_seed_appended_for_arch(self) -> None:
-        p = build_initial_gene_prompt("program_management", "arch")
+        p = build_initial_gene_prompt("program_management", "principal_architect")
         self.assertIn("场景模板补充", p)
         self.assertIn("假设", p)
 
