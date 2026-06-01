@@ -974,6 +974,10 @@ app.include_router(trends_router)
 from .favorites import router as favorites_router  # noqa: E402
 app.include_router(favorites_router)
 
+# v9 自学习闭环 (/api/learning/*): 联网新知收件箱 + 20:00 CEO 梳理 + 后台场景懒加载灌书
+from .auto_learning.api import router as learning_router  # noqa: E402
+app.include_router(learning_router)
+
 
 # ============ v6-O bee-memory 代理 (解决前端跨域 + bearer 问题) ============
 def _proxy_memory_get(path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:

@@ -159,6 +159,28 @@ def _run_all_evolvers_serial() -> None:
         _t.sleep(60)
 
 
+def _run_knowledge_digest() -> None:
+    """v9 每天 20:00 cron: CEO 梳理今天联网搜到的新知 → 写进 bee-memory.
+    run_digest 内部 asyncio.run; AsyncIOScheduler 把 sync job 丢线程池跑, 安全."""
+    import time as _t
+    try:
+        from app.auto_learning.digest import run_digest
+        out = run_digest()
+        status = out.get("status", "unknown")
+        detail = str(out)[:1000]
+    except Exception as e:
+        status, detail = "error", str(e)[:1000]
+    try:
+        rid = "kd-cron-" + uuid.uuid4().hex[:10]
+        with _conn() as c:
+            c.execute(
+                "INSERT INTO evolution_log VALUES (?,?,?,?,?,?,?)",
+                (rid, int(_t.time()), "knowledge_digest", status, detail, "cron", ""),
+            )
+    except Exception:
+        pass
+
+
 def start_scheduler() -> dict:
     """main.py lifespan startup 时调. 失败 (缺 APScheduler) 静默, 不影响业务."""
     global _SCHEDULER
@@ -173,9 +195,13 @@ def start_scheduler() -> dict:
     sch = AsyncIOScheduler()
     sch.add_job(_run_all_evolvers_serial, CronTrigger(hour=2, minute=0),
                 id="ev_all_02", replace_existing=True)
+    # v9 每天 20:00 CEO 梳理今天联网搜到的新知识 → 写进 bee-memory
+    sch.add_job(_run_knowledge_digest, CronTrigger(hour=20, minute=0),
+                id="knowledge_digest_20", replace_existing=True)
     sch.start()
     _SCHEDULER = sch
-    return {"started": True, "cron": "daily 02:00", "evolvers": [e for e, _, _ in EVOLVERS]}
+    return {"started": True, "cron": "evolvers@02:00 + knowledge_digest@20:00",
+            "evolvers": [e for e, _, _ in EVOLVERS]}
 
 
 def stop_scheduler() -> None:

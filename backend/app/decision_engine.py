@@ -163,6 +163,18 @@ async def _run_dept(
     if is_vision_dept(dept) and llm_rag_settings.benchmark_web_search:
         web_chunks, web_meta = await fetch_benchmark_web_chunks(rag_query[:1200], limit=web_limit)
 
+    # v9 自学习: 把联网搜索命中写进"知识收件箱", 等 20:00 CEO 梳理入库 (best-effort, 失败不影响决策)
+    if web_chunks:
+        try:
+            from .auto_learning.inbox import record_web_hits
+            record_web_hits(
+                mode_id=mode_id, dept_id=dept, persona_id=head_persona_id,
+                query=rag_query[:500],
+                chunks=[c.__dict__ for c in web_chunks],
+            )
+        except Exception:
+            pass
+
     rag_chunks = rag_retriever.retrieve(mode_id=mode_id, dept=dept, task=rag_query, k=5)
 
     if is_vision_dept(dept):

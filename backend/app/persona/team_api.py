@@ -28,7 +28,15 @@ async def generate(mode_id: str) -> dict[str, Any]:
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"generate_failed: {e}")
     saved = team_store.save_team(mode_id, team)
-    return {"mode_id": mode_id, "team": team, "saved": saved}
+    # v9 懒加载: 后台(非前台手写)场景生成团队后, 后台异步用 DeepSeek 按 30/50/80 灌专业书库.
+    # 前台 13 场景已手写, maybe_lazy_seed 内部会自动跳过.
+    seed_info: dict[str, Any] = {}
+    try:
+        from ..auto_learning.lazy_seed import maybe_lazy_seed
+        seed_info = maybe_lazy_seed(mode_id, team)
+    except Exception as e:
+        seed_info = {"scheduled": False, "error": repr(e)}
+    return {"mode_id": mode_id, "team": team, "saved": saved, "lazy_seed": seed_info}
 
 
 @router.post("/regen-dept/{mode_id}/{dept_id}")
