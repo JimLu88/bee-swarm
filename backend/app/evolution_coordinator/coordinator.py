@@ -35,6 +35,7 @@ EVOLVERS = [
     ("p15_team_evolve",   "主管自演化 (ELO + Shadow 14天)", "L3"),
     ("p16_knowledge_curator", "知识策展员 (8 层知识库充实)", "L2"),
     ("p17_trend_monitor",  "趋势监控 (扫外部 → 提案入待审池)", "L7"),
+    ("p18_capability_radar", "能力雷达 (扫前沿→差距分析→升级提案, 全部待审)", "L8"),
 ]
 
 
