@@ -91,21 +91,51 @@ export function InfoFeed({ deptQuotes = [], mediaCards = [], backendUrl = "" }: 
   let body: ReactNode = null;
 
   if (view === "editorial") {
+    // Gemini 杂志式: 有图卡 = 大 Hero 图 + 标题压在底部渐变上 + 来源徽章; 无图卡 = 左强调条 + 大字排版
     body = (
-      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        {items.map((m, i) => (
-          <motion.div key={i} style={cardBase}
-            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i * 0.02, 0.3), duration: 0.25 }}>
-            {m.type === "image" && m.image_url && <Img src={m.image_url} h={210} onClick={() => setLb(m.image_url!)} />}
-            <div style={{ padding: 14 }}>
-              {m.title && <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 8, color: "var(--text)", lineHeight: 1.4 }}>{m.title}</div>}
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        {items.map((m, i) => {
+          const hasImg = m.type === "image" && !!m.image_url;
+          if (hasImg) {
+            return (
+              <motion.div key={i}
+                initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i * 0.03, 0.4), duration: 0.3 }}
+                whileHover={{ y: -3 }}
+                style={{ ...cardBase, position: "relative", cursor: "zoom-in" }}
+                onClick={() => setLb(m.image_url!)}>
+                <div style={{ position: "relative", width: "100%", aspectRatio: "16 / 9", overflow: "hidden" }}>
+                  <Img src={m.image_url!} h="100%" />
+                  {/* 底部渐变压字 */}
+                  <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.25) 42%, rgba(0,0,0,0) 70%)" }} />
+                  {m.source && (
+                    <span style={{ position: "absolute", top: 12, left: 12, padding: "3px 10px", borderRadius: 999, fontSize: 11, fontWeight: 600, color: "#fff", background: "rgba(0,0,0,0.45)", backdropFilter: "blur(6px)" }}>{m.source}</span>
+                  )}
+                  {m.title && (
+                    <div style={{ position: "absolute", left: 16, right: 16, bottom: 14, color: "#fff", fontSize: 18, fontWeight: 800, lineHeight: 1.35, textShadow: "0 2px 12px rgba(0,0,0,0.5)" }}>{m.title}</div>
+                  )}
+                </div>
+                {(m.body || (m.url && (m.type === "link" || m.type === "video"))) && (
+                  <div style={{ padding: "12px 16px 14px" }}>
+                    {m.body && <div style={cardBody}>{m.body}</div>}
+                    {linkLine(m)}
+                  </div>
+                )}
+              </motion.div>
+            );
+          }
+          return (
+            <motion.div key={i}
+              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i * 0.03, 0.4), duration: 0.3 }}
+              whileHover={{ y: -2 }}
+              style={{ ...cardBase, padding: "16px 18px", borderLeft: "3px solid var(--accent)" }}>
+              {m.title && <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8, color: "var(--text)", lineHeight: 1.4 }}>{m.title}</div>}
               {m.body && <div style={cardBody}>{m.body}</div>}
               {m._conflicts && m._conflicts.length > 0 && <div style={{ marginTop: 8, fontSize: 11.5, color: "var(--warn)" }}>⚡ {m._conflicts.join("；")}</div>}
               {linkLine(m)}
               {m.source && <div style={srcLine}>来源: {m.source}</div>}
-            </div>
-          </motion.div>
-        ))}
+            </motion.div>
+          );
+        })}
       </div>
     );
   } else if (view === "bento") {
