@@ -16,6 +16,8 @@ from .thinking_frameworks import build_framework_brief
 _active_frameworks: contextvars.ContextVar[list[str]] = contextvars.ContextVar(
     "active_frameworks", default=[]
 )
+# v11: 是否"全力"档 (debate_rounds>=3). 全力才走真·三派 fan-out, 否则走 prompt 版(主管一次调用分饰三派).
+_full_power_cv: contextvars.ContextVar[bool] = contextvars.ContextVar("full_power", default=False)
 
 from .gene_scoring import gene_score
 from .models import DeptLeadReport, DecisionSummary, HeatmapCell, StreamEvent
@@ -79,7 +81,7 @@ def _rag_retrieval_meta(combined: list[RagChunk], web_chunks: list[RagChunk]) ->
 
 async def _dining_three_faction_consensus(
     *, dept: str, dept_label: str, task: str, persona_prompt: str,
-    kb_context: str, dispatcher_context: str, model: str, fallbacks: list[str],
+    kb_context: str, dispatcher_context: str, staff_model: str, head_model: str, fallbacks: list[str],
 ) -> str:
     """v11 餐饮真·三派 fan-out + 真联网 + 主管(先立场→批判综合).
     学院派(只用书) / 街头派(只用实时联网) / 怀疑派(交叉挑刺) 三 staff 并行,
@@ -114,7 +116,7 @@ async def _dining_three_faction_consensus(
 
     async def _one(p: str) -> str:
         try:
-            return (await litellm_client.complete(model=model, fallbacks=fallbacks, system=persona_prompt, prompt=p)).text or ""
+            return (await litellm_client.complete(model=staff_model, fallbacks=fallbacks, system=persona_prompt, prompt=p)).text or ""
         except Exception as e:
             return f"(该派暂无输出: {e!r})"
     academic, street, skeptic = await _aio.gather(_one(academic_p), _one(street_p), _one(skeptic_p))
@@ -131,7 +133,7 @@ async def _dining_three_faction_consensus(
         '{"consensus":"【我的判断】...(含表态+8-10条建议)","conflicts":["..."],"confidence_score":0.0,"dissent_intensity":0.0}'
     )
     try:
-        return (await litellm_client.complete(model=model, fallbacks=fallbacks, system=persona_prompt, prompt=head_p)).text or ""
+        return (await litellm_client.complete(model=head_model, fallbacks=fallbacks, system=persona_prompt, prompt=head_p)).text or ""
     except Exception as e:
         return f"[head error] {e!r}"
 
@@ -332,20 +334,25 @@ async def _run_dept(
                 decision_id=decision_id,
                 payload={"dept": dept, "from": llm_choice.model, "to": _effective_model},
             ))
+    # v11 餐饮: 仅"全力"档(debate_rounds>=3)走真·三派 fan-out; 日常档(简单/一般/深入)走 prompt 版(下方单调用 + leader_value_brief).
+    import os as _os_dr
     _dining_real = (
         mode_id == "dining_recommendation"
         and dept not in ("xlab", "out_of_box_breakthrough", "parallel_architecture_scout")
         and llm_choice.provider == "litellm"
+        and _full_power_cv.get(False)
     )
     if _dining_real:
-        # v11 餐饮真·三派 fan-out + 真联网 + 主管(先立场→批判综合), 替代单次调用.
+        # 全力档真·三派: staff 用便宜快的 flash, 主管用更强的 pro (可 env 覆盖).
+        _staff_model = _os_dr.environ.get("BEE_DINING_STAFF_MODEL", "openai/deepseek-v4-flash")
+        _head_model = _os_dr.environ.get("BEE_DINING_HEAD_MODEL", "openai/deepseek-v4-pro")
         try:
             from .modes import get_mode as _gm2
             _dlabel = (getattr(_gm2(mode_id), "department_labels", {}) or {}).get(dept, dept)
             llm_text = await _dining_three_faction_consensus(
                 dept=dept, dept_label=_dlabel, task=task, persona_prompt=gene_prompt,
                 kb_context=rag_context_str, dispatcher_context=dispatcher_context,
-                model=_effective_model, fallbacks=llm_router.fallbacks(),
+                staff_model=_staff_model, head_model=_head_model, fallbacks=llm_router.fallbacks(),
             )
             parsed = parse_dept_output(llm_text)
         except Exception as e:
@@ -980,6 +987,7 @@ async def run_decision(*, decision_id: str, task: str, mode_id: str, debate_roun
     # v8: 把用户显式选的思维框架放进 contextvar, 供 _run_dept/finalize 注入 prompt;
     # 空列表时 _run_dept 会按 task 关键词自动选 (trigger_keywords).
     _active_frameworks.set(list(thinking_frameworks or []))
+    _full_power_cv.set(int(debate_rounds or 1) >= 3)  # 全力档(3轮) → 真·三派; 其余 → prompt 版
 
     # v6-Y 文档附件: 解析成文字拼到 task 前面 (内部 task 字符串无 20k 限制).
     if files:
