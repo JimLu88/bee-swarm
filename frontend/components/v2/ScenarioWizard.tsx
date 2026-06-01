@@ -18,9 +18,20 @@ type Props = {
   onCreated?: (modeId: string) => void;
 };
 
-const DOMAIN_PRESETS = [
-  "装修设计", "租房买房", "宠物养护", "婚礼策划", "心理疏导",
-  "求职面试", "副业创业", "理财规划", "健身减脂", "亲子教育",
+// 按大类分组的领域种子 (~50): 先选大类, 再选具体领域; 也可直接手输.
+const DOMAIN_GROUPS: { cat: string; items: string[] }[] = [
+  { cat: "健康医疗", items: ["中医调理", "慢病管理", "心理疏导", "育儿喂养", "老人照护", "口腔护理", "皮肤护理"] },
+  { cat: "饮食运动", items: ["健身减脂", "增肌训练", "减重饮食", "素食营养", "跑步马拉松"] },
+  { cat: "家庭生活", items: ["装修设计", "收纳整理", "家电选购", "宠物养护", "园艺种植", "二手车评估"] },
+  { cat: "住房置业", items: ["租房买房", "民宿运营", "房产投资", "物业纠纷"] },
+  { cat: "财务理财", items: ["理财规划", "保险配置", "个税筹划", "债务规划", "退休养老"] },
+  { cat: "职业发展", items: ["求职面试", "简历优化", "职场晋升", "转行规划", "谈薪沟通"] },
+  { cat: "创业经营", items: ["副业创业", "电商运营", "自媒体", "门店经营", "私域增长"] },
+  { cat: "法律维权", items: ["劳动纠纷", "合同审查", "消费维权", "婚姻家事", "知识产权"] },
+  { cat: "教育学习", items: ["亲子教育", "升学规划", "语言学习", "考研考证", "兴趣培养"] },
+  { cat: "情感关系", items: ["恋爱沟通", "婚姻关系", "人际社交", "婚礼策划"] },
+  { cat: "旅行休闲", items: ["自由行规划", "亲子游", "出境游", "周边游"] },
+  { cat: "兴趣爱好", items: ["摄影入门", "乐器学习", "咖啡品鉴", "收藏鉴赏"] },
 ];
 
 const backdrop: CSSProperties = {
@@ -121,9 +132,17 @@ export function ScenarioWizard({ backendUrl, open, onClose, onCreated }: Props) 
         {step === 1 && (
           <>
             <div style={{ fontSize: 13, fontWeight: 600 }}>① 你想咨询什么领域?</div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-              {DOMAIN_PRESETS.map((d) => (
-                <span key={d} style={chip(domain === d)} onClick={() => setDomain(d)}>{d}</span>
+            <div style={{ fontSize: 12, opacity: 0.7 }}>从下面挑一个，或直接手输你自己的领域：</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, maxHeight: "44vh", overflowY: "auto", paddingRight: 4 }}>
+              {DOMAIN_GROUPS.map((g) => (
+                <div key={g.cat}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-faint, var(--text))", opacity: 0.65, marginBottom: 5 }}>{g.cat}</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {g.items.map((d) => (
+                      <span key={d} style={chip(domain === d)} onClick={() => setDomain(d)}>{d}</span>
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
             <input style={inp} placeholder="或自己输入 (如: 二手车评估 / 民宿运营)"
