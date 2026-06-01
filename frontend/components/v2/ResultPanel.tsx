@@ -5,6 +5,7 @@ import { Icon } from "./Icon";
 import { SmartResultRenderer } from "./viz/SmartResultRenderer";
 import { InfoFeed, type MediaCard } from "./viz/InfoFeed";
 import { IntelStation } from "./viz/IntelStation";
+import type { MapPlace } from "./viz/MapPins";
 import { avBg, confColor, confBg, initial, EFFORT_LABELS } from "../../lib/scenes";
 
 export type DeptReport = {
@@ -29,6 +30,8 @@ export type DecisionSummary = {
   total_cost_yuan?: number;
   elapsed_sec?: number;
   media_cards?: MediaCard[];
+  /** v11 方案4 地图钉店: 高德地理编码后的推荐地点坐标 */
+  map_places?: MapPlace[];
 };
 
 type Props = {
@@ -79,6 +82,7 @@ export function ResultPanel({ summary, onRerunDept, rerunningDept, onFeedback, o
   const risks = summary.red_team_risks ?? [];
   const riskCount = risks.length;
   const mediaCards = summary.media_cards ?? [];
+  const mapPlaces = summary.map_places ?? [];
   const kbTotal = reports.reduce((s, r) => s + (r.kb_used ?? 0), 0);
 
   const copy = async () => {
@@ -208,7 +212,7 @@ export function ResultPanel({ summary, onRerunDept, rerunningDept, onFeedback, o
         </div>
       )}
       <IntelStation open={intelOpen} onClose={() => setIntelOpen(false)}
-        title={summary.mode_label || summary.task || "情报站"} mediaCards={mediaCards} backendUrl={backendUrl} />
+        title={summary.mode_label || summary.task || "情报站"} mediaCards={mediaCards} mapPlaces={mapPlaces} backendUrl={backendUrl} />
 
       {/* 操作条 */}
       <div className="actions">

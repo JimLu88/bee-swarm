@@ -249,6 +249,9 @@ class DecisionSummary(BaseModel):
     user_feedback: str = ""
     # v7 W3 爬虫图文聚合卡 (信息流): [{type,title,body,url,image_url,source}]
     media_cards: list[dict[str, Any]] = Field(default_factory=list)
+    # v11 方案4 地图钉店: 决策结果里抽出的店铺/地点经过高德地理编码后的坐标
+    # [{name, lng, lat, address, city}] — 仅「带地点」场景 (餐饮/旅行/租房等) 且配了 AMAP_KEY 时非空
+    map_places: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class StreamEvent(BaseModel):

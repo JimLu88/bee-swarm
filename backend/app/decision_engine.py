@@ -780,6 +780,14 @@ async def finalize_decision_bundle(
     except Exception:
         media_cards = []
 
+    # v11 方案4 地图钉店: 抽店名 → 高德地理编码 → 坐标 (best-effort; 仅带地点场景+配了 AMAP_KEY).
+    map_places: list[dict[str, Any]] = []
+    try:
+        from .geocoder import gather_map_places
+        map_places = await gather_map_places(mode_id=mode_id, ceo_text=ceo_decision, media_cards=media_cards)
+    except Exception:
+        map_places = []
+
     # v6-B ELO 信号: 从 team.yaml 提取本次决策实际用了的 head + staff
     team_personas_used: list[dict[str, Any]] = []
     try:
@@ -825,6 +833,7 @@ async def finalize_decision_bundle(
         rag_aggregate=rag_aggregate,
         team_personas_used=team_personas_used,
         media_cards=media_cards,
+        map_places=map_places,
     )
 
     bus.publish(StreamEvent(type="decision_done", decision_id=decision_id, payload={"summary": summary.model_dump()}))

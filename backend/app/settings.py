@@ -41,6 +41,10 @@ class Settings(BaseSettings):
     # Disable on internet-facing deployments unless protected by auth / VPN.
     hsemas_hub_settings_write_enabled: bool = True
 
+    # 高德 Web 服务 Key (地理编码: 店名→坐标, 给情报站「地图钉店」). 只从 .env / 环境变量读, 绝不写进代码.
+    # 空字符串 → 地图钉店功能自动禁用 (best-effort, 不影响决策主链路).
+    amap_key: str = ""
+
 
 settings = Settings()
 

@@ -8,16 +8,18 @@ import { motion, AnimatePresence } from "framer-motion";
 import type { CSSProperties } from "react";
 import type { MediaCard } from "./InfoFeed";
 import { GlobeHero } from "./GlobeHero";
+import { MapPins, type MapPlace } from "./MapPins";
 
 type Props = {
   open: boolean;
   onClose: () => void;
   title?: string;
   mediaCards: MediaCard[];
+  mapPlaces?: MapPlace[];
   backendUrl?: string;
 };
 
-export function IntelStation({ open, onClose, title = "情报站", mediaCards, backendUrl = "" }: Props) {
+export function IntelStation({ open, onClose, title = "情报站", mediaCards, mapPlaces = [], backendUrl = "" }: Props) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -76,6 +78,8 @@ export function IntelStation({ open, onClose, title = "情报站", mediaCards, b
         <div style={{ position: "relative", zIndex: 1, flex: 1, overflowY: "auto" }}>
           {/* 真 3D 地球头图, 向下滚动隐入情报网格 */}
           <GlobeHero count={cards.length} />
+          {/* 方案4 地图钉店: 决策推荐的店铺/地点 (有坐标才显示) */}
+          {mapPlaces.length > 0 && <MapPins places={mapPlaces} />}
           <div style={{ padding: "20px 24px 40px" }}>
           {cards.length === 0 ? (
             <div style={{ textAlign: "center", color: "#7d93ab", marginTop: 80 }}>暂无情报</div>
