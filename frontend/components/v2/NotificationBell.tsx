@@ -35,7 +35,8 @@ const popover: CSSProperties = {
   width: 340, maxHeight: 400, overflow: "auto",
   padding: 10, borderRadius: 8,
   borderWidth: 1, borderStyle: "solid", borderColor: "var(--border)",
-  background: "#1a1a1a",
+  background: "var(--bg-card)", color: "var(--text)",
+  boxShadow: "var(--shadow)",
   display: "flex", flexDirection: "column", gap: 8,
 };
 

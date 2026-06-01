@@ -557,6 +557,7 @@ def modes_reload_registry() -> dict:
 def memory_list(mode_id: str, limit: int = 50, compact: bool = False) -> list[dict]:
     mem = DecisionMemory(_DATA_DIR)
     rows = mem.list_summaries(mode_id=mode_id, limit=limit)
+    rows = list(reversed(rows))  # 最近的放最上面 (list_summaries 是插入序=旧→新)
     if compact:
         return [compact_decision_row(r) for r in rows]
     return rows

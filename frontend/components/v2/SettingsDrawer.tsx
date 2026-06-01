@@ -88,7 +88,7 @@ const tabBtn = (active: boolean): CSSProperties => ({
   borderWidth: 1, borderStyle: "solid",
   borderColor: active ? "var(--accent)" : "var(--border)",
   background: active ? "var(--accent-bg)" : "var(--bg-subtle)",
-  color: active ? "var(--accent)" : "#e0e0e0",
+  color: active ? "var(--accent)" : "var(--text)",
   fontWeight: active ? 700 : 500,
 });
 
