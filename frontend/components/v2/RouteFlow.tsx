@@ -36,7 +36,8 @@ export function RouteFlow({ heats, labels, personas = [], candidates, editable =
   const [expanded, setExpanded] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
 
-  if (!baseDepts.length) return null;
+  // 计划模式即使无建议部门也要渲染(让用户从全部门自己点选); 仅非计划模式空了才不显示
+  if (!baseDepts.length && !planMode) return null;
 
   const effective = [...baseDepts.filter((d) => !removed.has(d)), ...added];
   const changed = removed.size > 0 || added.length > 0;
