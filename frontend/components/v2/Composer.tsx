@@ -66,8 +66,6 @@ export function Composer({
     ? "AI 自动"
     : (FRAMEWORKS.find((f) => f.id === sel[0])?.label ?? sel[0]) + (sel.length > 1 ? ` +${sel.length - 1}` : "");
 
-  const tierLabel = TIERS.find((t) => t.v === tier)?.label ?? "中等";
-
   // 自适应高度
   useEffect(() => {
     const ta = taRef.current;
@@ -140,7 +138,7 @@ export function Composer({
               }}
             >
               <Icon name="tune" />
-              {tierLabel}
+              思考深度
               <Icon name={effOpen ? "expand_less" : "expand_more"} />
             </button>
             {effOpen && (
