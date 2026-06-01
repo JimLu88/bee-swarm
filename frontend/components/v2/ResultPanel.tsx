@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Icon } from "./Icon";
 import { SmartResultRenderer } from "./viz/SmartResultRenderer";
 import { InfoFeed, type MediaCard } from "./viz/InfoFeed";
+import { IntelStation } from "./viz/IntelStation";
 import { avBg, confColor, confBg, initial, EFFORT_LABELS } from "../../lib/scenes";
 
 export type DeptReport = {
@@ -63,6 +64,7 @@ function dissentLabel(v: number): string {
 
 export function ResultPanel({ summary, onRerunDept, rerunningDept, onFeedback, onRegenerate, effort, labels, backendUrl }: Props) {
   const [acOpen, setAcOpen] = useState(false);
+  const [intelOpen, setIntelOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [fb, setFb] = useState<null | "up" | "down">(null);
 
@@ -195,12 +197,18 @@ export function ResultPanel({ summary, onRerunDept, rerunningDept, onFeedback, o
             <Icon name="auto_stories" className="lead-i" />
             <span className="t">相关图文资料</span>
             <span className="c">{mediaCards.length} 条</span>
+            <button type="button" onClick={() => setIntelOpen(true)}
+              style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 999, border: "1px solid var(--accent)", background: "var(--accent-bg)", color: "var(--accent)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+              <Icon name="travel_explore" size={15} /> 全屏情报站
+            </button>
           </div>
           <div className="accord-body" style={{ display: "flex" }}>
             <InfoFeed deptQuotes={[]} mediaCards={mediaCards} backendUrl={backendUrl} />
           </div>
         </div>
       )}
+      <IntelStation open={intelOpen} onClose={() => setIntelOpen(false)}
+        title={summary.mode_label || summary.task || "情报站"} mediaCards={mediaCards} backendUrl={backendUrl} />
 
       {/* 操作条 */}
       <div className="actions">
