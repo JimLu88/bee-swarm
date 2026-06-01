@@ -74,6 +74,16 @@ def _role_of_staff(persona_id: str, title: str) -> str:
     return ROLE_ATTENDING
 
 
+def _dedup_by_title(books: list[Book]) -> list[Book]:
+    seen: set[str] = set()
+    out: list[Book] = []
+    for b in books:
+        if b.title not in seen:
+            seen.add(b.title)
+            out.append(b)
+    return out
+
+
 def select_books_for_role(
     lib: SpecialtyLibrary | None,
     role: str,
@@ -81,26 +91,41 @@ def select_books_for_role(
     *,
     head_plus_pool: list[Book] | None = None,
     ceo_pool: list[Book] | None = None,
+    all_specialty: list[Book] | None = None,
 ) -> list[Book]:
-    """按角色选书 (v8 分层):
-      staff(helper/attending/reviewer) → target(默认30) 本本专科书 (按 roles 偏好+重要度).
-      head → HEAD_SPECIALTY_CAP 本专科 + 从 head_plus_pool 补到 50 (管理/系统化增量).
-      ceo  → 直接从 ceo_pool 取 80 本 (不依赖单一专科库).
+    """按角色选书 (v9 配比: 80% 专业 + 20% 管理/决策):
+      staff → target(默认30) 本本专科书 (按 roles 偏好+重要度).
+      head → 50 本 = 40 专业(本科为主, 不足用跨科补) + 10 管理/系统化(head_plus_pool).
+      ceo  → 80 本 = 64 跨部门专业(all_specialty) + 16 决策/管理(ceo_pool).
+    用户定: 主管/CEO 也必须 80% 是本场景专业知识, 只有 20% 是管理决策, 否则不懂行.
     """
     tgt = target if target is not None else ROLE_TARGETS.get(role, 30)
+    spec_n = int(round(tgt * 0.8))   # 80% 专业
+    pool_n = tgt - spec_n            # 20% 管理/决策
 
     if role == ROLE_CEO:
-        return sorted(ceo_pool or [], key=lambda b: -b.importance)[:tgt]
+        # CEO 主体是跨部门专业书(广), 只夹 20% 决策管理池
+        spec = _dedup_by_title(sorted(all_specialty or [], key=lambda b: -b.importance))
+        picked = spec[:spec_n]
+        chosen = {b.title for b in picked}
+        pool = [b for b in sorted(ceo_pool or [], key=lambda b: -b.importance) if b.title not in chosen]
+        return (picked + pool[:pool_n])[:tgt]
 
     if role == ROLE_HEAD:
-        spec = sorted((lib.books if lib else []), key=lambda b: -b.importance)
-        picked = spec[:HEAD_SPECIALTY_CAP]
-        chosen_titles = {b.title for b in picked}
-        plus = [b for b in sorted(head_plus_pool or [], key=lambda b: -b.importance)
-                if b.title not in chosen_titles]
-        return (picked + plus)[:tgt]
+        own = sorted((lib.books if lib else []), key=lambda b: -b.importance)
+        picked = own[:spec_n]
+        chosen = {b.title for b in picked}
+        # 本科专业书不足 80% → 用跨部门专业补 (仍算专业, 不用管理凑数)
+        if len(picked) < spec_n and all_specialty:
+            for b in sorted(all_specialty, key=lambda b: -b.importance):
+                if b.title not in chosen:
+                    picked.append(b); chosen.add(b.title)
+                    if len(picked) >= spec_n:
+                        break
+        plus = [b for b in sorted(head_plus_pool or [], key=lambda b: -b.importance) if b.title not in chosen]
+        return (picked + plus[:pool_n])[:tgt]
 
-    # staff: 偏好匹配本角色 roles 的书, 再用其余补足
+    # staff: 偏好匹配本角色 roles 的书, 再用其余补足 (全专业)
     books = lib.books if lib else []
     primary = sorted([b for b in books if role in b.roles], key=lambda b: -b.importance)
     rest = sorted([b for b in books if role not in b.roles], key=lambda b: -b.importance)
@@ -212,6 +237,8 @@ def seed_scenario(
     target_per_persona=None → 按 ROLE_TARGETS 自动 (30/50/80); 给数字则覆盖.
     """
     personas = list_personas(mode_id)
+    # v9: 跨部门专业书并集 (CEO 取 64 本广度, head 本科不足时补) — 保证主管/CEO 80% 专业
+    all_specialty = _dedup_by_title([b for lb in libraries.values() for b in lb.books])
     stats = {"mode_id": mode_id, "personas": len(personas), "stored": 0,
              "skipped": 0, "no_lib": 0, "failed": 0}
     for p in personas:
@@ -231,6 +258,7 @@ def seed_scenario(
         books = select_books_for_role(
             lib, role, target_per_persona,
             head_plus_pool=head_plus_pool, ceo_pool=ceo_pool,
+            all_specialty=all_specialty,
         )
         existing = _existing_titles_for_persona(p["persona_id"]) if skip_existing else set()
         n_ok = n_skip = n_fail = 0
