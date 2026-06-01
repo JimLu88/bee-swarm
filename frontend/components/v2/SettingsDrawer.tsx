@@ -232,7 +232,7 @@ export function SettingsDrawer(props: Props) {
                   background: "var(--info-bg)",
                 }}>
                   <b>这是什么:</b> 8 套思考方法 (Chain-of-Thought / Tree-of-Thoughts / Self-Ask / Reflexion ...).
-                  AI 分诊官会根据你的任务自动选 0-2 个最合适的, 不需要你操心.
+                  AI 蜂枢会根据你的任务自动选 0-2 个最合适的, 不需要你操心.
                   <br/><b>什么时候动手:</b> 你想强制让 AI 用某个特定方法时.
                 </div>
                 <ThinkingFrameworksPanel

@@ -1,6 +1,6 @@
 "use client";
 
-// v10 横向路线流图(方案A): 分诊官 → 部门 chip 并排 → 综合.
+// v10 横向路线流图(方案A): 蜂枢 → 部门 chip 并排 → 综合.
 // 提问后自动生成, 显示调用了哪几个部门/哪些人; 可 ✕移除 / ＋加部门, 改完「重新会诊」用新阵容重跑.
 import { useState } from "react";
 import { Icon } from "./Icon";
@@ -148,12 +148,12 @@ export function RouteFlow({ heats, labels, personas = [], candidates, editable =
         <span style={{ fontSize: 11, color: "var(--text-faint)" }}>
           {planMode
             ? `打算让这 ${effective.length} 位顾问讨论 · 可增减后开跑`
-            : `分诊官调用了 ${effective.length} 个部门${editable ? " · 可增减后重新讨论" : ""}`}
+            : `蜂枢调用了 ${effective.length} 个部门${editable ? " · 可增减后重新讨论" : ""}`}
         </span>
       </div>
 
       <div style={{ display: "flex", alignItems: "flex-start", gap: 8, overflowX: "auto", paddingBottom: 4 }}>
-        {node("分诊官", "hub")}
+        {node("蜂枢", "hub")}
         {arrow}
 
         <div style={{ flex: "1 1 auto", display: "flex", flexWrap: "wrap", gap: 6, alignContent: "flex-start" }}>

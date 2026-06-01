@@ -53,7 +53,7 @@ class LiteLlmClient:
         # v6-W-fix 关键修复: 不设 max_tokens 时网关默认截断在 ~1k tokens,
         # 部门要求输出 JSON, 截断 → JSON 不完整 → parse 失败 → 退化成占位符.
         # 给足额度让 consensus+conflicts+评分 JSON 完整输出.
-        extra["max_tokens"] = 4000
+        extra["max_tokens"] = 6000  # v11 CEO 富输出(总研判+评分+方向+研判)更长, 4000 会截断
         return extra
 
     async def _ollama_chat(

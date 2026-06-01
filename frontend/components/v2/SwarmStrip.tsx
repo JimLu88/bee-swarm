@@ -38,16 +38,16 @@ export function SwarmStrip({ heats, running, done, rounds = 2, advisorCount, pro
   const allDeptsDone = heats.length > 0 && heats.every((h) => h.status === "done");
 
   const steps: StepDef[] = [
-    { text: <><b>分诊官</b>读题，判断需要哪些顾问</>, done: done || heats.length > 0 },
+    { text: <><b>蜂枢</b>读题，判断需要哪些顾问</>, done: done || heats.length > 0 },
     { text: <><b>{count} 位顾问</b>并行讨论 {rounds} 轮，互相质疑收敛</>, done: done || allDeptsDone },
     { text: <><b>红队</b>对结论挑刺，标注风险</>, done: done || progress >= 90 },
-    { text: <><b>分诊官</b>综合各方，给出最终建议</>, done },
+    { text: <><b>蜂枢</b>综合各方，给出最终建议</>, done },
   ];
 
   const title: ReactNode = done ? (
     <><b>{count} 位顾问</b>已完成协作 · CEO 分诊 → 并行讨论 {rounds} 轮 → 综合</>
   ) : heats.length === 0 ? (
-    "分诊官正在分配顾问…"
+    "蜂枢正在分配顾问…"
   ) : (
     "顾问们正在并行讨论…"
   );

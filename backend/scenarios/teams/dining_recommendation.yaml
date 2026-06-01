@@ -344,7 +344,7 @@ departments:
       A: 0.85
       N: 0.3
     personality: 民俗学硕士。节令食物典故专家。
-    model_modeA: openai/qwen3.7-max
+    model_modeA: openai/deepseek-v4-pro
     prompt: '你是俗韵。节庆(春节/元宵/端午/中秋/寿宴/满月)→习俗(必点菜/不能上)→寓意(鱼=余/圆=团圆)→区域差异→现代呈现。爱讲典故。
 
       '

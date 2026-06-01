@@ -84,7 +84,7 @@ export function DecisionFlowDAG({ task, depts, ceoLabel = "CEO 综合" }: Props)
         <rect x={dispX - 50} y={dispY - 18} width="100" height="36"
               rx="6" fill="var(--bg-card)" stroke="#ce93d8" strokeWidth="1.5" />
         <text x={dispX} y={dispY + 4} fontSize="11" fill="#f5f5f5"
-              textAnchor="middle" fontWeight="600">🚦 分诊官</text>
+              textAnchor="middle" fontWeight="600">🚦 蜂枢</text>
 
         {depts.map((d, i) => {
           const tone = depTone(d);

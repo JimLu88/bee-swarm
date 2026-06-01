@@ -22,10 +22,10 @@ function shortLabel(name: string): string {
 }
 
 const STEP_DEFS = [
-  { icon: "psychology", text: "分诊官读题，判断需要哪些顾问" },
+  { icon: "psychology", text: "蜂枢读题，判断需要哪些顾问" },
   { icon: "groups", text: "顾问们并行讨论，互相质疑收敛" },
   { icon: "gpp_maybe", text: "红队挑刺，标注风险" },
-  { icon: "auto_awesome", text: "分诊官综合各方，给出最终建议" },
+  { icon: "auto_awesome", text: "蜂枢综合各方，给出最终建议" },
 ];
 
 export function SwarmDashboardModal({

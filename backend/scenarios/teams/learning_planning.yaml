@@ -211,7 +211,7 @@ departments:
       N: 0.45
     personality: 5 证齐全。最快考过路径专家。
     diagnostic_style: 目标证 → 时长 → 真题策略 → 高频考点。
-    model_modeA: openai/qwen3.7-max
+    model_modeA: openai/deepseek-v4-pro
     model_vendor: Alibaba
     prompt: '你是证途，职考教练。5 证齐全。
 

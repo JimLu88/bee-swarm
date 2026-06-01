@@ -77,7 +77,7 @@ def dept_briefs(task: str, departments: list[str]) -> dict[str, str]:
 
 def run_dispatcher(*, task: str, departments: list[str]) -> dict[str, Any]:
     """
-    Preprocessor / triage (白皮书「预处理分诊官」骨架).
+    Preprocessor / triage (白皮书「预处理蜂枢」骨架).
     Deterministic + keyword-assisted; replaceable by LLM later.
     """
     meta = classify_task(task)
