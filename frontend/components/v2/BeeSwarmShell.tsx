@@ -402,7 +402,7 @@ export function BeeSwarmShell() {
         const cr = await fetchWithTimeout(
           `${backendUrl}/api/modes/classify`,
           { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ task: t }) },
-          TIMEOUT_MS.decisionStart,
+          15000,  // 分类只给 15s, 慢模型超时就快速降级到当前场景, 不让用户傻等
         );
         if (cr.ok) {
           const cj = await cr.json();
