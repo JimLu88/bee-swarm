@@ -450,6 +450,48 @@ def modes_lookup(mode_id: str) -> dict:
     }
 
 
+@app.post("/api/modes/classify")
+async def modes_classify(body: dict = Body(...)) -> dict:
+    """v10: AI 先判断用户问题属于哪个场景. 返回 {matched, mode_id, mode_label}.
+    matched=False → 没有合适场景, 前端提示是否新建自定义场景."""
+    task = str((body or {}).get("task") or "").strip()
+    if not task:
+        return {"matched": False, "mode_id": None, "reason": "empty_task"}
+    from .modes import list_modes
+    from .llm.litellm_client import litellm_client
+    from .llm.parsing import _extract_json
+    from .llm.router import router as _router
+    import os as _os
+    modes = list_modes()
+    valid = {m.mode_id: m.label for m in modes}
+    menu = "\n".join(f"  {mid}: {label}" for mid, label in valid.items())
+    sys_prompt = (
+        "你是场景路由器。下面是所有可用咨询场景, 判断用户的问题最该用哪一个场景来回答。\n"
+        f"{menu}\n\n"
+        '只输出 JSON: {"mode_id":"<最匹配的场景id, 必须严格来自上面列表>","matched":true}。'
+        '若没有任何场景明显贴合, 输出 {"mode_id":null,"matched":false}。不要解释。'
+    )
+    model = _os.environ.get("BEE_CLASSIFY_MODEL", "").strip()
+    if not model:
+        try:
+            from .persona.team_generator import _resolve_ceo_model
+            model = _resolve_ceo_model()  # 用户配置的可用默认模型(与真实决策同款)
+        except Exception:
+            model = "openai/deepseek-v4-flash"
+    try:
+        resp = await litellm_client.complete(
+            model=model, fallbacks=_router.fallbacks(),
+            system=sys_prompt, prompt=f"用户问题:\n{task[:1200]}",
+        )
+        obj = _extract_json(resp.text or "") or {}
+    except Exception as e:
+        return {"matched": False, "mode_id": None, "reason": repr(e)}
+    mid = obj.get("mode_id")
+    if isinstance(mid, str) and mid in valid:
+        return {"matched": True, "mode_id": mid, "mode_label": valid[mid]}
+    return {"matched": False, "mode_id": None}
+
+
 @app.post("/api/modes/reload")
 def modes_reload_registry() -> dict:
     """
