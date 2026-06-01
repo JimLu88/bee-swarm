@@ -294,7 +294,7 @@ export function BackupConfigPanel({ backendUrl }: Props) {
           <li><b>趋势采集</b>: p2/p17 evolver 每天扫的 arxiv 论文 / GitHub 热门</li>
           <li><b>用户偏好</b>: 你的反馈、纠正、点 ⭐ 的内容</li>
         </ul>
-        <b style={{ color: "var(--info)" }}>5 池备份做啥?</b> 把这些记忆切成加密分片, 散存到 5 个云服务 (GitHub Gist/R2/Notion/阿里/Google Drive),
+        <b style={{ color: "var(--info)" }}>5 池备份做啥?</b> 把这些记忆切成加密分片, 散存到 5 个云服务 (GitHub Gist/坚果云/Notion/Gitee 码云/Google Drive),
         任 3 个还活着就能恢复. <b style={{ color: "#ffb300" }}>不配 Key 也能用</b> — 数据存本地, 5 池只是"额外保险".
       </div>
 
