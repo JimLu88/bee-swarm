@@ -436,11 +436,17 @@ def scenarios_rollback(body: ScenarioRollbackRequest) -> dict:
 def modes_lookup(mode_id: str) -> dict:
     """Resolve a ``mode_id`` and report whether it came from built-ins, YAML extras, or fallback."""
     m, registry = resolve_mode(mode_id)
+    mode_dict = m.model_dump()
+    # v9 合并横切部门中文名 (parallel_architecture_scout 等动态注入部门), 让前端 chip 不显示英文 id.
+    # 顺序: 横切默认在前, mode 自己的 label 覆盖之 (同 id 时以场景定义为准).
+    from .modes import CROSSCUTTING_DEPT_LABELS
+    merged_labels = {**CROSSCUTTING_DEPT_LABELS, **(mode_dict.get("department_labels") or {})}
+    mode_dict["department_labels"] = merged_labels
     return {
         "requested_mode_id": mode_id,
         "registry": registry,
         "fallback_to_program_management": registry == "fallback",
-        "mode": m.model_dump(),
+        "mode": mode_dict,
     }
 
 

@@ -29,6 +29,19 @@ def reload_mode_yaml_cache() -> None:
     _EXTRA_MODES_CACHE = None
 
 
+# v9 横切/动态注入部门的中文名 — 这些部门(视野拓展部 + 通用横切)由 dispatcher/run_decision
+# 动态加进 departments, 不在任何 mode 的 department_labels 里, 之前在前端 chip 显示成英文 id。
+# /api/modes/lookup 会把本表合并进返回的 department_labels, 一处定义、所有场景生效。
+CROSSCUTTING_DEPT_LABELS: dict[str, str] = {
+    "parallel_architecture_scout": "外部平行架构对比",
+    "out_of_box_breakthrough": "破局思考",
+    "benchmark": "对标基准",
+    "xlab": "破局思考部 (X-Lab)",
+    "security": "安全合规",
+    "arch": "架构设计",
+}
+
+
 MODES: dict[str, ModeInfo] = {
     "program_management": ModeInfo(
         mode_id="program_management",

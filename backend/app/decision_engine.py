@@ -490,6 +490,17 @@ async def finalize_decision_bundle(
     ]
 
     red_depts = [c.dept for c in heatmap if c.alert == "red"]
+    # v9 部门 id → 中文 (红队预警/展示用, 含横切部门), 避免 CEO 文末出现英文 dept id
+    try:
+        from .modes import get_mode as _gm, CROSSCUTTING_DEPT_LABELS as _cc
+        _dept_cn = {**_cc, **(getattr(_gm(mode_id), "department_labels", {}) or {})}
+    except Exception:
+        _dept_cn = {}
+
+    def _dcn(d: str) -> str:
+        return str(_dept_cn.get(d, d)).split(" (")[0].split("（")[0]
+
+    red_depts_cn = [_dcn(d) for d in red_depts]
     lvl = dsp_meta.get("level")
 
     # v1.2 真 LLM 综合 CEO 决策 (失败回退到模板兜底)
@@ -559,7 +570,7 @@ async def finalize_decision_bundle(
     if not ceo_decision:
         ceo_decision = f"CEO（分诊：{lvl}）：先完成可运行链路，再按需深化；遵守各部门分诊上下文与热力图预警。"
     if red_depts:
-        ceo_decision += f"\n\n⚠ 注意:{', '.join(red_depts)} 部门有红色预警,可展开看详情。"
+        ceo_decision += f"\n\n⚠ 注意:{', '.join(red_depts_cn)} 部门有红色预警,可展开看详情。"
 
     # v1.2 红队风险 — 真 LLM 分析任务 + 部门意见, 失败兜底
     risks: list[str] = []
@@ -591,7 +602,7 @@ async def finalize_decision_bundle(
         pass
     # 实在没产出: 看是否有红色预警部门, 给个通用提示
     if not risks and red_depts:
-        risks.append(f"{red_depts[0]} 部门有较大异议或信心较低, 建议你看下原始意见再决定.")
+        risks.append(f"{red_depts_cn[0]} 部门有较大异议或信心较低, 建议你看下原始意见再决定.")
 
     execution = build_execution_bundle(
         expected_depts=depts,
