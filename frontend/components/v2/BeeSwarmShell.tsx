@@ -197,6 +197,8 @@ export function BeeSwarmShell() {
   // v10 C: 提问后先弹"确认阵容"(preflight 建议部门), 用户增减后才真跑
   const [planConfirm, setPlanConfirm] = useState<{ task: string; depts: string[]; allDepts: string[]; switchedTo?: string; noMatch?: boolean } | null>(null);
   const [planLoading, setPlanLoading] = useState(false);
+  // v10: 自动识别出的场景中文名, 实时显示在 loading 行 ("✨ 识别为「X」场景")
+  const [planScene, setPlanScene] = useState<string | null>(null);
 
   // thinking frameworks (AI 自动选; SettingsDrawer 可手动改)
   const [frameworks, setFrameworks] = useState<string[]>([]);
@@ -397,6 +399,7 @@ export function BeeSwarmShell() {
     if (!t) { setError("先写一句话告诉我你要什么"); return; }
     if (busy || planLoading) return;
     setError(null);
+    setPlanScene(null);
     setPlanLoading(true);
     (async () => {
       // 1) 场景解析:
@@ -424,6 +427,7 @@ export function BeeSwarmShell() {
           }
         } catch { /* 分类失败 → 用通用咨询兜底 */ }
         setAutoResolved(useMode); // 记下识别出的场景供本轮运行; 下拉仍停在"自动识别"
+        setPlanScene(switchedTo || "通用咨询"); // 立刻在 loading 行显示识别结果, 不用等部门预判
       }
 
       // 努力程度=简单(ceo_only) → 不开部门, 直接用解析后的场景开跑
@@ -679,7 +683,10 @@ export function BeeSwarmShell() {
       )}
       {planLoading && (
         <div style={{ marginBottom: 10, padding: "10px 12px", borderRadius: 12, border: "1px solid var(--border)", background: "var(--bg-card)", display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: "var(--text-dim)" }}>
-          <Icon name="progress_activity" className="spinning" size={16} /> 正在判断这个问题需要哪几位顾问…
+          <Icon name="progress_activity" className="spinning" size={16} />
+          {planScene
+            ? <span><b style={{ color: "var(--accent)" }}>✨ 识别为「{planScene}」场景</b>，正在安排合适的顾问…</span>
+            : "正在判断这个问题属于哪个场景、需要哪几位顾问…"}
         </div>
       )}
       {planConfirm && (
