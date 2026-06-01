@@ -218,6 +218,8 @@ class DeptLeadReport(BaseModel):
     rag_context: list[dict[str, Any]] = Field(default_factory=list)
     rag_retrieval_meta: dict[str, Any] = Field(default_factory=dict)
     raw_debate: list[dict[str, Any]] = Field(default_factory=list)
+    # v10 D: 本次该顾问从专业知识库实际读取(注入)的条数, 前端显示"读了 N 本专业书"
+    kb_used: int = 0
 
 
 class HeatmapCell(BaseModel):

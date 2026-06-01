@@ -420,6 +420,7 @@ async def _run_dept(
         rag_context=[c.__dict__ for c in combined],
         rag_retrieval_meta=_rag_retrieval_meta(combined, web_chunks),
         raw_debate=raw_debate,
+        kb_used=(len(kb_bundle.fragments) if kb_bundle is not None else 0),
     )
 
     if shadow_rec and isinstance(shadow_rec.get("version"), int):

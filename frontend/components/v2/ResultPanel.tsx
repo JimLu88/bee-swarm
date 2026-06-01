@@ -12,6 +12,7 @@ export type DeptReport = {
   conflicts?: string[];
   confidence_score?: number;
   dissent_intensity?: number;
+  kb_used?: number;
 };
 
 export type DecisionSummary = {
@@ -74,6 +75,7 @@ export function ResultPanel({ summary, onRerunDept, rerunningDept, onFeedback, o
   const risks = summary.red_team_risks ?? [];
   const riskCount = risks.length;
   const mediaCards = summary.media_cards ?? [];
+  const kbTotal = reports.reduce((s, r) => s + (r.kb_used ?? 0), 0);
 
   const copy = async () => {
     try {
@@ -133,7 +135,7 @@ export function ResultPanel({ summary, onRerunDept, rerunningDept, onFeedback, o
           <button type="button" className="accord-head" onClick={() => setAcOpen((v) => !v)}>
             <Icon name="forum" className="lead-i" />
             <span className="t">各顾问具体怎么说</span>
-            <span className="c">{deptCount} 份发言</span>
+            <span className="c">{deptCount} 份发言{kbTotal > 0 ? ` · 共参考 ${kbTotal} 条专业知识` : ""}</span>
             <Icon name="expand_more" className="chev" />
           </button>
           <div className="accord-body">
@@ -146,6 +148,11 @@ export function ResultPanel({ summary, onRerunDept, rerunningDept, onFeedback, o
                   <div className="dept-top">
                     <span className="adv-av" style={{ background: avBg(i) }}>{initial(name)}</span>
                     <span className="dept-name">{name}</span>
+                    {(r.kb_used ?? 0) > 0 && (
+                      <span title="本次该顾问参考的专业知识条数" style={{ fontSize: 11, color: "var(--text-dim)", display: "inline-flex", alignItems: "center", gap: 2, marginLeft: 6 }}>
+                        <Icon name="menu_book" size={13} />{r.kb_used}
+                      </span>
+                    )}
                     <span className="dept-conf">
                       <span className="conf-pill" style={{ background: confBg(conf), color: confColor(conf) }}>
                         {(conf * 100).toFixed(0)}%
