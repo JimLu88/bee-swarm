@@ -87,6 +87,8 @@ export function BeeSwarmShell() {
 
   // --- core decision state ---
   const [mode, setMode] = useState<string>(AUTO_MODE);
+  // v10: "自动识别"时, 本地模型判断出的真实场景存这里; 下拉 mode 保持 AUTO 不变, 运行时用它.
+  const [autoResolved, setAutoResolved] = useState<string>("generic_consulting");
   const { value: task, setValue: setTask, clear: clearTaskBackup } = useAutosave<string>("task-input", "");
   const [difficulty, setDifficulty] = useState<Difficulty>(3);
   const [busy, setBusy] = useState(false);
@@ -341,7 +343,7 @@ export function BeeSwarmShell() {
     if (!t) { setError("先写一句话告诉我你要什么"); return; }
     if (busy) return;
     setError(null);
-    const runMode = modeOverride || mode;
+    const runMode = modeOverride || (mode === AUTO_MODE ? autoResolved : mode);
 
     const eff = difficulty;
     const m = EFFORT_MAP[eff];
@@ -387,7 +389,7 @@ export function BeeSwarmShell() {
         setTurns((prev) => prev.map((tt) => tt.id === turnId ? { ...tt, status: "error" } : tt));
       }
     })();
-  }, [busy, difficulty, images, docFiles, mode, frameworks, tier, backendUrl, clearTaskBackup, attachStream]);
+  }, [busy, difficulty, images, docFiles, mode, autoResolved, frameworks, tier, backendUrl, clearTaskBackup, attachStream]);
 
   // v10 C: 提问 → 调 preflight 得到建议部门 → 弹确认阵容卡 (简单档=ceo_only 直接跑, 不弹)
   const proposePlan = useCallback((text: string) => {
@@ -421,7 +423,7 @@ export function BeeSwarmShell() {
             }
           }
         } catch { /* 分类失败 → 用通用咨询兜底 */ }
-        setMode(useMode); // 把"自动识别"落到识别出的具体场景(本轮可见)
+        setAutoResolved(useMode); // 记下识别出的场景供本轮运行; 下拉仍停在"自动识别"
       }
 
       // 努力程度=简单(ceo_only) → 不开部门, 直接用解析后的场景开跑
@@ -483,7 +485,7 @@ export function BeeSwarmShell() {
           {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              task: t, mode_id: mode,
+              task: t, mode_id: (mode === AUTO_MODE ? autoResolved : mode),
               debate_rounds: Math.max(p.rounds, 1),
               thinking_frameworks: frameworks.length > 0 ? frameworks : undefined,
               tier, images: curImages, files: curDocs,
@@ -504,7 +506,7 @@ export function BeeSwarmShell() {
         setTurns((prev) => prev.map((tt) => tt.id === turnId ? { ...tt, status: "error" } : tt));
       }
     })();
-  }, [task, busy, images, docFiles, mode, frameworks, tier, backendUrl, clearTaskBackup, attachStream]);
+  }, [task, busy, images, docFiles, mode, autoResolved, frameworks, tier, backendUrl, clearTaskBackup, attachStream]);
 
   // v10 路线图「重新会诊」: 用调整后的部门集重跑同一个问题 (route=multi + departments_override)
   const rerunWithDepts = useCallback((userText: string, depts: string[]) => {
@@ -526,7 +528,7 @@ export function BeeSwarmShell() {
           {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              task: t, mode_id: mode, debate_rounds: rounds,
+              task: t, mode_id: (mode === AUTO_MODE ? autoResolved : mode), debate_rounds: rounds,
               thinking_frameworks: frameworks.length > 0 ? frameworks : undefined,
               tier, route: "multi", departments_override: depts,
               difficulty_bucket: EFFORT_MAP[difficulty].diff,
@@ -545,7 +547,7 @@ export function BeeSwarmShell() {
         setTurns((prev) => prev.map((tt) => tt.id === turnId ? { ...tt, status: "error" } : tt));
       }
     })();
-  }, [busy, difficulty, mode, frameworks, tier, backendUrl, attachStream]);
+  }, [busy, difficulty, mode, autoResolved, frameworks, tier, backendUrl, attachStream]);
 
   // v10 C: 确认阵容 → 用选定部门真跑 (空=route=all 全开). 放在 runWithRoute 之后避免 TDZ.
   const confirmPlan = useCallback((depts: string[]) => {
@@ -572,14 +574,14 @@ export function BeeSwarmShell() {
         {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            decision_id: currentDecisionId, mode_id: mode, reward,
+            decision_id: currentDecisionId, mode_id: (mode === AUTO_MODE ? autoResolved : mode), reward,
             route: runMeta.route, rounds_band: runMeta.rounds_band, difficulty: runMeta.difficulty,
           }),
         },
         TIMEOUT_MS.default,
       );
     } catch { /* silent */ }
-  }, [backendUrl, currentDecisionId, runMeta, mode]);
+  }, [backendUrl, currentDecisionId, runMeta, mode, autoResolved]);
 
   // 重跑某部门
   const rerunDept = useCallback(async (deptId: string) => {
@@ -684,7 +686,7 @@ export function BeeSwarmShell() {
         <div style={{ marginBottom: 10 }}>
           {planConfirm.switchedTo && (
             <div style={{ marginBottom: 8, padding: "7px 11px", borderRadius: 10, background: "var(--accent-bg)", color: "var(--accent)", fontSize: 12.5, display: "flex", alignItems: "center", gap: 6 }}>
-              <Icon name="swap_horiz" size={16} /> 这个问题更像「{planConfirm.switchedTo}」场景，已自动切换
+              <Icon name="auto_awesome" size={16} /> 自动识别为「{planConfirm.switchedTo}」场景（本次按此会诊；下拉仍是「自动识别」）
             </div>
           )}
           {planConfirm.noMatch && (
