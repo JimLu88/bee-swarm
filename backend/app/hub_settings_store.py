@@ -36,6 +36,7 @@ HUB_FIELD_NAMES = frozenset(
         "benchmark_web_search",
         "tavily_api_key",
         "exa_api_key",
+        "amap_key",
     }
 )
 
@@ -49,6 +50,7 @@ SECRET_FIELDS = frozenset(
         "qdrant_api_key",
         "tavily_api_key",
         "exa_api_key",
+        "amap_key",
     }
 )
 
@@ -180,6 +182,7 @@ _ENV_FOR_SECRET: dict[str, tuple[str, ...]] = {
     "qdrant_api_key": ("QDRANT_API_KEY",),
     "tavily_api_key": ("TAVILY_API_KEY",),
     "exa_api_key": ("EXA_API_KEY",),
+    "amap_key": ("AMAP_KEY",),
 }
 
 

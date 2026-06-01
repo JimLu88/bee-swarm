@@ -37,6 +37,9 @@ class LlmRagSettings(BaseSettings):
     tavily_api_key: str | None = None
     exa_api_key: str | None = None
 
+    # v11 高德 Web 服务 Key (地图钉店). 可在网页「AI 大脑」里填, 存 hub_settings.json; 留空禁用地图.
+    amap_key: str | None = None
+
 
 llm_rag_settings = LlmRagSettings()
 

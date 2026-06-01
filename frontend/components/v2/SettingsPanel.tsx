@@ -24,6 +24,7 @@ type HubSettings = {
   litellm_fallback_models?: string;
   tavily_api_key?: string;        // server returns masked (***...)
   exa_api_key?: string;           // server returns masked (***...)
+  amap_key?: string;              // 高德地图 Key, server returns masked (***...)
 };
 
 const card: CSSProperties = {
@@ -180,6 +181,7 @@ export function SettingsPanel() {
   const [fallback, setFallback] = useState("");
   const [tavilyKey, setTavilyKey] = useState("");
   const [exaKey, setExaKey] = useState("");
+  const [amapKey, setAmapKey] = useState("");
   const [presetId, setPresetId] = useState("aihubmix");
   const [msg, setMsg] = useState<string | null>(null);
   const [diagResult, setDiagResult] = useState<{
@@ -228,6 +230,7 @@ export function SettingsPanel() {
       if (apiKey && !apiKey.startsWith("***")) body.openai_api_key = apiKey;
       if (tavilyKey && !tavilyKey.startsWith("***")) body.tavily_api_key = tavilyKey.trim();
       if (exaKey && !exaKey.startsWith("***")) body.exa_api_key = exaKey.trim();
+      if (amapKey && !amapKey.startsWith("***")) body.amap_key = amapKey.trim();
       const r = await fetchWithTimeout(`${backendUrl}/api/settings/hub`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -241,6 +244,7 @@ export function SettingsPanel() {
       setApiKey(""); // clear input (server now holds it)
       setTavilyKey("");
       setExaKey("");
+      setAmapKey("");
       refresh();
     } catch (e: unknown) {
       setMsg("❌ 保存失败 (检查地址/密钥): " + ((e as Error).message ?? "未知错误"));
@@ -420,6 +424,24 @@ export function SettingsPanel() {
         </div>
         <div style={{ fontSize: 11, color: "#ffb300" }}>
           ⚠ 搜索 Key 保存后, 需到托盘重启 <b>数据爬虫 (8003)</b> 才会真正生效.
+        </div>
+        <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12, marginTop: 4 }}>
+          <label style={label}>
+            🗺 高德地图 Key (餐饮/旅行等场景的「地图钉店」+ 评分/人均)
+            {loaded?.amap_key && loaded.amap_key.startsWith("***") && (
+              <span style={{ marginLeft: 8, opacity: 0.55 }}>(已保存:{loaded.amap_key})</span>
+            )}
+          </label>
+          <input
+            style={input}
+            type="password"
+            value={amapKey}
+            onChange={(e) => setAmapKey(e.target.value)}
+            placeholder={loaded?.amap_key ? "留空 = 不改" : "高德开放平台「Web服务」Key"}
+          />
+          <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 4 }}>
+            在 <code>lbs.amap.com</code> 控制台免费申请, 服务平台选「Web服务」。留空则地图功能关闭。
+          </div>
         </div>
       </div>
 
