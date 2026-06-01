@@ -77,6 +77,65 @@ def _rag_retrieval_meta(combined: list[RagChunk], web_chunks: list[RagChunk]) ->
     }
 
 
+async def _dining_three_faction_consensus(
+    *, dept: str, dept_label: str, task: str, persona_prompt: str,
+    kb_context: str, dispatcher_context: str, model: str, fallbacks: list[str],
+) -> str:
+    """v11 餐饮真·三派 fan-out + 真联网 + 主管(先立场→批判综合).
+    学院派(只用书) / 街头派(只用实时联网) / 怀疑派(交叉挑刺) 三 staff 并行,
+    主管先立场再逐条采纳/反驳/加强, 综合 8-10 条 + 标分歧. 返回主管的 JSON 文本.
+    """
+    import asyncio as _aio
+    # 街头/怀疑派的真联网素材 (tavily/exa via bee-scraper)
+    web_str = "（联网暂无结果）"
+    try:
+        _chunks, _ = await fetch_benchmark_web_chunks(f"{task} {dept_label} 推荐 店 点评 攻略", limit=4)
+        if _chunks:
+            parts = []
+            for c in _chunks[:4]:
+                _u = (c.meta or {}).get("source_url") or ""
+                parts.append(f"[{c.title}] {c.content[:500]}" + (f"\n来源: {_u}" if _u else ""))
+            web_str = "\n\n".join(parts)
+    except Exception:
+        pass
+
+    _base = (f"你是「{dept_label}」部门的顾问。用户问题:\n{task[:1500]}\n\n"
+             f"分诊官补充: {(dispatcher_context or '无')[:800]}\n")
+    academic_p = (_base + "\n【角色: 学院派】只依据专业知识/书本/原理, 不用实时信息。\n"
+                  f"可用书本知识:\n{(kb_context or '（无）')[:2500]}\n\n"
+                  "给 8-10 条具体、专业、可落地的建议(每条1-2句, 带原理/依据)。只输出中文要点列表, 不客套。")
+    street_p = (_base + "\n【角色: 街头派/实战派】只依据下面实时联网素材+本地经验, 给最新接地气的建议。\n"
+                f"联网素材:\n{web_str[:3000]}\n\n"
+                "给 8-10 条具体建议, 尽量带真实店名/地址/人均/必点, 标信息来源。只输出中文要点列表。")
+    skeptic_p = (_base + "\n【角色: 怀疑派/风控】交叉比对书本与实时, 专挑要警惕的(卫生/预制/已关店/性价比虚高/信息过时/水军), "
+                 "并指出书本说法与现实可能不符之处。\n"
+                 f"书本:\n{(kb_context or '（无）')[:1500]}\n实时:\n{web_str[:1500]}\n\n"
+                 "给 8-10 条'要小心/要核实'的点。只输出中文要点列表。")
+
+    async def _one(p: str) -> str:
+        try:
+            return (await litellm_client.complete(model=model, fallbacks=fallbacks, system=persona_prompt, prompt=p)).text or ""
+        except Exception as e:
+            return f"(该派暂无输出: {e!r})"
+    academic, street, skeptic = await _aio.gather(_one(academic_p), _one(street_p), _one(skeptic_p))
+
+    head_p = (
+        f"你是「{dept_label}」部门主管。用户问题:\n{task[:1500]}\n\n"
+        "① 先用 1-2 句给出你的独立判断(consensus 以「【我的判断】」开头, 别被下属带跑)。\n"
+        "你三位下属的意见如下:\n"
+        f"=== 学院派(书) ===\n{academic[:2000]}\n\n=== 街头派(实时联网) ===\n{street[:2000]}\n\n=== 怀疑派(风控) ===\n{skeptic[:2000]}\n\n"
+        "② 逐条/分组对下属意见表态: 采纳/反驳/加强/补充 + 一句理由(禁止只复述)。\n"
+        "③ 综合出你自己的 8-10 条最终建议, 每条标 [书] 或 [实时] 来源 + 适合谁; 会过期的事实(营业/价格/是否还开)末尾标「(需最新核实)」。\n"
+        "④ 最后给 conflicts: 三派之间真正的分歧点(每条一句)。\n"
+        "consensus 要有干货密度, 禁止一句话敷衍。只输出 JSON:\n"
+        '{"consensus":"【我的判断】...(含表态+8-10条建议)","conflicts":["..."],"confidence_score":0.0,"dissent_intensity":0.0}'
+    )
+    try:
+        return (await litellm_client.complete(model=model, fallbacks=fallbacks, system=persona_prompt, prompt=head_p)).text or ""
+    except Exception as e:
+        return f"[head error] {e!r}"
+
+
 async def _run_dept(
     decision_id: str,
     mode_id: str,
@@ -273,7 +332,25 @@ async def _run_dept(
                 decision_id=decision_id,
                 payload={"dept": dept, "from": llm_choice.model, "to": _effective_model},
             ))
-    if llm_choice.provider == "litellm":
+    _dining_real = (
+        mode_id == "dining_recommendation"
+        and dept not in ("xlab", "out_of_box_breakthrough", "parallel_architecture_scout")
+        and llm_choice.provider == "litellm"
+    )
+    if _dining_real:
+        # v11 餐饮真·三派 fan-out + 真联网 + 主管(先立场→批判综合), 替代单次调用.
+        try:
+            from .modes import get_mode as _gm2
+            _dlabel = (getattr(_gm2(mode_id), "department_labels", {}) or {}).get(dept, dept)
+            llm_text = await _dining_three_faction_consensus(
+                dept=dept, dept_label=_dlabel, task=task, persona_prompt=gene_prompt,
+                kb_context=rag_context_str, dispatcher_context=dispatcher_context,
+                model=_effective_model, fallbacks=llm_router.fallbacks(),
+            )
+            parsed = parse_dept_output(llm_text)
+        except Exception as e:
+            llm_text = f"[dining 3-faction error] {e!r}"
+    elif llm_choice.provider == "litellm":
         # Phase 2: call real model (env-only keys).
         try:
             llm_text = (
