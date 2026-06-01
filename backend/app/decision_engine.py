@@ -79,6 +79,18 @@ def _rag_retrieval_meta(combined: list[RagChunk], web_chunks: list[RagChunk]) ->
     }
 
 
+def _dining_head_model(dept: str, *, full_power: bool) -> str:
+    """v11 餐饮主管模型按比例分配(按 dept 名哈希, 确定性):
+    全力档 → 50% opus-4.7 / 50% deepseek-pro; 中档 → 1/3 opus / 2/3 deepseek-pro.
+    用强模型给一部分主管把关, 其余用高性价比 pro, 整体质量与成本平衡.
+    """
+    opus = "openai/claude-opus-4-7"
+    pro = "openai/deepseek-v4-pro"
+    bucket = int(hashlib.md5(dept.encode("utf-8")).hexdigest(), 16) % 100
+    threshold = 50 if full_power else 34  # 全力 50% opus; 中档 ~1/3 opus
+    return opus if bucket < threshold else pro
+
+
 async def _dining_three_faction_consensus(
     *, dept: str, dept_label: str, task: str, persona_prompt: str,
     kb_context: str, dispatcher_context: str, staff_model: str, head_model: str, fallbacks: list[str],
@@ -338,16 +350,20 @@ async def _run_dept(
             ))
     # v11 餐饮: 仅"全力"档(debate_rounds>=3)走真·三派 fan-out; 日常档(简单/一般/深入)走 prompt 版(下方单调用 + leader_value_brief).
     import os as _os_dr
-    _dining_real = (
+    _dining_base = (
         mode_id == "dining_recommendation"
         and dept not in ("xlab", "out_of_box_breakthrough", "parallel_architecture_scout")
         and llm_choice.provider == "litellm"
-        and _full_power_cv.get(False)
     )
+    _full = _full_power_cv.get(False)
+    _dining_real = _dining_base and _full
+    if _dining_base and not _full:
+        # 中档 prompt 版: 主管按 1/3 opus · 2/3 deepseek-pro 分配
+        _effective_model = _dining_head_model(dept, full_power=False)
     if _dining_real:
-        # 全力档真·三派: staff 用便宜快的 flash, 主管用更强的 pro (可 env 覆盖).
+        # 全力档真·三派: staff 用便宜快的 flash; 主管按 50% opus · 50% pro 分配 (可 env 覆盖).
         _staff_model = _os_dr.environ.get("BEE_DINING_STAFF_MODEL", "openai/deepseek-v4-flash")
-        _head_model = _os_dr.environ.get("BEE_DINING_HEAD_MODEL", "openai/deepseek-v4-pro")
+        _head_model = _os_dr.environ.get("BEE_DINING_HEAD_MODEL", "") or _dining_head_model(dept, full_power=True)
         try:
             from .modes import get_mode as _gm2
             _dlabel = (getattr(_gm2(mode_id), "department_labels", {}) or {}).get(dept, dept)

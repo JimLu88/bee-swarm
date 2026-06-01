@@ -27,7 +27,7 @@ import os
 from typing import Any
 from urllib.parse import urlparse
 
-MAX_CARDS = 12
+MAX_CARDS = 40  # v11: 12→40 条 (用户要更丰富的图文流; 配合 /api/img 代理修坏图)
 
 # 场景 mode_id → 该领域最相关的爬取平台 (web_search 通用之外的垂直补充).
 # 平台名必须是 数据爬虫/platforms.py 注册的 fetcher key.

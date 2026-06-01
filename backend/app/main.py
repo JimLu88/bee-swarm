@@ -458,6 +458,35 @@ def modes_lookup(mode_id: str) -> dict:
     }
 
 
+@app.get("/api/img")
+async def img_proxy(url: str):
+    """v11 图片代理: 服务器带 Referer 去取图再吐给前端, 解决小红书/大众点评/抖音等
+    og:image 防盗链(校验 Referer)导致前端直接加载 403/空白 的问题. 失败返回 404 让前端兜底。"""
+    from fastapi.responses import Response as _Resp
+    from urllib.parse import urlparse as _up
+    import httpx as _httpx
+    if not isinstance(url, str) or not url.startswith(("http://", "https://")):
+        raise HTTPException(status_code=400, detail="bad_url")
+    try:
+        _host = _up(url).netloc
+        _headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36",
+            "Referer": f"https://{_host}/",
+            "Accept": "image/avif,image/webp,image/*,*/*;q=0.8",
+        }
+        async with _httpx.AsyncClient(timeout=12.0, follow_redirects=True) as _c:
+            r = await _c.get(url, headers=_headers)
+        ct = r.headers.get("content-type", "")
+        if r.status_code != 200 or not ct.startswith("image"):
+            raise HTTPException(status_code=404, detail="not_image")
+        return _Resp(content=r.content, media_type=ct,
+                     headers={"Cache-Control": "public, max-age=86400"})
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=502, detail="fetch_failed")
+
+
 @app.post("/api/modes/classify")
 async def modes_classify(body: dict = Body(...)) -> dict:
     """v10: AI 先判断用户问题属于哪个场景. 返回 {matched, mode_id, mode_label}.
