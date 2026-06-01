@@ -55,22 +55,31 @@ export function SceneSwitcher({ selected, onSelect, onManage, backendUrl }: Prop
     return () => document.removeEventListener("mousedown", onDoc);
   }, [open]);
 
+  const AUTO = "__auto__";
+  const isAuto = selected === AUTO;
   const cur = modes.find((m) => m.mode_id === selected);
   const curHint = cur?.hint ?? HINT_OF[selected] ?? "多位专科顾问";
 
   return (
     <div ref={wrapRef} style={{ position: "relative" }}>
       <button type="button" className="scene-select" onClick={() => setOpen((v) => !v)}>
-        <span className="scene-ico"><Icon name={sceneIcon(selected)} /></span>
+        <span className="scene-ico"><Icon name={isAuto ? "auto_awesome" : sceneIcon(selected)} /></span>
         <span className="scene-txt">
-          <b>{cur?.label ?? "选择场景"}</b>
-          <span>{curHint}</span>
+          <b>{isAuto ? "自动识别" : (cur?.label ?? "选择场景")}</b>
+          <span>{isAuto ? "AI 按你的问题选场景" : curHint}</span>
         </span>
         <Icon name="expand_more" />
       </button>
       {open && (
         <div className="pop" style={{ top: "calc(100% + 8px)", left: 0 }}>
           <div className="pop-scroll">
+            <button type="button" className={`pop-item${isAuto ? " sel" : ""}`}
+              onClick={() => { onSelect(AUTO); setOpen(false); }}
+              style={{ borderBottom: "1px solid var(--divider)", marginBottom: 4, paddingBottom: 11 }}>
+              <span className="pi-ico"><Icon name="auto_awesome" /></span>
+              <span className="pt"><b>自动识别</b><span>AI 按你的问题自动选场景（推荐）</span></span>
+              {isAuto && <Icon name="check" className="check" />}
+            </button>
             {modes.map((m) => {
               const sel = m.mode_id === selected;
               return (
