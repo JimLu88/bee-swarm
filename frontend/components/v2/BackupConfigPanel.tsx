@@ -31,7 +31,7 @@ const POOLS = [
   { id: "webdav", label: "坚果云 WebDAV", envKey: "WEBDAV_URL", hint: "国内直连·最简单。需 WEBDAV_USER / WEBDAV_PASS(应用密码)" },
   { id: "notion", label: "Notion", envKey: "NOTION_TOKEN", hint: "需要 NOTION_DATABASE_ID (国内需梯子)" },
   { id: "gitee", label: "Gitee 码云", envKey: "GITEE_TOKEN", hint: "国内直连·长期免费·无30天限制。需 GITEE_OWNER / GITEE_REPO(私有仓库)" },
-  { id: "gdrive", label: "Google Drive", envKey: "GOOGLE_DRIVE_SA_JSON", hint: "服务账号 JSON (国内需梯子)" },
+  { id: "gitlab", label: "GitLab", envKey: "GITLAB_TOKEN", hint: "免费无限私有库·不同厂商冗余。需 GITLAB_PROJECT(ID或user/repo)。gitlab.com 国内时快时慢" },
 ];
 
 // v6-O 5 池 Key 输入器 — 直接在 UI 配, 写到 bee-memory/data/pool_config.json
@@ -87,18 +87,21 @@ const KEY_FIELDS: { group: string; help: string; fields: { key: string; placehol
     ],
   },
   {
-    group: "Google Drive (国内需梯子·可选)",
-    help: "📋 用服务账号 JSON (贴一次即可, 不会过期):\n" +
-          "1) Google Cloud Console → 建项目 → 启用 Google Drive API\n" +
-          "2) IAM → 服务账号 → 建一个 → 建密钥(JSON) → 下载那张 JSON\n" +
-          "3) 把整张 JSON 文件内容(从 { 到 } 全部)粘到下面 GOOGLE_DRIVE_SA_JSON\n" +
-          "⚠ 关键: 服务账号自己没有网盘配额! 你得在自己 Google Drive 建个文件夹,\n" +
-          "   右键共享给 JSON 里那个 client_email(xxx@xxx.iam.gserviceaccount.com),\n" +
-          "   再把该文件夹 ID 填到 GOOGLE_DRIVE_FOLDER, 否则上传会失败.\n" +
-          "💡 嫌麻烦可跳过 Google Drive, 坚果云+码云+Gist 已够 3 池恢复",
+    group: "GitLab 私有仓库 (不同厂商冗余·gitlab.com 国内时快时慢)",
+    help: "📋 步骤 (打开 gitlab.com):\n" +
+          "1) 注册登录 → 右上「+」→ New project/repository → Create blank project →\n" +
+          "   名字填 bee-backup → Visibility 选 Private → 创建\n" +
+          "2) 进仓库 → Settings → General, 顶部能看到 Project ID(一串数字) →\n" +
+          "   填到 GITLAB_PROJECT (填数字 ID 最稳; 也可填 用户名/bee-backup)\n" +
+          "3) 右上头像 → Edit profile/Preferences → Access Tokens → Add new token →\n" +
+          "   勾 ☑ api (或 write_repository) → 创建 → 复制令牌串 → 粘到 GITLAB_TOKEN\n" +
+          "4) GITLAB_BRANCH 一般留空(默认 main); GITLAB_HOST 留空(自建实例才填)\n" +
+          "💡 加密分片存进该私有库 shards/ 目录, 免费无限私有库",
     fields: [
-      { key: "GOOGLE_DRIVE_SA_JSON", placeholder: "粘贴整张服务账号 JSON ({...})", secret: true },
-      { key: "GOOGLE_DRIVE_FOLDER", placeholder: "共享给服务账号的文件夹 ID" },
+      { key: "GITLAB_TOKEN", placeholder: "Personal Access Token (勾 api 权限)", secret: true },
+      { key: "GITLAB_PROJECT", placeholder: "项目 ID(数字) 或 用户名/bee-backup" },
+      { key: "GITLAB_BRANCH", placeholder: "main (默认, 可留空)" },
+      { key: "GITLAB_HOST", placeholder: "留空 = gitlab.com (自建实例才填)" },
     ],
   },
 ];
@@ -294,7 +297,7 @@ export function BackupConfigPanel({ backendUrl }: Props) {
           <li><b>趋势采集</b>: p2/p17 evolver 每天扫的 arxiv 论文 / GitHub 热门</li>
           <li><b>用户偏好</b>: 你的反馈、纠正、点 ⭐ 的内容</li>
         </ul>
-        <b style={{ color: "var(--info)" }}>5 池备份做啥?</b> 把这些记忆切成加密分片, 散存到 5 个云服务 (GitHub Gist/坚果云/Notion/Gitee 码云/Google Drive),
+        <b style={{ color: "var(--info)" }}>5 池备份做啥?</b> 把这些记忆切成加密分片, 散存到 5 个云服务 (GitHub Gist/坚果云/Notion/Gitee 码云/GitLab),
         任 3 个还活着就能恢复. <b style={{ color: "#ffb300" }}>不配 Key 也能用</b> — 数据存本地, 5 池只是"额外保险".
       </div>
 
