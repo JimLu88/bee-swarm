@@ -131,10 +131,10 @@ export function Composer({
               onClick={() => { setEffOpen((v) => !v); setFwOpen(false); }}
               title="选模型档位 + 思考深度"
               style={{
-                display: "inline-flex", alignItems: "center", gap: 5,
-                padding: "5px 12px", borderRadius: 999, fontSize: 12.5, cursor: "pointer",
+                display: "inline-flex", alignItems: "center", gap: 4,
+                padding: "5px 10px", borderRadius: 999, fontSize: 12, cursor: "pointer",
                 borderWidth: 1, borderStyle: "solid", borderColor: "var(--border)",
-                background: "var(--bg-card)", color: "var(--text)", fontWeight: 600,
+                background: "var(--bg-card)", color: "var(--text-dim)",
               }}
             >
               <Icon name="tune" />
