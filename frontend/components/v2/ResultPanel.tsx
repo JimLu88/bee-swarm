@@ -43,6 +43,8 @@ type Props = {
   effort?: number;
   /** 部门 id → 中文名 (来自 /api/modes department_labels, 含横切部门); 没有则回退 id */
   labels?: Record<string, string>;
+  /** 后端地址 — 传给 InfoFeed 做图片代理 (/api/img) */
+  backendUrl?: string;
 };
 
 /** 中文标签取「括号前」短名: "内科 (常见病/慢病)" → "内科" */
@@ -59,7 +61,7 @@ function dissentLabel(v: number): string {
   return v >= 0.7 ? "高" : v >= 0.4 ? "中" : "低";
 }
 
-export function ResultPanel({ summary, onRerunDept, rerunningDept, onFeedback, onRegenerate, effort, labels }: Props) {
+export function ResultPanel({ summary, onRerunDept, rerunningDept, onFeedback, onRegenerate, effort, labels, backendUrl }: Props) {
   const [acOpen, setAcOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [fb, setFb] = useState<null | "up" | "down">(null);
@@ -195,7 +197,7 @@ export function ResultPanel({ summary, onRerunDept, rerunningDept, onFeedback, o
             <span className="c">{mediaCards.length} 条</span>
           </div>
           <div className="accord-body" style={{ display: "flex" }}>
-            <InfoFeed deptQuotes={[]} mediaCards={mediaCards} />
+            <InfoFeed deptQuotes={[]} mediaCards={mediaCards} backendUrl={backendUrl} />
           </div>
         </div>
       )}

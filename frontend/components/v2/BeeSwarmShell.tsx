@@ -866,6 +866,7 @@ export function BeeSwarmShell() {
                             summary={turn.summary}
                             effort={turn.effort}
                             labels={deptLabels}
+                            backendUrl={backendUrl}
                             onRerunDept={isLast ? rerunDept : undefined}
                             rerunningDept={rerunningDept}
                             onFeedback={isLast && runMeta ? sendFeedback : undefined}
