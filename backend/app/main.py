@@ -471,15 +471,16 @@ async def modes_classify(body: dict = Body(...)) -> dict:
         '只输出 JSON: {"mode_id":"<最匹配的场景id, 必须严格来自上面列表>","matched":true}。'
         '若没有任何场景明显贴合, 输出 {"mode_id":null,"matched":false}。不要解释。'
     )
-    # 场景判断只是短文本归类, 用便宜快的小模型即可(省钱 + 秒回, 不烧 opus, 也不会像 opus 那样超时).
-    # 优先级: BEE_CLASSIFY_MODEL 显式指定 > 备用链里第一个 flash/lite/mini/fast 小模型 > 备用链首个 > deepseek-v4-flash.
+    # 场景判断只是短文本归类 → 直接用本地模型最省事(免费/本地/不烧 API/不超时).
+    # 优先级: BEE_CLASSIFY_MODEL 显式指定 > 备用链里的本地 ollama 模型 > 第一个 flash/lite 小模型 > 链首 > deepseek-v4-flash.
     model = _os.environ.get("BEE_CLASSIFY_MODEL", "").strip()
     if not model:
         try:
             from .persona.team_generator import _hub_or_instance_get
             chain = [m.strip() for m in (_hub_or_instance_get("litellm_fallback_models") or "").split(",") if m.strip()]
+            local = next((m for m in chain if m.lower().startswith(("ollama", "local"))), None)
             fast = next((m for m in chain if any(k in m.lower() for k in ("flash", "lite", "mini", "fast"))), None)
-            model = fast or (chain[0] if chain else "") or "openai/deepseek-v4-flash"
+            model = local or fast or (chain[0] if chain else "") or "openai/deepseek-v4-flash"
         except Exception:
             model = "openai/deepseek-v4-flash"
     try:
