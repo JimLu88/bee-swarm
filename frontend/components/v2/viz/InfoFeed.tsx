@@ -11,6 +11,7 @@ import { motion } from "framer-motion";
 import Masonry from "react-masonry-css";
 import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
+import type { MapPlace } from "./MapPins";
 
 export type MediaCard = {
   type: "text" | "image" | "video" | "link";
@@ -32,6 +33,7 @@ type View = "editorial" | "bento" | "feed";
 type Props = {
   deptQuotes?: DeptQuote[];
   mediaCards?: MediaCard[];
+  mapPlaces?: MapPlace[];
   backendUrl?: string;
 };
 
@@ -46,9 +48,12 @@ const BREAKPOINTS = { default: 3, 900: 2, 560: 1 };
 
 type Item = MediaCard & { _conflicts?: string[] };
 
-export function InfoFeed({ deptQuotes = [], mediaCards = [], backendUrl = "" }: Props) {
+export function InfoFeed({ deptQuotes = [], mediaCards = [], mapPlaces = [], backendUrl = "" }: Props) {
   const [lb, setLb] = useState<string | null>(null);
   const [view, setView] = useState<View>("editorial");
+
+  // 数据墙用: 有评分/人均的地点 (高德 biz_ext)
+  const metricPlaces = mapPlaces.filter((p) => p && (p.rating != null || p.cost != null));
 
   // 图片代理: 走后端 /api/img 带 Referer 取图, 解决小红书/点评/抖音防盗链空白
   const proxied = (u?: string): string => {
@@ -78,7 +83,7 @@ export function InfoFeed({ deptQuotes = [], mediaCards = [], backendUrl = "" }: 
 
   const toggle = (
     <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
-      {(([["editorial", "📰 编辑长卡"], ["bento", "▦ Bento"], ["feed", "⊞ 瀑布流"]]) as [View, string][]).map(([v, label]) => (
+      {(([["editorial", "📰 编辑长卡"], ["bento", "▦ 数据墙"], ["feed", "⊞ 瀑布流"]]) as [View, string][]).map(([v, label]) => (
         <button key={v} type="button" onClick={() => setView(v)} style={{
           padding: "4px 11px", borderRadius: 8, fontSize: 12, cursor: "pointer",
           border: "1px solid var(--border)", background: view === v ? "var(--accent-bg)" : "transparent",
@@ -139,31 +144,95 @@ export function InfoFeed({ deptQuotes = [], mediaCards = [], backendUrl = "" }: 
       </div>
     );
   } else if (view === "bento") {
+    // 升级版 Bento 数据墙 (Linear/Vercel 风): KPI 大数字 + 每店评分仪表盘/人均/迷你条, 再接图文格
+    const rated = metricPlaces.filter((p) => p.rating != null);
+    const avgRating = rated.length ? rated.reduce((s, p) => s + (p.rating || 0), 0) / rated.length : 0;
+    const costs = metricPlaces.map((p) => p.cost).filter((c): c is number => c != null);
+    const costMin = costs.length ? Math.min(...costs) : null;
+    const costMax = costs.length ? Math.max(...costs) : null;
+
+    const StatTile = ({ label, value, sub, accent }: { label: string; value: ReactNode; sub?: string; accent?: string }) => (
+      <div style={{ ...cardBase, padding: "13px 16px", display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
+        <div style={{ fontSize: 11, color: "var(--text-dim)", fontWeight: 600, letterSpacing: 0.4 }}>{label}</div>
+        <div style={{ fontSize: 26, fontWeight: 800, color: accent || "var(--text)", lineHeight: 1.1, fontVariantNumeric: "tabular-nums" }}>{value}</div>
+        {sub && <div style={{ fontSize: 11, color: "var(--text-faint)" }}>{sub}</div>}
+      </div>
+    );
+
+    const GaugeRing = ({ rating }: { rating: number }) => {
+      const pct = Math.max(0, Math.min(1, rating / 5));
+      return (
+        <div style={{ position: "relative", width: 60, height: 60, borderRadius: "50%", flexShrink: 0, background: `conic-gradient(var(--accent) ${pct * 360}deg, var(--border) 0)` }}>
+          <div style={{ position: "absolute", inset: 5, borderRadius: "50%", background: "var(--bg-card)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+            <span style={{ fontSize: 17, fontWeight: 800, color: "var(--text)", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{rating.toFixed(1)}</span>
+            <span style={{ fontSize: 9, color: "#f59e0b" }}>★ 评分</span>
+          </div>
+        </div>
+      );
+    };
+
     body = (
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gridAutoRows: "118px", gap: 10 }}>
-        {items.map((m, i) => {
-          const hasImg = m.type === "image" && !!m.image_url;
-          const span: CSSProperties = hasImg
-            ? { gridColumn: "span 2", gridRow: "span 2" }
-            : (i % 4 === 0 ? { gridColumn: "span 2" } : {});
-          return (
-            <div key={i} style={{ ...cardBase, ...span, display: "flex", flexDirection: "column" }}>
-              {hasImg ? (
-                <>
-                  <div style={{ flex: 1, overflow: "hidden" }}><Img src={m.image_url!} h="100%" onClick={() => setLb(m.image_url!)} /></div>
-                  {m.title && <div style={{ padding: "6px 9px", fontSize: 11.5, fontWeight: 600, color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.title}</div>}
-                </>
-              ) : (
-                <div style={{ padding: 11, overflow: "hidden", display: "flex", flexDirection: "column", height: "100%" }}>
-                  {m.title && <div style={cardTitle}>{m.title}</div>}
-                  {m.body && <div style={{ fontSize: 11.5, lineHeight: 1.55, color: "var(--text)", overflow: "hidden", flex: 1 }}>{m.body}</div>}
-                  {linkLine(m)}
-                  {m.source && <div style={{ fontSize: 10, color: "var(--text-faint)", marginTop: 4 }}>{m.source}</div>}
-                </div>
-              )}
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        {metricPlaces.length > 0 && (
+          <>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(118px, 1fr))", gap: 10 }}>
+              <StatTile label="推荐地点" value={`${mapPlaces.length}`} sub="家已定位" accent="var(--accent)" />
+              {rated.length > 0 && <StatTile label="平均评分" value={avgRating.toFixed(1)} sub={`${rated.length} 家有评分`} accent="#f59e0b" />}
+              {costMin != null && <StatTile label="人均价位" value={costMin === costMax ? `¥${costMin}` : `¥${costMin}–${costMax}`} sub="大众点评口径" />}
             </div>
-          );
-        })}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(248px, 1fr))", gap: 10 }}>
+              {metricPlaces.map((p, i) => (
+                <motion.div key={`pl-${i}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i * 0.03, 0.3), duration: 0.3 }}
+                  whileHover={{ y: -2 }} style={{ ...cardBase, padding: 14, display: "flex", gap: 12, alignItems: "center" }}>
+                  {p.rating != null ? <GaugeRing rating={p.rating} /> : (
+                    <div style={{ width: 60, height: 60, borderRadius: "50%", border: "1px dashed var(--border)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "var(--text-faint)", flexShrink: 0, textAlign: "center" }}>暂无评分</div>
+                  )}
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ width: 18, height: 18, borderRadius: 6, background: "var(--accent-bg)", color: "var(--accent)", fontSize: 11, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{i + 1}</span>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.poi_name || p.name}</span>
+                    </div>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8, alignItems: "baseline" }}>
+                      {p.cost != null && <span style={{ fontSize: 18, fontWeight: 800, color: "var(--text)" }}>¥{p.cost}<span style={{ fontSize: 10, fontWeight: 400, color: "var(--text-dim)" }}> /人</span></span>}
+                      {p.category && <span style={{ fontSize: 10.5, padding: "2px 7px", borderRadius: 999, background: "var(--accent-bg)", color: "var(--text-dim)" }}>{p.category}</span>}
+                    </div>
+                    {p.rating != null && (
+                      <div style={{ marginTop: 8, height: 5, borderRadius: 3, background: "var(--border)", overflow: "hidden" }}>
+                        <div style={{ width: `${Math.min(100, (p.rating / 5) * 100)}%`, height: "100%", background: "linear-gradient(90deg,#f59e0b,var(--accent))" }} />
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </>
+        )}
+        {/* 图文 Bento: 图片大格 + 文本小格 */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gridAutoRows: "118px", gap: 10 }}>
+          {items.map((m, i) => {
+            const hasImg = m.type === "image" && !!m.image_url;
+            const span: CSSProperties = hasImg
+              ? { gridColumn: "span 2", gridRow: "span 2" }
+              : (i % 4 === 0 ? { gridColumn: "span 2" } : {});
+            return (
+              <div key={i} style={{ ...cardBase, ...span, display: "flex", flexDirection: "column" }}>
+                {hasImg ? (
+                  <>
+                    <div style={{ flex: 1, overflow: "hidden" }}><Img src={m.image_url!} h="100%" onClick={() => setLb(m.image_url!)} /></div>
+                    {m.title && <div style={{ padding: "6px 9px", fontSize: 11.5, fontWeight: 600, color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.title}</div>}
+                  </>
+                ) : (
+                  <div style={{ padding: 11, overflow: "hidden", display: "flex", flexDirection: "column", height: "100%" }}>
+                    {m.title && <div style={cardTitle}>{m.title}</div>}
+                    {m.body && <div style={{ fontSize: 11.5, lineHeight: 1.55, color: "var(--text)", overflow: "hidden", flex: 1 }}>{m.body}</div>}
+                    {linkLine(m)}
+                    {m.source && <div style={{ fontSize: 10, color: "var(--text-faint)", marginTop: 4 }}>{m.source}</div>}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
     );
   } else {

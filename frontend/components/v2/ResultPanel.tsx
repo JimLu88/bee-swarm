@@ -217,7 +217,7 @@ export function ResultPanel({ summary, onRerunDept, rerunningDept, onFeedback, o
             </button>
           </div>
           <div className="accord-body" style={{ display: "flex" }}>
-            <InfoFeed deptQuotes={[]} mediaCards={mediaCards} backendUrl={backendUrl} />
+            <InfoFeed deptQuotes={[]} mediaCards={mediaCards} mapPlaces={mapPlaces} backendUrl={backendUrl} />
           </div>
         </div>
       )}

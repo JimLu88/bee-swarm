@@ -14,6 +14,10 @@ export type MapPlace = {
   address?: string;
   city?: string;
   poi_name?: string;
+  rating?: number | null; // 评分 0-5 (高德 biz_ext)
+  cost?: number | null; // 人均 ¥
+  category?: string; // 品类 (如 "火锅店")
+  tel?: string;
 };
 
 // 高德栅格瓦片 (style=7 标准路网). 坐标系 GCJ-02, 与后端坐标一致 → 钉点不偏移.

@@ -120,7 +120,11 @@ async def _geocode_one(client: httpx.AsyncClient, key: str, name: str, city: str
     if ck in _cache:
         cached = _cache[ck]
         return {**cached, "name": name} if cached else None
-    params: dict[str, Any] = {"key": key, "keywords": name, "offset": 1, "page": 1, "output": "JSON"}
+    params: dict[str, Any] = {
+        "key": key, "keywords": name, "offset": 1, "page": 1,
+        "extensions": "all",  # 带 biz_ext: 评分(rating) / 人均(cost)
+        "output": "JSON",
+    }
     if city:
         params["city"] = city
         params["citylimit"] = "true"  # 限定城市内, 避免同名跨城误命中
@@ -148,12 +152,32 @@ async def _geocode_one(client: httpx.AsyncClient, key: str, name: str, city: str
     except Exception:
         _cache[ck] = None
         return None
+    # biz_ext: 评分 rating(0-5) / 人均 cost(元). 部分 POI 无值 → 空字符串.
+    biz = p0.get("biz_ext") if isinstance(p0.get("biz_ext"), dict) else {}
+    rating_s = _amap_str(biz.get("rating"))
+    cost_s = _amap_str(biz.get("cost"))
+    try:
+        rating = round(float(rating_s), 1) if rating_s else None
+    except Exception:
+        rating = None
+    try:
+        cost = round(float(cost_s)) if cost_s else None
+    except Exception:
+        cost = None
+    # type 形如 "餐饮服务;中餐厅;火锅店" → 取最细一级做品类标签
+    cat_parts = [s for s in _amap_str(p0.get("type")).split(";") if s]
+    category = cat_parts[-1] if cat_parts else ""
+
     rec: dict[str, Any] = {
         "lng": lng,
         "lat": lat,
         "address": _amap_str(p0.get("address")) or _amap_str(p0.get("name")) or name,
         "city": _amap_str(p0.get("cityname")) or city,
         "poi_name": _amap_str(p0.get("name")) or name,  # 高德返回的规范店名
+        "rating": rating,      # 评分 0-5 (无则 None)
+        "cost": cost,          # 人均 ¥ (无则 None)
+        "category": category,  # 品类标签 (如 "火锅店")
+        "tel": _amap_str(p0.get("tel")).split(";")[0],
     }
     _cache[ck] = rec
     return {**rec, "name": name}
