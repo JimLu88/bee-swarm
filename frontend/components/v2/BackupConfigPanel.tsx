@@ -30,7 +30,7 @@ const POOLS = [
   { id: "gist", label: "GitHub Gist", envKey: "GITHUB_GIST_TOKENS", hint: "多账号逗号分隔 (国内时通时不通)" },
   { id: "webdav", label: "坚果云 WebDAV", envKey: "WEBDAV_URL", hint: "国内直连·最简单。需 WEBDAV_USER / WEBDAV_PASS(应用密码)" },
   { id: "notion", label: "Notion", envKey: "NOTION_TOKEN", hint: "需要 NOTION_DATABASE_ID (国内需梯子)" },
-  { id: "qiniu", label: "七牛云 Kodo", envKey: "QINIU_AK", hint: "国内直连·10G免费。需 QINIU_SK / QINIU_BUCKET / QINIU_DOMAIN" },
+  { id: "gitee", label: "Gitee 码云", envKey: "GITEE_TOKEN", hint: "国内直连·长期免费·无30天限制。需 GITEE_OWNER / GITEE_REPO(私有仓库)" },
   { id: "gdrive", label: "Google Drive", envKey: "GOOGLE_DRIVE_SA_JSON", hint: "服务账号 JSON (国内需梯子)" },
 ];
 
@@ -71,20 +71,19 @@ const KEY_FIELDS: { group: string; help: string; fields: { key: string; placehol
     ],
   },
   {
-    group: "七牛云 Kodo (国内直连·标准存储 10G 免费)",
-    help: "📋 步骤 (打开 portal.qiniu.com):\n" +
-          "1) 注册并完成实名认证 (对象存储必须实名)\n" +
-          "2) 左侧「对象存储 Kodo」→ 新建空间(Bucket) → 名字填 bee-memory-shards → 访问控制选「私有」→ 区域记下(华东=z0)\n" +
-          "3) 右上头像 → 密钥管理 → 拿 AK (AccessKey) 和 SK (SecretKey)\n" +
-          "4) 下载域名: 空间概览里有「域名」一栏。七牛已停发永久测试域名, 需在「域名管理」绑定一个自有域名(已备案), 填到 QINIU_DOMAIN\n" +
-          "   ⚠ 没有自有域名也能上传(省本地空间), 但日后恢复需要这个域名才能下载\n" +
-          "5) QINIU_REGION 填区域码: 华东z0 / 华北z1 / 华南z2 / 北美na0 / 东南亚as0 (默认 z0)",
+    group: "Gitee 码云 (推荐·国内直连·长期免费·无30天限制)",
+    help: "📋 步骤 (打开 gitee.com):\n" +
+          "1) 注册并登录码云 → 右上「+」→ 新建仓库 → 名字填 bee-backup → 选「私有」→ 创建\n" +
+          "   (GITEE_OWNER = 你的用户名, 即仓库地址 gitee.com/【用户名】/bee-backup 里那段)\n" +
+          "2) 右上头像 → 设置 → 左侧「私人令牌」→ 生成新令牌 → 勾选 ☑ projects(仓库) 权限 → 提交\n" +
+          "3) 复制生成的令牌串 (只显示一次!) 粘到下面 GITEE_TOKEN\n" +
+          "4) GITEE_REPO 填仓库名 bee-backup; GITEE_BRANCH 一般留空(默认 master)\n" +
+          "💡 加密分片直接存进这个私有仓库的 shards/ 目录, 长期免费、国内秒连",
     fields: [
-      { key: "QINIU_AK", placeholder: "AccessKey", secret: true },
-      { key: "QINIU_SK", placeholder: "SecretKey", secret: true },
-      { key: "QINIU_BUCKET", placeholder: "bee-memory-shards" },
-      { key: "QINIU_DOMAIN", placeholder: "http://你绑定的下载域名 (恢复用, 可暂空)" },
-      { key: "QINIU_REGION", placeholder: "z0 (华东, 默认)" },
+      { key: "GITEE_TOKEN", placeholder: "私人令牌 (勾 projects 权限)", secret: true },
+      { key: "GITEE_OWNER", placeholder: "你的码云用户名" },
+      { key: "GITEE_REPO", placeholder: "bee-backup (私有仓库名)" },
+      { key: "GITEE_BRANCH", placeholder: "master (默认, 可留空)" },
     ],
   },
   {
@@ -96,7 +95,7 @@ const KEY_FIELDS: { group: string; help: string; fields: { key: string; placehol
           "⚠ 关键: 服务账号自己没有网盘配额! 你得在自己 Google Drive 建个文件夹,\n" +
           "   右键共享给 JSON 里那个 client_email(xxx@xxx.iam.gserviceaccount.com),\n" +
           "   再把该文件夹 ID 填到 GOOGLE_DRIVE_FOLDER, 否则上传会失败.\n" +
-          "💡 嫌麻烦可跳过 Google Drive, 坚果云+七牛+Gist 已够 3 池恢复",
+          "💡 嫌麻烦可跳过 Google Drive, 坚果云+码云+Gist 已够 3 池恢复",
     fields: [
       { key: "GOOGLE_DRIVE_SA_JSON", placeholder: "粘贴整张服务账号 JSON ({...})", secret: true },
       { key: "GOOGLE_DRIVE_FOLDER", placeholder: "共享给服务账号的文件夹 ID" },
