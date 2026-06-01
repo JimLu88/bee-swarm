@@ -57,6 +57,11 @@ def _load_libs() -> dict[str, dict]:
         libs["program_management"] = pm
     except Exception as e:
         print(f"[warn] program_management 书库加载失败: {e!r}")
+    try:
+        from .lib_child_education import LIBRARIES as ce
+        libs["child_education"] = ce
+    except Exception as e:
+        print(f"[warn] child_education 书库加载失败: {e!r}")
     # 后续场景书库在这里追加: libs["<mode>"] = ...
     return libs
 
