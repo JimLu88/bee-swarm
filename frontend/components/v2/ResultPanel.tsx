@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Icon } from "./Icon";
 import { SmartResultRenderer } from "./viz/SmartResultRenderer";
 import { InfoFeed, type MediaCard } from "./viz/InfoFeed";
-import { IntelStation } from "./viz/IntelStation";
 import type { MapPlace } from "./viz/MapPins";
 import { avBg, confColor, confBg, initial, EFFORT_LABELS } from "../../lib/scenes";
 
@@ -67,7 +66,6 @@ function dissentLabel(v: number): string {
 
 export function ResultPanel({ summary, onRerunDept, rerunningDept, onFeedback, onRegenerate, effort, labels, backendUrl }: Props) {
   const [acOpen, setAcOpen] = useState(false);
-  const [intelOpen, setIntelOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [fb, setFb] = useState<null | "up" | "down">(null);
 
@@ -84,6 +82,17 @@ export function ResultPanel({ summary, onRerunDept, rerunningDept, onFeedback, o
   const mediaCards = summary.media_cards ?? [];
   const mapPlaces = summary.map_places ?? [];
   const kbTotal = reports.reduce((s, r) => s + (r.kb_used ?? 0), 0);
+
+  // 「全屏情报站」: 数据写 localStorage 交接 → 新标签页打开 /intel 独立全屏 (视觉更整)
+  const openIntel = () => {
+    try {
+      localStorage.setItem("hsemas:intel", JSON.stringify({
+        title: summary.mode_label || summary.task || "情报站",
+        mediaCards, mapPlaces, backendUrl: backendUrl || "",
+      }));
+    } catch { /* 配额满/隐私模式 → 忽略, 仍尝试打开 */ }
+    window.open("/intel", "_blank", "noopener");
+  };
 
   const copy = async () => {
     try {
@@ -201,9 +210,10 @@ export function ResultPanel({ summary, onRerunDept, rerunningDept, onFeedback, o
             <Icon name="auto_stories" className="lead-i" />
             <span className="t">相关图文资料</span>
             <span className="c">{mediaCards.length} 条</span>
-            <button type="button" onClick={() => setIntelOpen(true)}
+            <button type="button" onClick={openIntel} title="新标签页打开全屏情报站"
               style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 999, border: "1px solid var(--accent)", background: "var(--accent-bg)", color: "var(--accent)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
               <Icon name="travel_explore" size={15} /> 全屏情报站
+              <Icon name="open_in_new" size={13} />
             </button>
           </div>
           <div className="accord-body" style={{ display: "flex" }}>
@@ -211,8 +221,6 @@ export function ResultPanel({ summary, onRerunDept, rerunningDept, onFeedback, o
           </div>
         </div>
       )}
-      <IntelStation open={intelOpen} onClose={() => setIntelOpen(false)}
-        title={summary.mode_label || summary.task || "情报站"} mediaCards={mediaCards} mapPlaces={mapPlaces} backendUrl={backendUrl} />
 
       {/* 操作条 */}
       <div className="actions">
