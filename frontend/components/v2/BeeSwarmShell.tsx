@@ -26,6 +26,7 @@ import { Sidebar } from "./Sidebar";
 import { SceneSwitcher } from "./SceneSwitcher";
 import { Composer } from "./Composer";
 import { SwarmStrip } from "./SwarmStrip";
+import { RouteFlow } from "./RouteFlow";
 import { sceneSuggestions } from "../../lib/scenes";
 
 /**
@@ -436,6 +437,47 @@ export function BeeSwarmShell() {
     })();
   }, [task, busy, images, docFiles, mode, frameworks, tier, backendUrl, clearTaskBackup, attachStream]);
 
+  // v10 路线图「重新会诊」: 用调整后的部门集重跑同一个问题 (route=multi + departments_override)
+  const rerunWithDepts = useCallback((userText: string, depts: string[]) => {
+    const t = (userText || "").trim();
+    if (!t || busy) return;
+    setError(null);
+    const rounds = Math.max(EFFORT_MAP[difficulty].rounds, 1);
+    const turnId = makeId();
+    setTurns((prev) => [...prev, {
+      id: turnId, user: t, effort: difficulty, status: "running", summary: null, rounds,
+    }]);
+    setView("thread"); setActiveId(turnId);
+    setBusy(true); setHeats([]); setProgress(0);
+    setRunMeta({ route: "multi", rounds_band: EFFORT_MAP[difficulty].band, difficulty: EFFORT_MAP[difficulty].diff });
+    (async () => {
+      try {
+        const res = await fetchWithTimeout(
+          `${backendUrl}/api/decision/start`,
+          {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              task: t, mode_id: mode, debate_rounds: rounds,
+              thinking_frameworks: frameworks.length > 0 ? frameworks : undefined,
+              tier, route: "multi", departments_override: depts,
+              difficulty_bucket: EFFORT_MAP[difficulty].diff,
+            }),
+          },
+          TIMEOUT_MS.decisionStart,
+        );
+        if (!res.ok) throw new Error(`decision/start ${res.status}`);
+        const j = await res.json();
+        const decisionId: string | undefined = j?.decision_id;
+        if (!decisionId) throw new Error("AI 服务暂时没响应, 等一下再试");
+        attachStream(decisionId, turnId);
+      } catch (e: unknown) {
+        setError((e as Error).message ?? "出了点小问题, 等一下重试");
+        setBusy(false);
+        setTurns((prev) => prev.map((tt) => tt.id === turnId ? { ...tt, status: "error" } : tt));
+      }
+    })();
+  }, [busy, difficulty, mode, frameworks, tier, backendUrl, attachStream]);
+
   // 反馈 → bandit
   const sendFeedback = useCallback(async (reward: number) => {
     if (!currentDecisionId || !runMeta) return;
@@ -552,6 +594,13 @@ export function BeeSwarmShell() {
         onChange={setTask}
         effort={difficulty}
         onEffortChange={setDifficulty}
+        tier={tier}
+        onTierChange={(t) => {
+          setTierState(t);
+          if (typeof window !== "undefined") {
+            try { window.localStorage.setItem("h-semas:tier", t); } catch { /* ignore */ }
+          }
+        }}
         onSend={onComposerSend}
         onAttach={openFilePicker}
         busy={busy}
@@ -561,21 +610,7 @@ export function BeeSwarmShell() {
         aiFrameworks={aiFrameworks}
         onToggleFramework={toggleFramework}
       />
-      <div style={{ display: "flex", justifyContent: "center", marginTop: 8 }}>
-        <button
-          type="button"
-          onClick={() => setShowRoute((v) => !v)}
-          style={{
-            display: "flex", alignItems: "center", gap: 6,
-            border: "none", background: "transparent", color: "var(--fg-3)",
-            font: "500 12px var(--font-sans)", padding: "4px 10px", borderRadius: "var(--radius-pill)",
-          }}
-        >
-          <Icon name="tune" size={15} />
-          {showRoute ? "收起" : "我来挑部门 / 路线"}
-          <Icon name={showRoute ? "expand_less" : "expand_more"} size={15} />
-        </button>
-      </div>
+      {/* v10 移除首页"我来挑部门/路线"预选 — 部门调整统一在提问后的路线图上做 */}
     </>
   );
 
@@ -678,6 +713,17 @@ export function BeeSwarmShell() {
                           progress={liveThis ? progress : 100}
                           labels={deptLabels}
                         />
+                        {turn.status === "done" && turnHeats.length > 0 && (
+                          <RouteFlow
+                            heats={turnHeats}
+                            labels={deptLabels}
+                            personas={((turn.summary as unknown as { team_personas_used?: { persona_id?: string; role?: string; dept_id?: string; model?: string }[] })?.team_personas_used) || []}
+                            candidates={Object.keys(deptLabels)}
+                            editable={isLast && !busy}
+                            busy={busy}
+                            onRerun={(depts) => rerunWithDepts(turn.user, depts)}
+                          />
+                        )}
                         {turn.status === "error" && (
                           <div className="callout warn">
                             <div className="callout-h"><Icon name="error" />出了点问题</div>

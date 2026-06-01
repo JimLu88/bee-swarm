@@ -16,11 +16,16 @@ const FRAMEWORKS: { id: string; label: string; emoji: string }[] = [
   { id: "constraint_flip", label: "约束反转", emoji: "🔀" },
 ];
 
+export type Tier = "A" | "B" | "C";
+
 type Props = {
   value: string;
   onChange: (v: string) => void;
   effort: Difficulty;
   onEffortChange: (e: Difficulty) => void;
+  /** 模型档位 A=顶级 / B=中等 / C=经济 */
+  tier: Tier;
+  onTierChange: (t: Tier) => void;
   onSend: () => void;
   onAttach?: () => void;
   busy?: boolean;
@@ -34,23 +39,33 @@ type Props = {
   onToggleFramework?: (id: string) => void;
 };
 
-const EFFORTS: { lv: Difficulty; label: string }[] = [
-  { lv: 1, label: "简单" },
-  { lv: 2, label: "一般" },
-  { lv: 3, label: "深入" },
-  { lv: 4, label: "全力" },
+const EFFORTS: { lv: Difficulty; label: string; hint: string }[] = [
+  { lv: 1, label: "简单", hint: "CEO 直接答 · 不开部门 · 最快最省" },
+  { lv: 2, label: "一般", hint: "关键几位顾问 · 1 轮" },
+  { lv: 3, label: "深入", hint: "多位顾问 · 并行讨论 2 轮" },
+  { lv: 4, label: "全力", hint: "全部顾问 · 反复讨论 3 轮 · 最贵" },
+];
+
+const TIERS: { v: Tier; label: string; hint: string }[] = [
+  { v: "C", label: "经济", hint: "最省 · 本地/便宜模型" },
+  { v: "B", label: "中等", hint: "便宜云 · 性价比" },
+  { v: "A", label: "顶级", hint: "旗舰 · 最强最贵" },
 ];
 
 export function Composer({
-  value, onChange, effort, onEffortChange, onSend, onAttach, busy, error, placeholder, attachSlot,
+  value, onChange, effort, onEffortChange, tier, onTierChange, onSend, onAttach, busy, error, placeholder, attachSlot,
   frameworks, aiFrameworks, onToggleFramework,
 }: Props) {
   const taRef = useRef<HTMLTextAreaElement>(null);
   const [fwOpen, setFwOpen] = useState(false);
+  const [effOpen, setEffOpen] = useState(false);
   const sel = frameworks ?? [];
   const fwSummary = sel.length === 0
     ? "AI 自动"
     : (FRAMEWORKS.find((f) => f.id === sel[0])?.label ?? sel[0]) + (sel.length > 1 ? ` +${sel.length - 1}` : "");
+
+  const tierLabel = TIERS.find((t) => t.v === tier)?.label ?? "中等";
+  const depthLabel = EFFORTS.find((e) => e.lv === effort)?.label ?? "深入";
 
   // 自适应高度
   useEffect(() => {
@@ -68,6 +83,14 @@ export function Composer({
       if (ready) onSend();
     }
   };
+
+  const pillBtn = (active: boolean): React.CSSProperties => ({
+    display: "flex", alignItems: "center", gap: 8, width: "100%",
+    padding: "7px 8px", borderRadius: 8, cursor: "pointer", textAlign: "left",
+    border: "none", fontSize: 13,
+    background: active ? "var(--accent-bg)" : "transparent",
+    color: active ? "var(--accent)" : "var(--text)",
+  });
 
   return (
     <div className="composer">
@@ -90,29 +113,71 @@ export function Composer({
               <Icon name="add_circle" />
             </button>
           )}
-          <span className="eff-label"><Icon name="tune" />努力程度</span>
-          <div className="effort">
-            {EFFORTS.map((e) => (
-              <button
-                key={e.lv}
-                type="button"
-                className={`eff l${e.lv}${effort === e.lv ? " active" : ""}`}
-                onClick={() => onEffortChange(e.lv)}
-                aria-pressed={effort === e.lv}
-              >
-                <span className="dot" />{e.label}
-              </button>
-            ))}
+
+          {/* v10 努力程度 → 下拉: 模型档位 + 讨论深度 (替代原 pill 横条) */}
+          <div style={{ position: "relative" }}>
+            <button
+              type="button"
+              onClick={() => { setEffOpen((v) => !v); setFwOpen(false); }}
+              title="选模型档位(贵贱) + 讨论深度"
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 5,
+                padding: "5px 12px", borderRadius: 999, fontSize: 12.5, cursor: "pointer",
+                borderWidth: 1, borderStyle: "solid", borderColor: "var(--border)",
+                background: "var(--bg-card)", color: "var(--text)", fontWeight: 600,
+              }}
+            >
+              <Icon name="tune" />
+              {tierLabel}脑 · {depthLabel}
+              <Icon name={effOpen ? "expand_less" : "expand_more"} />
+            </button>
+            {effOpen && (
+              <>
+                <div onClick={() => setEffOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
+                <div style={{
+                  position: "absolute", bottom: "calc(100% + 6px)", left: 0, zIndex: 41,
+                  width: 268, padding: 10, borderRadius: 12,
+                  background: "var(--bg-card)", boxShadow: "0 8px 28px rgba(0,0,0,0.35)",
+                  borderWidth: 1, borderStyle: "solid", borderColor: "var(--border)",
+                }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-faint)", padding: "2px 6px 4px" }}>
+                    🧠 模型档位（贵贱）
+                  </div>
+                  {TIERS.map((t) => (
+                    <button key={t.v} type="button" onClick={() => onTierChange(t.v)} style={pillBtn(tier === t.v)}>
+                      <span style={{ width: 16 }}>{tier === t.v ? "✓" : ""}</span>
+                      <span style={{ minWidth: 30, fontWeight: 600 }}>{t.label}</span>
+                      <span style={{ fontSize: 11, color: "var(--text-dim)" }}>{t.hint}</span>
+                    </button>
+                  ))}
+                  <div style={{ height: 1, background: "var(--border)", margin: "8px 4px" }} />
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-faint)", padding: "2px 6px 4px" }}>
+                    💬 讨论深度
+                  </div>
+                  {EFFORTS.map((e) => (
+                    <button key={e.lv} type="button" onClick={() => onEffortChange(e.lv)} style={pillBtn(effort === e.lv)}>
+                      <span style={{ width: 16 }}>{effort === e.lv ? "✓" : ""}</span>
+                      <span style={{ minWidth: 30, fontWeight: 600 }}>{e.label}</span>
+                      <span style={{ fontSize: 11, color: "var(--text-dim)" }}>{e.hint}</span>
+                    </button>
+                  ))}
+                  <div style={{ fontSize: 10.5, color: "var(--text-faint)", padding: "8px 6px 2px", lineHeight: 1.5 }}>
+                    提问后下方会自动生成「路线图」，可单独增减部门再重新会诊。
+                  </div>
+                </div>
+              </>
+            )}
           </div>
+
           {onToggleFramework && (
             <div style={{ position: "relative" }}>
               <button
                 type="button"
-                onClick={() => setFwOpen((v) => !v)}
+                onClick={() => { setFwOpen((v) => !v); setEffOpen(false); }}
                 title="思维框架 (空=AI自动按任务选, 也可手动指定)"
                 style={{
                   display: "inline-flex", alignItems: "center", gap: 4,
-                  padding: "4px 10px", borderRadius: 999, fontSize: 12, cursor: "pointer",
+                  padding: "5px 10px", borderRadius: 999, fontSize: 12, cursor: "pointer",
                   borderWidth: 1, borderStyle: "solid",
                   borderColor: sel.length ? "var(--accent)" : "var(--border)",
                   background: sel.length ? "var(--accent-bg)" : "var(--bg-card)",
@@ -179,7 +244,7 @@ export function Composer({
       </div>
       {error
         ? <div className="comp-err">{error}</div>
-        : <div className="comp-hint"><Icon name="bolt" /> 「深入」会让顾问们并行讨论 2 轮 · 回车发送，Shift+回车换行</div>}
+        : <div className="comp-hint"><Icon name="bolt" /> 选「{tierLabel}脑·{depthLabel}」· 回车发送，Shift+回车换行</div>}
     </div>
   );
 }
