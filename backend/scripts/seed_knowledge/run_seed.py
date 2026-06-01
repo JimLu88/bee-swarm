@@ -67,6 +67,11 @@ def _load_libs() -> dict[str, dict]:
         libs["tax_insurance"] = ti
     except Exception as e:
         print(f"[warn] tax_insurance 书库加载失败: {e!r}")
+    try:
+        from .lib_learning_planning import LIBRARIES as lp
+        libs["learning_planning"] = lp
+    except Exception as e:
+        print(f"[warn] learning_planning 书库加载失败: {e!r}")
     # 后续场景书库在这里追加: libs["<mode>"] = ...
     return libs
 
