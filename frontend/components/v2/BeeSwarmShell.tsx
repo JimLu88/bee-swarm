@@ -189,6 +189,9 @@ export function BeeSwarmShell() {
   const [rerunningDept, setRerunningDept] = useState<string | null>(null);
   const [currentDecisionId, setCurrentDecisionId] = useState<string | null>(null);
   const [runMeta, setRunMeta] = useState<{ route: string; rounds_band: string; difficulty: string } | null>(null);
+  // v10 C: 提问后先弹"确认阵容"(preflight 建议部门), 用户增减后才真跑
+  const [planConfirm, setPlanConfirm] = useState<{ task: string; depts: string[] } | null>(null);
+  const [planLoading, setPlanLoading] = useState(false);
 
   // thinking frameworks (AI 自动选; SettingsDrawer 可手动改)
   const [frameworks, setFrameworks] = useState<string[]>([]);
@@ -382,7 +385,33 @@ export function BeeSwarmShell() {
     })();
   }, [busy, difficulty, images, docFiles, mode, frameworks, tier, backendUrl, clearTaskBackup, attachStream]);
 
-  const onComposerSend = useCallback(() => { submitTask(task); }, [submitTask, task]);
+  // v10 C: 提问 → 调 preflight 得到建议部门 → 弹确认阵容卡 (简单档=ceo_only 直接跑, 不弹)
+  const proposePlan = useCallback((text: string) => {
+    const t = text.trim();
+    if (!t) { setError("先写一句话告诉我你要什么"); return; }
+    if (busy || planLoading) return;
+    setError(null);
+    if (EFFORT_MAP[difficulty].route === "ceo_only") { submitTask(t); return; }
+    setPlanLoading(true);
+    (async () => {
+      let depts: string[] = [];
+      try {
+        const res = await fetchWithTimeout(
+          `${backendUrl}/api/decision/preflight`,
+          { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ task: t, mode_id: mode }) },
+          TIMEOUT_MS.decisionStart,
+        );
+        if (res.ok) {
+          const j = await res.json();
+          depts = (j?.multi_depts || j?.key_depts || j?.all_depts || []) as string[];
+        }
+      } catch { /* 预判失败 → 给空列表, 用户自己加, 或直接开跑用全部 */ }
+      setPlanConfirm({ task: t, depts });
+      setPlanLoading(false);
+    })();
+  }, [busy, planLoading, difficulty, mode, backendUrl, submitTask]);
+
+  const onComposerSend = useCallback(() => { proposePlan(task); }, [proposePlan, task]);
 
   // RoutePlanner「我来挑部门/路线」→ 按指定 route/部门/轮数发起
   const runWithRoute = useCallback((p: RunParams) => {
@@ -477,6 +506,22 @@ export function BeeSwarmShell() {
       }
     })();
   }, [busy, difficulty, mode, frameworks, tier, backendUrl, attachStream]);
+
+  // v10 C: 确认阵容 → 用选定部门真跑 (空=route=all 全开). 放在 runWithRoute 之后避免 TDZ.
+  const confirmPlan = useCallback((depts: string[]) => {
+    const plan = planConfirm;
+    if (!plan) return;
+    setPlanConfirm(null);
+    const m = EFFORT_MAP[difficulty];
+    setTask(plan.task);
+    runWithRoute({
+      route: depts.length ? "multi" : "all",
+      departments: depts,
+      rounds: m.rounds,
+      rounds_band: m.band as RunParams["rounds_band"],
+      difficulty: m.diff as RunParams["difficulty"],
+    });
+  }, [planConfirm, difficulty, runWithRoute]);
 
   // 反馈 → bandit
   const sendFeedback = useCallback(async (reward: number) => {
@@ -587,6 +632,28 @@ export function BeeSwarmShell() {
             busy={busy}
             onRun={runWithRoute}
           />
+        </div>
+      )}
+      {planLoading && (
+        <div style={{ marginBottom: 10, padding: "10px 12px", borderRadius: 12, border: "1px solid var(--border)", background: "var(--bg-card)", display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: "var(--text-dim)" }}>
+          <Icon name="progress_activity" className="spinning" size={16} /> 正在判断这个问题需要哪几位顾问…
+        </div>
+      )}
+      {planConfirm && (
+        <div style={{ marginBottom: 10 }}>
+          <RouteFlow
+            heats={planConfirm.depts.map((d) => ({ dept: d, heat: 0, confidence: 0, status: "idle" as const }))}
+            labels={deptLabels}
+            candidates={Object.keys(deptLabels)}
+            editable
+            planMode
+            busy={busy}
+            onRerun={confirmPlan}
+          />
+          <button type="button" onClick={() => setPlanConfirm(null)}
+            style={{ marginTop: 6, border: "none", background: "transparent", color: "var(--text-faint)", cursor: "pointer", fontSize: 12 }}>
+            取消, 重新写问题
+          </button>
         </div>
       )}
       <Composer

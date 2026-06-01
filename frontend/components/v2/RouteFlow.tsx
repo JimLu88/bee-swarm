@@ -23,11 +23,13 @@ type Props = {
   editable?: boolean;
   busy?: boolean;
   onRerun?: (depts: string[]) => void;
+  /** v10 计划模式: 提问后、真跑前的"确认阵容"——无信心值, 按钮=开始会诊 */
+  planMode?: boolean;
 };
 
 const ROLE_CN: Record<string, string> = { head: "主管", staff: "职员", ceo: "总顾问" };
 
-export function RouteFlow({ heats, labels, personas = [], candidates, editable = false, busy, onRerun }: Props) {
+export function RouteFlow({ heats, labels, personas = [], candidates, editable = false, busy, onRerun, planMode = false }: Props) {
   const baseDepts = heats.map((h) => h.dept);
   const [removed, setRemoved] = useState<Set<string>>(new Set());
   const [added, setAdded] = useState<string[]>([]);
@@ -78,9 +80,11 @@ export function RouteFlow({ heats, labels, personas = [], candidates, editable =
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
         <Icon name="route" />
-        <span style={{ fontSize: 12.5, fontWeight: 700 }}>路线图</span>
+        <span style={{ fontSize: 12.5, fontWeight: 700 }}>{planMode ? "建议阵容" : "路线图"}</span>
         <span style={{ fontSize: 11, color: "var(--text-faint)" }}>
-          分诊官调用了 {effective.length} 个部门{editable ? " · 可增减后重新会诊" : ""}
+          {planMode
+            ? `打算让这 ${effective.length} 位顾问讨论 · 可增减后开跑`
+            : `分诊官调用了 ${effective.length} 个部门${editable ? " · 可增减后重新会诊" : ""}`}
         </span>
       </div>
 
@@ -116,7 +120,7 @@ export function RouteFlow({ heats, labels, personas = [], candidates, editable =
                       textDecoration: isRemoved ? "line-through" : "none",
                     }}>{initial(nm)}</span>
                     <span style={{ fontSize: 12.5, fontWeight: 600, textDecoration: isRemoved ? "line-through" : "none" }}>{nm}</span>
-                    {!isAdded && <span style={{ fontSize: 11, color: "var(--text-dim)" }}>{pct}%</span>}
+                    {!isAdded && !planMode && <span style={{ fontSize: 11, color: "var(--text-dim)" }}>{pct}%</span>}
                     {isAdded && <span style={{ fontSize: 10, color: "var(--accent)" }}>新增</span>}
                   </button>
                   {editable && (
@@ -183,7 +187,7 @@ export function RouteFlow({ heats, labels, personas = [], candidates, editable =
         {node("综合", "summarize")}
       </div>
 
-      {editable && changed && (
+      {editable && (planMode || changed) && (
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
           <button type="button" disabled={busy || effective.length === 0}
             onClick={() => onRerun?.(effective)}
@@ -192,13 +196,15 @@ export function RouteFlow({ heats, labels, personas = [], candidates, editable =
               border: "none", background: "var(--accent)", color: "#fff", cursor: busy ? "default" : "pointer",
               fontSize: 12.5, fontWeight: 600, opacity: busy || !effective.length ? 0.6 : 1,
             }}>
-            <Icon name={busy ? "progress_activity" : "refresh"} className={busy ? "spinning" : ""} size={16} />
-            重新会诊（{effective.length} 部门）
+            <Icon name={busy ? "progress_activity" : (planMode ? "play_arrow" : "refresh")} className={busy ? "spinning" : ""} size={16} />
+            {planMode ? "开始会诊" : "重新会诊"}（{effective.length} 部门）
           </button>
-          <button type="button" onClick={reset}
-            style={{ border: "none", background: "transparent", color: "var(--text-faint)", cursor: "pointer", fontSize: 12 }}>
-            复原
-          </button>
+          {!planMode && (
+            <button type="button" onClick={reset}
+              style={{ border: "none", background: "transparent", color: "var(--text-faint)", cursor: "pointer", fontSize: 12 }}>
+              复原
+            </button>
+          )}
         </div>
       )}
     </div>
