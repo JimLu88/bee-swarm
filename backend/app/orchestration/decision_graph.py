@@ -27,6 +27,13 @@ class DecisionGraphState(TypedDict, total=False):
     mode_label: str
     departments: list[str]
     debate_rounds: int  # v1.2 N 轮辩论, default 1
+    # v10 关键修复: 这些字段必须声明为 channel, 否则 LangGraph 在节点间传递时丢弃,
+    # 导致 tier/档位 永远拿不到 → 默认 "A" → 经济档/中等档失效, 永远跑最贵的旗舰。
+    tier: str  # A 旗舰 / B 便宜云 / C 本地 ollama
+    task_level: str
+    task_urgency: str
+    dispatcher_context: str
+    dispatcher_notes: str
     dsp: dict[str, Any]
     dsp_meta: dict[str, Any]
     notes: str
