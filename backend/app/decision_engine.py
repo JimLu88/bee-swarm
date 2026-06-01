@@ -241,6 +241,21 @@ async def _run_dept(
         for t in bee_tools_safe
     )
 
+    # v11 餐饮试点: 主管"领导增值"指令 (先立场 + 三派视角 + 8-10点 + 逐条批判 + 知识/实时分流).
+    # 仅 dining_recommendation 启用; 满意后推广到其它场景 + 升级为真·三派子智能体 fan-out.
+    leader_value_brief = ""
+    if mode_id == "dining_recommendation" and dept not in ("xlab", "out_of_box_breakthrough", "parallel_architecture_scout"):
+        leader_value_brief = (
+            "【主管增值要求·本场景试点 — 务必照做, consensus 要有干货密度, 禁止一句话敷衍】\n"
+            "① 先立场: 看任何资料前, 先凭你的专业判断写 1-2 句初步主张, 放在 consensus 开头, 以「【我的判断】」起头。\n"
+            "② 三派视角: 给出共 8-10 条具体建议, 每条标来源标签 [书/理论] 或 [实时/外部] + 适合谁/什么场合, 覆盖三个视角:\n"
+            "   · 学院派: 菜系源流 / 食材 / 正统做法 / 搭配原理;\n"
+            "   · 街头派: 本地人排队的店 / 实时点评 / 外网小众榜单(给具体店名+地址+人均+必点);\n"
+            "   · 怀疑派: 卫生口碑 / 是否预制菜 / 是否已关店或搬迁 / 性价比是否虚高 等要警惕的点。\n"
+            "③ 批判: 对三派之间的分歧逐条表态(我采纳/我反驳/我加强 + 一句理由), 不要只罗列。\n"
+            "④ 知识 vs 实时: 凡'会过期的事实'(营业时间/价格/是否还开)末尾标「(需最新核实)」。\n"
+        )
+
     llm_text = ""
     parsed = None
     # v6-X 多模态预处理: 有图但 model 瞎 → 查 vision_fallback 表换视觉兄弟.
@@ -269,6 +284,7 @@ async def _run_dept(
                     images=_imgs if _imgs else None,
                     prompt=(
                         f"部门={dept}\n"
+                        f"{leader_value_brief}"
                         f"{xlab_brief}"
                         f"{differential_brief}"
                         f"{framework_brief}"
@@ -567,16 +583,32 @@ async def finalize_decision_bundle(
                 ceo_kb_section = _fmt_kb(_ceo_bundle)
             except Exception:
                 ceo_kb_section = ""
+            # v11 餐饮试点: CEO 富输出 — 不当转发员, 必须加入自己的判断 (1️⃣先立场 + 2️⃣逐条批判 + 结构化富输出).
+            if mode_id == "dining_recommendation":
+                ceo_output_spec = (
+                    "【CEO 最终输出·本场景试点 — 你不是转发员, 必须加入你自己的判断, 中文 markdown】\n"
+                    "1) **我的总判断**: 先用 1-2 句给出你作为决策者的核心主张(先表态, 别等部门)。\n"
+                    "2) **对部门意见的研判**: 对部门建议逐条/分组表态——采纳/反驳/加强/补充 + 一句理由(禁止只复述部门说了啥)。\n"
+                    "3) **推荐方向 (5-8 条)**: 每条 = 具体建议(含店名/做法等) + 为什么 + 适合谁/什么场合; 其中至少 2-3 条要'不普通'(冷门/特色/反常规)。\n"
+                    "4) **补充**: 部门没提但你认为重要的 1-3 点。\n"
+                    "5) **⚠ 风险避雷 (3-5 条)**: 踩雷店/预制菜/性价比虚高/排队/卫生/已关店等。\n"
+                    "6) **建议总研判**: 把各部门所有建议归类为 强烈推荐 / 可选 / 不建议, 每条一句话点评为什么。\n"
+                    "凡'会过期的事实'(营业/价格)标「(需最新核实)」。要有干货密度和你的主观判断, 不要流水账。\n"
+                )
+            else:
+                ceo_output_spec = (
+                    "现在按上面 SOP, 直接输出最终回答 (中文, markdown 可用).\n"
+                    "- 若部门意见一致 → 综合成一段\n"
+                    "- 若有重要冲突 → 指出冲突并给推荐方案 (附 1-2 句理由)\n"
+                    "- 红队风险单独最后一段 ⚠ 标出 (无风险则省略此段)\n"
+                )
             ceo_prompt = (
                 (sop_section + "\n---\n\n" if sop_section else "")
                 + (ceo_framework_brief + "\n" if ceo_framework_brief else "")
                 + (ceo_kb_section + "\n---\n\n" if ceo_kb_section else "")
                 + f"用户任务: {task}\n\n"
                 + f"以下是 {len(reports)} 个部门的独立意见:\n\n{dept_views}\n\n"
-                + "现在按上面 SOP, 直接输出最终回答 (中文, markdown 可用).\n"
-                + "- 若部门意见一致 → 综合成一段\n"
-                + "- 若有重要冲突 → 指出冲突并给推荐方案 (附 1-2 句理由)\n"
-                + "- 红队风险单独最后一段 ⚠ 标出 (无风险则省略此段)\n"
+                + ceo_output_spec
             )
             ceo_text = (await litellm_client.complete(
                 model=ceo_choice.model,
