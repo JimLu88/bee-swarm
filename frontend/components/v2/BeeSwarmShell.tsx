@@ -190,7 +190,7 @@ export function BeeSwarmShell() {
   const [currentDecisionId, setCurrentDecisionId] = useState<string | null>(null);
   const [runMeta, setRunMeta] = useState<{ route: string; rounds_band: string; difficulty: string } | null>(null);
   // v10 C: 提问后先弹"确认阵容"(preflight 建议部门), 用户增减后才真跑
-  const [planConfirm, setPlanConfirm] = useState<{ task: string; depts: string[] } | null>(null);
+  const [planConfirm, setPlanConfirm] = useState<{ task: string; depts: string[]; allDepts: string[] } | null>(null);
   const [planLoading, setPlanLoading] = useState(false);
 
   // thinking frameworks (AI 自动选; SettingsDrawer 可手动改)
@@ -395,6 +395,7 @@ export function BeeSwarmShell() {
     setPlanLoading(true);
     (async () => {
       let depts: string[] = [];
+      let allDepts: string[] = [];
       try {
         const res = await fetchWithTimeout(
           `${backendUrl}/api/decision/preflight`,
@@ -404,9 +405,10 @@ export function BeeSwarmShell() {
         if (res.ok) {
           const j = await res.json();
           depts = (j?.multi_depts || j?.key_depts || j?.all_depts || []) as string[];
+          allDepts = (j?.all_depts || []) as string[];
         }
       } catch { /* 预判失败 → 给空列表, 用户自己加, 或直接开跑用全部 */ }
-      setPlanConfirm({ task: t, depts });
+      setPlanConfirm({ task: t, depts, allDepts });
       setPlanLoading(false);
     })();
   }, [busy, planLoading, difficulty, mode, backendUrl, submitTask]);
@@ -644,7 +646,7 @@ export function BeeSwarmShell() {
           <RouteFlow
             heats={planConfirm.depts.map((d) => ({ dept: d, heat: 0, confidence: 0, status: "idle" as const }))}
             labels={deptLabels}
-            candidates={Object.keys(deptLabels)}
+            candidates={planConfirm.allDepts.length ? planConfirm.allDepts : Object.keys(deptLabels)}
             editable
             planMode
             busy={busy}

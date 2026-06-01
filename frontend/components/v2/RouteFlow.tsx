@@ -51,6 +51,69 @@ export function RouteFlow({ heats, labels, personas = [], candidates, editable =
   const addDept = (d: string) => { setAdded((a) => [...a, d]); setAddOpen(false); };
   const reset = () => { setRemoved(new Set()); setAdded([]); };
 
+  // v10 计划模式: 一次性切换某部门是否参与 (平铺多选, 不用躲在下拉里)
+  const togglePick = (d: string) => {
+    if (effective.includes(d)) {
+      if (added.includes(d)) setAdded((a) => a.filter((x) => x !== d));
+      else setRemoved((s) => { const n = new Set(s); n.add(d); return n; });
+    } else {
+      if (removed.has(d)) setRemoved((s) => { const n = new Set(s); n.delete(d); return n; });
+      else setAdded((a) => [...a, d]);
+    }
+  };
+
+  // ===== 计划模式: 提问后确认阵容 — 全部门平铺成可点选的格子 =====
+  if (planMode) {
+    const gridDepts = Array.from(new Set([...baseDepts, ...candidates])).filter((d) => d && d !== "__ceo__");
+    return (
+      <div style={{
+        marginTop: 4, padding: "12px 14px", borderRadius: 14,
+        background: "var(--bg-subtle, rgba(127,127,127,0.06))", border: "1px solid var(--border)",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+          <Icon name="groups" />
+          <span style={{ fontSize: 13, fontWeight: 700 }}>选要参与的顾问</span>
+          <span style={{ fontSize: 11, color: "var(--text-faint)" }}>点一下加入/移除 · 已选 {effective.length} 位</span>
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {gridDepts.map((d, i) => {
+            const on = effective.includes(d);
+            const nm = shortLabel(labels[d] ?? d);
+            return (
+              <button key={d} type="button" onClick={() => togglePick(d)}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                  padding: "7px 12px", borderRadius: 999, cursor: "pointer", fontSize: 13,
+                  border: "1px solid", borderColor: on ? "var(--accent)" : "var(--border)",
+                  background: on ? "var(--accent-bg)" : "var(--bg-card)",
+                  color: on ? "var(--accent)" : "var(--text)", fontWeight: on ? 600 : 400,
+                }}>
+                <span style={{
+                  width: 20, height: 20, borderRadius: "50%", background: on ? avBg(i) : "var(--border)",
+                  color: "#fff", fontSize: 10, display: "flex", alignItems: "center", justifyContent: "center",
+                }}>{on ? initial(nm) : "+"}</span>
+                {nm}
+                {on && <Icon name="check" size={15} />}
+              </button>
+            );
+          })}
+        </div>
+        <div style={{ marginTop: 12 }}>
+          <button type="button" disabled={busy || effective.length === 0}
+            onClick={() => onRerun?.(effective)}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 18px", borderRadius: 999,
+              border: "none", background: "var(--accent)", color: "#fff", cursor: busy ? "default" : "pointer",
+              fontSize: 13.5, fontWeight: 600, opacity: busy || !effective.length ? 0.6 : 1,
+            }}>
+            <Icon name={busy ? "progress_activity" : "play_arrow"} className={busy ? "spinning" : ""} size={18} />
+            开始会诊（{effective.length} 位顾问）
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const chips = [
     ...baseDepts.map((d) => ({ dept: d, added: false })),
     ...added.map((d) => ({ dept: d, added: true })),
