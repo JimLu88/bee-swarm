@@ -6,6 +6,8 @@ import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { SettingsPanel } from "./SettingsPanel";
 import { ReviewPanel } from "./ReviewPanel";
 import { BackupConfigPanel } from "./BackupConfigPanel";
+import { UserMemoryPanel } from "./UserMemoryPanel";
+import { McpConfigPanel } from "./McpConfigPanel";
 import { UpgradeLogPanel } from "./UpgradeLogPanel";
 import { ThinkingFrameworksPanel } from "./advanced/ThinkingFrameworksPanel";
 import { GeneEditor } from "./advanced/GeneEditor";
@@ -202,6 +204,7 @@ export function SettingsDrawer(props: Props) {
             <Wrap>
               <div style={sectionTitle}>AI 模型配置 (网关 / Key / 备用链 / 自更新)</div>
               <SettingsPanel />
+              <McpConfigPanel backendUrl={backendUrl} />
             </Wrap>
           )}
 
@@ -209,6 +212,7 @@ export function SettingsDrawer(props: Props) {
             <Wrap>
               <div style={sectionTitle}>v3-F 复习闸 & v3-E 5 池备份</div>
               <ReviewPanel backendUrl={backendUrl} />
+              <UserMemoryPanel backendUrl={backendUrl} />
               <BackupConfigPanel backendUrl={backendUrl} />
               <UpgradeLogPanel backendUrl={backendUrl} />
             </Wrap>

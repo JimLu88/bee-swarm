@@ -252,6 +252,11 @@ class DecisionSummary(BaseModel):
     # v11 方案4 地图钉店: 决策结果里抽出的店铺/地点经过高德地理编码后的坐标
     # [{name, lng, lat, address, city}] — 仅「带地点」场景 (餐饮/旅行/租房等) 且配了 AMAP_KEY 时非空
     map_places: list[dict[str, Any]] = Field(default_factory=list)
+    # v12 信源可信度引擎汇总 (前台12场景): {"headline": 一句话, "summary": 短总结}
+    # 卡片各自的 credibility 分直接挂在 media_cards 每项的 "credibility"/"cred_note" 上.
+    source_consensus: dict[str, Any] = Field(default_factory=dict)
+    # v13 #4 事后复盘笔记 (用户在复盘看板里写, 持久化到 decisions.jsonl)
+    retro_note: str = ""
 
 
 class StreamEvent(BaseModel):

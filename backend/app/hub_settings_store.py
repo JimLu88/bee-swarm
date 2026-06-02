@@ -38,6 +38,7 @@ HUB_FIELD_NAMES = frozenset(
         "exa_api_key",
         "amap_key",
         "app_password",
+        "reasoning_model",
     }
 )
 

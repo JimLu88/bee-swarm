@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Icon } from "./Icon";
 import { SmartResultRenderer } from "./viz/SmartResultRenderer";
 import { InfoFeed, type MediaCard } from "./viz/InfoFeed";
+import { TracePanel } from "./viz/TracePanel";
 import type { MapPlace } from "./viz/MapPins";
 import { avBg, confColor, confBg, initial, EFFORT_LABELS } from "../../lib/scenes";
 
@@ -31,6 +32,8 @@ export type DecisionSummary = {
   media_cards?: MediaCard[];
   /** v11 方案4 地图钉店: 高德地理编码后的推荐地点坐标 */
   map_places?: MapPlace[];
+  /** v12 信源可信度引擎汇总 (前台12场景) */
+  source_consensus?: { headline?: string; summary?: string };
 };
 
 type Props = {
@@ -68,6 +71,7 @@ export function ResultPanel({ summary, onRerunDept, rerunningDept, onFeedback, o
   const [acOpen, setAcOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [fb, setFb] = useState<null | "up" | "down">(null);
+  const [traceOpen, setTraceOpen] = useState(false);
 
   if (!summary) return null;
 
@@ -132,6 +136,17 @@ export function ResultPanel({ summary, onRerunDept, rerunningDept, onFeedback, o
           </div>
         </div>
       )}
+
+      {/* 🔍 复盘看板入口 + 面板 (任意有部门发言的决策都能复盘) */}
+      {deptCount > 0 && (
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <button type="button" onClick={() => setTraceOpen(true)}
+            style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 999, border: "1px solid var(--border)", background: "var(--bg-card)", color: "var(--text-dim)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+            <Icon name="account_tree" size={15} /> 复盘看板
+          </button>
+        </div>
+      )}
+      <TracePanel open={traceOpen} onClose={() => setTraceOpen(false)} summary={summary} labels={labels} backendUrl={backendUrl} />
 
       {/* 红队风险提示 */}
       {riskCount > 0 && (
@@ -217,7 +232,7 @@ export function ResultPanel({ summary, onRerunDept, rerunningDept, onFeedback, o
             </button>
           </div>
           <div className="accord-body" style={{ display: "flex" }}>
-            <InfoFeed deptQuotes={[]} mediaCards={mediaCards} mapPlaces={mapPlaces} backendUrl={backendUrl} />
+            <InfoFeed deptQuotes={[]} mediaCards={mediaCards} mapPlaces={mapPlaces} backendUrl={backendUrl} consensus={summary.source_consensus} />
           </div>
         </div>
       )}

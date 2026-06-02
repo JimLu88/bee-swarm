@@ -22,6 +22,7 @@ export const BUILTIN_MODES: ModeOption[] = [
   { mode_id: "family_doctor", label: "家庭医生", emoji: "🩺", hint: "看症状/营养建议/用药提醒" },
   { mode_id: "nutrition_fitness", label: "营养健身", emoji: "💪", hint: "减脂/增肌/慢病管理/装备" },
   { mode_id: "dining_recommendation", label: "餐饮推荐", emoji: "🍽️", hint: "本地探店/商务宴请/性价比" },
+  { mode_id: "gift_selection", label: "送礼参谋", emoji: "🎁", hint: "送谁/什么场合/预算/避雷不踩坑" },
   { mode_id: "purchase_decision", label: "采购决策", emoji: "🛒", hint: "车/电子大件/家电/横向对比" },
   { mode_id: "travel_planning", label: "旅行计划", emoji: "✈️", hint: "签证/机票/安全/文化" },
   { mode_id: "child_education", label: "儿童教育", emoji: "👶", hint: "升学/心理/特长/家庭沟通" },

@@ -190,6 +190,21 @@ MODES: dict[str, ModeInfo] = {
             "festive_specialist":"节日民俗专家 (中秋/年夜饭/寿宴/答谢宴; 习俗 + 寓意)",
         },
     ),
+    "gift_selection": ModeInfo(
+        mode_id="gift_selection",
+        label="送礼参谋",
+        # 角色型顾问团: 围绕"送谁/什么场合/多少预算/送什么不踩雷"
+        departments=["recipient_reader", "occasion_etiquette", "budget_curator",
+                     "trend_scout", "practical_picker", "meaning_storyteller"],
+        department_labels={
+            "recipient_reader":    "知心读心师 (摸清收礼人喜好/性格/关系亲疏/已有什么/忌讳)",
+            "occasion_etiquette":  "场合礼仪师 (生日/婚礼/乔迁/探病/商务; 轻重/禁忌/要不要回礼)",
+            "budget_curator":      "预算选品师 (按预算给低/中/高三档候选, 高性价比不踩雷)",
+            "trend_scout":         "潮流好物侦探 (当下热门 + 小众有格调, 不撞款不俗气)",
+            "practical_picker":    "实用避雷员 (实不实用/会不会闲置/能不能退换/物流来不来得及)",
+            "meaning_storyteller": "心意表达师 (礼物寓意 + 贺卡话术 + 送礼方式, 把心意送到位)",
+        },
+    ),
     "nutrition_fitness": ModeInfo(
         mode_id="nutrition_fitness",
         label="营养健身",

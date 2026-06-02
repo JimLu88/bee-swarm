@@ -269,7 +269,8 @@ export function BeeSwarmShell() {
   // --- 历史 ---
   const refreshHistory = useCallback(async () => {
     try {
-      const res = await fetchWithTimeout(`${backendUrl}/api/memory/${mode}?limit=30&compact=1`, undefined, TIMEOUT_MS.default);
+      // 聚合所有场景的历史 (后端按日期倒序), 不再只看当前场景 → 「自动识别」首页也能看到全部
+      const res = await fetchWithTimeout(`${backendUrl}/api/memory?limit=50&compact=1`, undefined, TIMEOUT_MS.default);
       if (!res.ok) throw new Error(`memory ${res.status}`);
       const j = await res.json();
       const rows: HistoryRow[] = Array.isArray(j?.items) ? j.items : Array.isArray(j) ? j : [];
@@ -277,7 +278,7 @@ export function BeeSwarmShell() {
     } catch {
       setHistory([]);
     }
-  }, [backendUrl, mode]);
+  }, [backendUrl]);
   useEffect(() => { refreshHistory(); }, [refreshHistory]);
 
   // 拉当前场景的部门中文名映射 (department_labels)

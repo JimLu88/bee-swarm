@@ -195,6 +195,18 @@ export function PendingChangesDrawer({ backendUrl }: Props) {
                           background: "var(--bg-card)", color: "var(--text)",
                           cursor: "pointer",
                         }}>{loading ? "..." : "↻"}</button>
+                <button type="button" title="清空全部待审建议" onClick={async () => {
+                          if (!window.confirm("清空所有待审建议? 会标记为已忽略 (不影响已实现/已部署的功能)。")) return;
+                          try { await fetchWithTimeout(`${backendUrl}/api/pending/clear`, { method: "POST" }, TIMEOUT_MS.default); } catch { /* ignore */ }
+                          await load();
+                        }}
+                        style={{
+                          padding: "3px 10px", fontSize: 11, borderRadius: 4,
+                          borderWidth: 1, borderStyle: "solid",
+                          borderColor: "var(--border)",
+                          background: "var(--bg-card)", color: "var(--text)",
+                          cursor: "pointer",
+                        }}>🗑 清空</button>
                 <button type="button" onClick={() => setOpen(false)}
                         style={{
                           padding: "3px 10px", fontSize: 11, borderRadius: 4,

@@ -20,6 +20,9 @@ export type MediaCard = {
   url?: string;
   image_url?: string;
   source?: string;
+  /** v12 信源可信度 0-100 (source_credibility 引擎打分) */
+  credibility?: number;
+  cred_note?: string;
 };
 
 export type DeptQuote = {
@@ -35,6 +38,8 @@ type Props = {
   mediaCards?: MediaCard[];
   mapPlaces?: MapPlace[];
   backendUrl?: string;
+  /** v12 信源共识摘要 (前台12场景): {headline, summary} */
+  consensus?: { headline?: string; summary?: string };
 };
 
 const cardBase: CSSProperties = {
@@ -48,7 +53,7 @@ const BREAKPOINTS = { default: 3, 900: 2, 560: 1 };
 
 type Item = MediaCard & { _conflicts?: string[] };
 
-export function InfoFeed({ deptQuotes = [], mediaCards = [], mapPlaces = [], backendUrl = "" }: Props) {
+export function InfoFeed({ deptQuotes = [], mediaCards = [], mapPlaces = [], backendUrl = "", consensus }: Props) {
   const [lb, setLb] = useState<string | null>(null);
   const [view, setView] = useState<View>("editorial");
 
@@ -61,6 +66,30 @@ export function InfoFeed({ deptQuotes = [], mediaCards = [], mapPlaces = [], bac
     if (u.startsWith("data:") || !backendUrl) return u;
     return `${backendUrl}/api/img?url=${encodeURIComponent(u)}`;
   };
+
+  // 无封面/封面加载失败时的兜底: 按来源/标题生成稳定渐变 + 平台图标, 保证"一定有图"(永不空白)
+  const coverBg = (seed: string): string => {
+    let h = 0;
+    for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) % 360;
+    return `linear-gradient(135deg, hsl(${h},42%,30%), hsl(${(h + 48) % 360},48%,20%))`;
+  };
+  const sourceEmoji = (s?: string): string => {
+    const k = (s || "").toLowerCase();
+    if (k.includes("dianping") || k.includes("点评")) return "🍽";
+    if (k.includes("xiaohongshu") || k.includes("小红")) return "📕";
+    if (k.includes("zhihu") || k.includes("知乎")) return "💡";
+    if (k.includes("reddit")) return "👽";
+    if (k.includes("bilibili") || k.includes("youtube") || k.includes("douyin")) return "🎬";
+    if (k.includes("github") || k.includes("stack")) return "💻";
+    if (k.includes("weibo") || k.includes("xueqiu")) return "📈";
+    if (k.includes("trip") || k.includes("mafengwo") || k.includes("马蜂窝")) return "✈️";
+    if (k.includes("wikipedia") || k.includes("百科")) return "📖";
+    if (k.includes("taobao") || k.includes("jd") || k.includes("smzdm")) return "🛍";
+    return "🔖";
+  };
+  // 可信度徽章 (绿≥70/黄≥40/红)
+  const credBadgeBg = (c: number): string =>
+    c >= 70 ? "rgba(61,220,132,0.92)" : c >= 40 ? "rgba(245,179,1,0.92)" : "rgba(214,69,61,0.88)";
 
   const items: Item[] = [
     ...deptQuotes.map((q) => ({ type: "text" as const, title: `🗣 ${q.dept}`, body: q.consensus, _conflicts: q.conflicts })),
@@ -96,48 +125,55 @@ export function InfoFeed({ deptQuotes = [], mediaCards = [], mapPlaces = [], bac
   let body: ReactNode = null;
 
   if (view === "editorial") {
-    // Gemini 杂志式: 有图卡 = 大 Hero 图 + 标题压在底部渐变上 + 来源徽章; 无图卡 = 左强调条 + 大字排版
+    // Gemini 杂志式: 资料卡一律 Hero 封面 (真图盖在渐变+图标上, 失败/无图露兜底 → 一定有图);
+    // 部门发言/纯文本卡保留左强调条文字排版.
     body = (
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         {items.map((m, i) => {
-          const hasImg = m.type === "image" && !!m.image_url;
-          if (hasImg) {
+          const isDept = !!m._conflicts || (m.type === "text" && !m.url && !m.image_url);
+          if (isDept) {
             return (
               <motion.div key={i}
                 initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i * 0.03, 0.4), duration: 0.3 }}
-                whileHover={{ y: -3 }}
-                style={{ ...cardBase, position: "relative", cursor: "zoom-in" }}
-                onClick={() => setLb(m.image_url!)}>
-                <div style={{ position: "relative", width: "100%", aspectRatio: "16 / 9", overflow: "hidden" }}>
-                  <Img src={m.image_url!} h="100%" />
-                  {/* 底部渐变压字 */}
-                  <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.25) 42%, rgba(0,0,0,0) 70%)" }} />
-                  {m.source && (
-                    <span style={{ position: "absolute", top: 12, left: 12, padding: "3px 10px", borderRadius: 999, fontSize: 11, fontWeight: 600, color: "#fff", background: "rgba(0,0,0,0.45)", backdropFilter: "blur(6px)" }}>{m.source}</span>
-                  )}
-                  {m.title && (
-                    <div style={{ position: "absolute", left: 16, right: 16, bottom: 14, color: "#fff", fontSize: 18, fontWeight: 800, lineHeight: 1.35, textShadow: "0 2px 12px rgba(0,0,0,0.5)" }}>{m.title}</div>
-                  )}
-                </div>
-                {(m.body || (m.url && (m.type === "link" || m.type === "video"))) && (
-                  <div style={{ padding: "12px 16px 14px" }}>
-                    {m.body && <div style={cardBody}>{m.body}</div>}
-                    {linkLine(m)}
-                  </div>
-                )}
+                whileHover={{ y: -2 }}
+                style={{ ...cardBase, padding: "16px 18px", borderLeft: "3px solid var(--accent)" }}>
+                {m.title && <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8, color: "var(--text)", lineHeight: 1.4 }}>{m.title}</div>}
+                {m.body && <div style={cardBody}>{m.body}</div>}
+                {m._conflicts && m._conflicts.length > 0 && <div style={{ marginTop: 8, fontSize: 11.5, color: "var(--warn)" }}>⚡ {m._conflicts.join("；")}</div>}
               </motion.div>
             );
           }
+          const seed = m.title || m.source || m.url || String(i);
           return (
             <motion.div key={i}
               initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i * 0.03, 0.4), duration: 0.3 }}
-              whileHover={{ y: -2 }}
-              style={{ ...cardBase, padding: "16px 18px", borderLeft: "3px solid var(--accent)" }}>
-              {m.title && <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8, color: "var(--text)", lineHeight: 1.4 }}>{m.title}</div>}
-              {m.body && <div style={cardBody}>{m.body}</div>}
-              {m._conflicts && m._conflicts.length > 0 && <div style={{ marginTop: 8, fontSize: 11.5, color: "var(--warn)" }}>⚡ {m._conflicts.join("；")}</div>}
-              {linkLine(m)}
-              {m.source && <div style={srcLine}>来源: {m.source}</div>}
+              whileHover={{ y: -3 }}
+              style={{ ...cardBase, position: "relative", cursor: m.image_url ? "zoom-in" : "default" }}
+              onClick={() => m.image_url && setLb(m.image_url)}>
+              <div style={{ position: "relative", width: "100%", aspectRatio: "16 / 9", overflow: "hidden", background: coverBg(seed) }}>
+                <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40, opacity: 0.38 }}>{sourceEmoji(m.source)}</div>
+                {m.image_url && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={proxied(m.image_url)} alt="" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                    style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                )}
+                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.25) 42%, rgba(0,0,0,0) 70%)" }} />
+                {m.source && (
+                  <span style={{ position: "absolute", top: 12, left: 12, padding: "3px 10px", borderRadius: 999, fontSize: 11, fontWeight: 600, color: "#fff", background: "rgba(0,0,0,0.45)", backdropFilter: "blur(6px)" }}>{m.source}</span>
+                )}
+                {m.credibility != null && (
+                  <span style={{ position: "absolute", top: 12, right: 12, padding: "3px 10px", borderRadius: 999, fontSize: 11, fontWeight: 700, color: "#06121f", background: credBadgeBg(m.credibility) }}>可信 {m.credibility}</span>
+                )}
+                {m.title && (
+                  <div style={{ position: "absolute", left: 16, right: 16, bottom: 14, color: "#fff", fontSize: 18, fontWeight: 800, lineHeight: 1.35, textShadow: "0 2px 12px rgba(0,0,0,0.5)" }}>{m.title}</div>
+                )}
+              </div>
+              {(m.body || (m.url && (m.type === "link" || m.type === "video"))) && (
+                <div style={{ padding: "12px 16px 14px" }}>
+                  {m.body && <div style={cardBody}>{m.body}</div>}
+                  {linkLine(m)}
+                </div>
+              )}
             </motion.div>
           );
         })}
@@ -218,7 +254,10 @@ export function InfoFeed({ deptQuotes = [], mediaCards = [], mapPlaces = [], bac
               <div key={i} style={{ ...cardBase, ...span, display: "flex", flexDirection: "column" }}>
                 {hasImg ? (
                   <>
-                    <div style={{ flex: 1, overflow: "hidden" }}><Img src={m.image_url!} h="100%" onClick={() => setLb(m.image_url!)} /></div>
+                    <div style={{ flex: 1, overflow: "hidden", position: "relative", background: coverBg(m.title || m.source || String(i)) }}>
+                      <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, opacity: 0.4 }}>{sourceEmoji(m.source)}</div>
+                      <Img src={m.image_url!} h="100%" onClick={() => setLb(m.image_url!)} />
+                    </div>
                     {m.title && <div style={{ padding: "6px 9px", fontSize: 11.5, fontWeight: 600, color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.title}</div>}
                   </>
                 ) : (
@@ -238,19 +277,36 @@ export function InfoFeed({ deptQuotes = [], mediaCards = [], mapPlaces = [], bac
   } else {
     body = (
       <Masonry breakpointCols={BREAKPOINTS} className="bee-masonry" columnClassName="bee-masonry-col">
-        {items.map((m, i) => (
+        {items.map((m, i) => {
+          const isDept = !!m._conflicts || (m.type === "text" && !m.url && !m.image_url);
+          const seed = m.title || m.source || m.url || String(i);
+          return (
           <motion.div key={i} style={{ ...cardBase, marginBottom: 12 }}
             initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i * 0.02, 0.3), duration: 0.25 }}>
-            {m.type === "image" && m.image_url && <Img src={m.image_url} onClick={() => setLb(m.image_url!)} />}
+            {!isDept && (
+              <div style={{ position: "relative", width: "100%", height: 150, background: coverBg(seed), overflow: "hidden", cursor: m.image_url ? "zoom-in" : "default" }}
+                onClick={() => m.image_url && setLb(m.image_url)}>
+                <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, opacity: 0.4 }}>{sourceEmoji(m.source)}</div>
+                {m.image_url && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={proxied(m.image_url)} alt="" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                    style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                )}
+                {m.credibility != null && (
+                  <span style={{ position: "absolute", top: 8, right: 8, padding: "2px 8px", borderRadius: 999, fontSize: 10, fontWeight: 700, color: "#06121f", background: credBadgeBg(m.credibility) }}>可信 {m.credibility}</span>
+                )}
+              </div>
+            )}
             <div style={{ padding: 12 }}>
-              {m.title && <div style={m.type === "image" ? { fontSize: 12.5, fontWeight: 600, marginBottom: 4 } : cardTitle}>{m.title}</div>}
+              {m.title && <div style={isDept ? cardTitle : { fontSize: 12.5, fontWeight: 600, marginBottom: 4 }}>{m.title}</div>}
               {m.body && <div style={cardBody}>{m.body}</div>}
               {m._conflicts && m._conflicts.length > 0 && <div style={{ marginTop: 6, fontSize: 11, color: "var(--warn)" }}>⚡ {m._conflicts.join("；")}</div>}
               {linkLine(m)}
-              {m.source && <div style={srcLine}>来源: {m.source}</div>}
+              {(m.source || m.credibility != null) && <div style={srcLine}>{m.source ? `来源: ${m.source}` : ""}{m.credibility != null ? `${m.source ? " · " : ""}可信度 ${m.credibility}` : ""}</div>}
             </div>
           </motion.div>
-        ))}
+          );
+        })}
       </Masonry>
     );
   }
@@ -258,6 +314,12 @@ export function InfoFeed({ deptQuotes = [], mediaCards = [], mapPlaces = [], bac
   return (
     <div style={{ width: "100%" }}>
       {toggle}
+      {consensus?.headline && (
+        <div style={{ margin: "0 0 12px", padding: "10px 14px", borderRadius: 12, background: "var(--bg-card)", border: "1px solid var(--border)", boxShadow: "var(--shadow)" }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--accent)" }}>🔎 信源共识 · {consensus.headline}</div>
+          {consensus.summary && <div style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 4, lineHeight: 1.6 }}>{consensus.summary}</div>}
+        </div>
+      )}
       {body}
       <style>{`
         .bee-masonry { display: flex; margin-left: -12px; width: auto; }

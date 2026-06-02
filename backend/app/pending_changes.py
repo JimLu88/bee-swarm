@@ -130,6 +130,14 @@ def reject_pending(change_id: str, body: DecisionBody | None = None) -> dict[str
     return {"id": change_id, "status": "rejected"}
 
 
+@router.post("/clear")
+def clear_pending(body: DecisionBody | None = None) -> dict[str, Any]:
+    """一键清空所有待审建议 (标 dismissed, 不删除便于追溯). 用户手动清理列表用."""
+    with _conn() as c:
+        cur = c.execute("UPDATE pending_changes SET status='dismissed' WHERE status='pending'")
+    return {"cleared": cur.rowcount}
+
+
 @router.get("/stats/summary")
 def stats_summary() -> dict[str, Any]:
     with _conn() as c:

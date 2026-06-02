@@ -185,6 +185,61 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+# ============ v13 #2 长期记忆 / 用户画像 管理 ============
+@app.get("/api/user-profile")
+def user_profile_get() -> dict[str, Any]:
+    """列出已记住的用户画像事实 + 开关状态 {enabled, facts:[{text,ts}]}."""
+    from . import user_profile as _up
+    return _up.get_state()
+
+
+@app.post("/api/user-profile/toggle")
+def user_profile_toggle(payload: dict[str, Any] = Body(default={})) -> dict[str, Any]:
+    from . import user_profile as _up
+    _up.set_enabled(bool((payload or {}).get("enabled", True)))
+    return _up.get_state()
+
+
+@app.post("/api/user-profile/delete")
+def user_profile_delete(payload: dict[str, Any] = Body(default={})) -> dict[str, Any]:
+    from . import user_profile as _up
+    try:
+        idx = int((payload or {}).get("index", -1))
+    except Exception:
+        idx = -1
+    _up.delete_fact(idx)
+    return _up.get_state()
+
+
+@app.post("/api/user-profile/clear")
+def user_profile_clear() -> dict[str, Any]:
+    from . import user_profile as _up
+    _up.clear()
+    return _up.get_state()
+
+
+# ============ v13 #1 MCP 工具市场 配置 ============
+@app.get("/api/mcp")
+def mcp_list() -> dict[str, Any]:
+    from . import mcp_tools
+    return {"servers": mcp_tools.public_list(), "max_per_scene": mcp_tools.MAX_TOOLS_PER_SCENE}
+
+
+@app.post("/api/mcp/config")
+def mcp_config(payload: dict[str, Any] = Body(default={})) -> dict[str, Any]:
+    from . import mcp_tools
+    sid = str((payload or {}).get("id", ""))
+    ok = mcp_tools.update_config(
+        sid,
+        enabled=(payload or {}).get("enabled"),
+        key=(payload or {}).get("key"),
+        url=(payload or {}).get("url"),
+    )
+    if not ok:
+        raise HTTPException(status_code=404, detail="unknown_server")
+    return {"servers": mcp_tools.public_list()}
+
+
 @app.get("/api/auth/status")
 def auth_status() -> dict[str, bool]:
     """前端据此决定是否弹登录框 (enabled=false 时直接进主界面)."""
@@ -619,6 +674,16 @@ def modes_reload_registry() -> dict:
     return {"ok": True, "count": len(ms), "mode_ids": [m.mode_id for m in ms]}
 
 
+@app.get("/api/memory")
+def memory_list_all(limit: int = 100, compact: bool = True) -> list[dict]:
+    """聚合所有场景的历史 (按时间倒序), 给「自动识别」首页的「最近」列表用."""
+    mem = DecisionMemory(_DATA_DIR)
+    rows = mem.list_all_summaries(limit=limit)
+    if compact:
+        return [compact_decision_row(r) for r in rows]
+    return rows
+
+
 @app.get("/api/memory/{mode_id}")
 def memory_list(mode_id: str, limit: int = 50, compact: bool = False) -> list[dict]:
     mem = DecisionMemory(_DATA_DIR)
@@ -627,6 +692,17 @@ def memory_list(mode_id: str, limit: int = 50, compact: bool = False) -> list[di
     if compact:
         return [compact_decision_row(r) for r in rows]
     return rows
+
+
+@app.post("/api/memory/{mode_id}/decision/{decision_id}/retro")
+def memory_retro(mode_id: str, decision_id: str, payload: dict[str, Any] = Body(default={})) -> dict:
+    """v13 #4 复盘笔记: 给某条决策写/改事后复盘笔记 (retro_note), 持久化到 decisions.jsonl."""
+    note = str((payload or {}).get("note", ""))[:4000]
+    mem = DecisionMemory(_DATA_DIR)
+    ok = mem.update_decision(mode_id=mode_id, decision_id=decision_id, patch={"retro_note": note})
+    if not ok:
+        raise HTTPException(status_code=404, detail="decision_not_found")
+    return {"ok": True, "decision_id": decision_id}
 
 
 @app.get("/api/memory/{mode_id}/decision/{decision_id}")

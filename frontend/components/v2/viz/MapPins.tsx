@@ -29,8 +29,19 @@ const avg = (arr: number[]) => (arr.length ? arr.reduce((s, v) => s + v, 0) / ar
 const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-export function MapPins({ places }: { places: MapPlace[] }) {
+export function MapPins({
+  places,
+  onPick,
+  selected,
+}: {
+  places: MapPlace[];
+  onPick?: (i: number) => void;
+  selected?: number | null;
+}) {
   const ref = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<import("maplibre-gl").Map | null>(null);
+  const onPickRef = useRef(onPick);
+  onPickRef.current = onPick;
 
   useEffect(() => {
     if (!ref.current || places.length === 0) return;
@@ -68,8 +79,10 @@ export function MapPins({ places }: { places: MapPlace[] }) {
         const marker = new maplibregl.Marker({ element: el }).setLngLat([p.lng, p.lat]).setPopup(popup).addTo(map!);
         el.addEventListener("mouseenter", () => marker.getPopup() && popup.addTo(map!));
         el.addEventListener("mouseleave", () => popup.remove());
+        el.addEventListener("click", (ev) => { ev.stopPropagation(); onPickRef.current?.(i); });
         bounds.extend([p.lng, p.lat]);
       });
+      mapRef.current = map;
       if (places.length > 1) {
         try {
           map.fitBounds(bounds, { padding: 64, maxZoom: 14, duration: 0 });
@@ -82,8 +95,19 @@ export function MapPins({ places }: { places: MapPlace[] }) {
     return () => {
       cancelled = true;
       if (map) map.remove();
+      mapRef.current = null;
     };
   }, [places]);
+
+  // 选中某个钉 → 平滑飞到该点 (聚焦)
+  useEffect(() => {
+    const m = mapRef.current;
+    if (!m || selected == null) return;
+    const p = places[selected];
+    if (p && Number.isFinite(p.lng) && Number.isFinite(p.lat)) {
+      try { m.flyTo({ center: [p.lng, p.lat], zoom: 15, duration: 600 }); } catch { /* noop */ }
+    }
+  }, [selected, places]);
 
   if (places.length === 0) return null;
 

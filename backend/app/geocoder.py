@@ -22,6 +22,7 @@ import httpx
 
 # 「带地点」场景白名单: 只有这些场景的结果才值得在地图上钉店.
 GEO_SCENES: set[str] = {
+    # 出行/居住/活动
     "dining_recommendation",
     "travel_planning",
     "travel_deep",
@@ -32,6 +33,25 @@ GEO_SCENES: set[str] = {
     "gardening",
     "car_purchase",
     "study_abroad",
+    # 医疗/养老 (医院/诊所/机构)
+    "family_doctor",
+    "chronic_disease",
+    "health_checkup",
+    "elder_care",
+    "mental_wellness",
+    # 教育/培训 (学校/机构/琴行)
+    "child_education",
+    "music_learning",
+    # 门店/线下消费 (实体店/影楼/宠物医院)
+    "purchase_decision",
+    "nutrition_fitness",
+    "fitness_plan",
+    "skincare_beauty",
+    "fashion_styling",
+    "photography",
+    "pet_care",
+    "collectibles",
+    "gift_selection",
 }
 
 # 用 POI 文本搜索 (/v3/place/text) 而非地理编码 (/v3/geocode/geo):

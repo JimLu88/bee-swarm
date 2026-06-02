@@ -43,6 +43,10 @@ class LlmRagSettings(BaseSettings):
     # v12 登录密码. 可在网页设置里填, 存 hub_settings.json (脱敏); 留空 = 不启用登录.
     app_password: str | None = None
 
+    # v13 推理模型 (复杂题专用, 如 deepseek/deepseek-reasoner 或 openai/o3-mini).
+    # 留空 = 不启用 (CEO 汇总仍用主模型). 复杂任务才切, 原模型留作 fallback.
+    reasoning_model: str | None = None
+
 
 llm_rag_settings = LlmRagSettings()
 

@@ -708,17 +708,35 @@ async def finalize_decision_bundle(
                     "- 若有重要冲突 → 指出冲突并给推荐方案 (附 1-2 句理由)\n"
                     "- 红队风险单独最后一段 ⚠ 标出 (无风险则省略此段)\n"
                 )
+            # v13 #2 长期记忆: 注入用户画像 (让 CEO 认识你, 建议更贴合; 关开关/为空则不注入)
+            try:
+                from .user_profile import format_for_prompt as _fmt_profile
+                _user_profile_block = _fmt_profile()
+            except Exception:
+                _user_profile_block = ""
             ceo_prompt = (
                 (sop_section + "\n---\n\n" if sop_section else "")
                 + (ceo_framework_brief + "\n" if ceo_framework_brief else "")
                 + (ceo_kb_section + "\n---\n\n" if ceo_kb_section else "")
+                + (_user_profile_block + "\n" if _user_profile_block else "")
                 + f"用户任务: {task}\n\n"
                 + f"以下是 {len(reports)} 个部门的独立意见:\n\n{dept_views}\n\n"
                 + ceo_output_spec
             )
+            # v13 复杂题 (算账/比合同/多步推导) → 切推理模型, 原 CEO 模型留作 fallback (失败自动退回).
+            _ceo_model = ceo_choice.model
+            _ceo_fallbacks = llm_router.fallbacks()
+            try:
+                from .llm.router import reasoning_model_for as _rmf
+                _reasoning = _rmf(task)
+                if _reasoning:
+                    _ceo_model = _reasoning
+                    _ceo_fallbacks = [ceo_choice.model] + _ceo_fallbacks
+            except Exception:
+                pass
             ceo_text = (await litellm_client.complete(
-                model=ceo_choice.model,
-                fallbacks=llm_router.fallbacks(),
+                model=_ceo_model,
+                fallbacks=_ceo_fallbacks,
                 prompt=ceo_prompt,
             )).text or ""
             ceo_decision = ceo_text.strip()
@@ -729,6 +747,13 @@ async def finalize_decision_bundle(
         ceo_decision = f"CEO（分诊：{lvl}）：先完成可运行链路，再按需深化；遵守各部门分诊上下文与热力图预警。"
     if red_depts:
         ceo_decision += f"\n\n⚠ 注意:{', '.join(red_depts_cn)} 部门有红色预警,可展开看详情。"
+
+    # v13 #2 决策后异步提炼用户画像 (fire-and-forget, 不给主链路加延迟; 关了开关自动跳过)
+    try:
+        from . import user_profile as _up
+        _up.store_async(task, ceo_decision)
+    except Exception:
+        pass
 
     # v1.2 红队风险 — 真 LLM 分析任务 + 部门意见, 失败兜底
     risks: list[str] = []
@@ -779,6 +804,17 @@ async def finalize_decision_bundle(
         media_cards = await gather_media_cards(task, mode_id)
     except Exception:
         media_cards = []
+
+    # v12 信源可信度 + 观点权重 (先覆盖 12 个前台场景): 给卡片打 credibility + 汇总 consensus.
+    # best-effort: 非前台场景/失败 → media_cards 原样, consensus={}.
+    source_consensus: dict[str, Any] = {}
+    try:
+        from .source_credibility import analyze_credibility
+        _cred = await analyze_credibility(task, mode_id, media_cards)
+        media_cards = _cred.get("cards", media_cards)
+        source_consensus = _cred.get("consensus") or {}
+    except Exception:
+        source_consensus = {}
 
     # v11 方案4 地图钉店: 抽店名 → 高德地理编码 → 坐标 (best-effort; 仅带地点场景+配了 AMAP_KEY).
     map_places: list[dict[str, Any]] = []
@@ -834,6 +870,7 @@ async def finalize_decision_bundle(
         team_personas_used=team_personas_used,
         media_cards=media_cards,
         map_places=map_places,
+        source_consensus=source_consensus,
     )
 
     bus.publish(StreamEvent(type="decision_done", decision_id=decision_id, payload={"summary": summary.model_dump()}))

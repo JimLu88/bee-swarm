@@ -2,7 +2,7 @@
 
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useState } from "react";
-import { resolveBackendHttpBase } from "../../lib/backend";
+import { resolveBackendHttpBase, HSEMAS_BACKEND_STORAGE_KEY } from "../../lib/backend";
 import { fetchWithTimeout, TIMEOUT_MS } from "../../lib/http";
 
 /**
@@ -26,6 +26,7 @@ type HubSettings = {
   exa_api_key?: string;           // server returns masked (***...)
   amap_key?: string;              // 高德地图 Key, server returns masked (***...)
   app_password?: string;          // 登录密码, server returns masked (***...)
+  reasoning_model?: string;       // 推理模型 (复杂题专用), 非密钥不脱敏
 };
 
 const card: CSSProperties = {
@@ -184,6 +185,7 @@ export function SettingsPanel() {
   const [exaKey, setExaKey] = useState("");
   const [amapKey, setAmapKey] = useState("");
   const [appPassword, setAppPassword] = useState("");
+  const [reasoningModel, setReasoningModel] = useState("");
   const [presetId, setPresetId] = useState("aihubmix");
   const [msg, setMsg] = useState<string | null>(null);
   const [diagResult, setDiagResult] = useState<{
@@ -192,6 +194,19 @@ export function SettingsPanel() {
   } | null>(null);
 
   const backendUrl = resolveBackendHttpBase();
+  // v13 🔗 连接群晖大脑: 切换后端数据源 (写本机 localStorage + 刷新)
+  const [backendInput, setBackendInput] = useState("");
+  const connectBackend = (url: string) => {
+    try {
+      if (url) window.localStorage.setItem(HSEMAS_BACKEND_STORAGE_KEY, url.replace(/\/+$/, ""));
+      else window.localStorage.removeItem(HSEMAS_BACKEND_STORAGE_KEY);
+    } catch { /* ignore */ }
+    window.location.reload();
+  };
+  const presetBtn: CSSProperties = {
+    padding: "6px 12px", borderRadius: 8, border: "1px solid var(--border)",
+    background: "var(--bg-card)", color: "var(--text)", fontSize: 12, cursor: "pointer",
+  };
 
   const refresh = useCallback(async () => {
     setBusy(true);
@@ -203,6 +218,7 @@ export function SettingsPanel() {
       setProvider(s.llm_provider ?? "litellm");
       setBaseUrl(s.litellm_base_url ?? "");
       setModel(s.litellm_default_model ?? "");
+      setReasoningModel(s.reasoning_model ?? "");
       setFallback(s.litellm_fallback_models ?? "");
       // openai_api_key / tavily_api_key / exa_api_key return masked ***...; don't overwrite the inputs
     } finally { setBusy(false); }
@@ -234,6 +250,7 @@ export function SettingsPanel() {
       if (exaKey && !exaKey.startsWith("***")) body.exa_api_key = exaKey.trim();
       if (amapKey && !amapKey.startsWith("***")) body.amap_key = amapKey.trim();
       if (appPassword && !appPassword.startsWith("***")) body.app_password = appPassword.trim();
+      body.reasoning_model = reasoningModel.trim();  // 非密钥, 总是回传 (空=关闭)
       const r = await fetchWithTimeout(`${backendUrl}/api/settings/hub`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -346,6 +363,26 @@ export function SettingsPanel() {
         >📦 系统自更新</button>
         <div style={{ flex: 1, fontSize: 11, color: "var(--text-dim)", alignSelf: "center", textAlign: "right" }}>
           自更新会先扫错误日志 + ELO 低部门, 由 Opus 出 diff/人设改进提案. 待审批改动在「🔧 技术」tab 里处理.
+        </div>
+      </div>
+
+      {/* v13 🔗 连接群晖大脑: 多端共享同一份数据 (单一数据源) */}
+      <div style={{ padding: 12, borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg-card)" }}>
+        <div style={{ fontWeight: 600, fontSize: 14 }}>🔗 连接哪个大脑(数据源)</div>
+        <div style={{ fontSize: 11.5, color: "var(--text-dim)", margin: "4px 0 8px", lineHeight: 1.6 }}>
+          连到 <b>群晖</b> 后,PC / 手机用的是<b>同一份</b>历史、书籍、记忆 —— 在哪台写都一致(其实只有一份,无需同步)。
+        </div>
+        <div style={{ fontSize: 11.5, color: "var(--text-faint)", marginBottom: 8 }}>
+          当前: <code>{backendUrl}</code>
+        </div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button type="button" style={presetBtn} onClick={() => connectBackend("http://192.168.31.21:8100")}>群晖 · 局域网</button>
+          <button type="button" style={presetBtn} onClick={() => connectBackend("https://jimlu1029.synology.me:10443")}>群晖 · 外网</button>
+          <button type="button" style={presetBtn} onClick={() => connectBackend("")}>↩ 用本机</button>
+        </div>
+        <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+          <input style={{ ...input, flex: 1 }} value={backendInput} onChange={(e) => setBackendInput(e.target.value)} placeholder="或手填地址, 如 http://192.168.31.21:8100" />
+          <button type="button" style={presetBtn} onClick={() => backendInput.trim() && connectBackend(backendInput.trim())}>连接</button>
         </div>
       </div>
 
@@ -462,6 +499,19 @@ export function SettingsPanel() {
           />
           <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 4 }}>
             设置后, 所有人访问都需先输入此密码。改密码会让已登录的设备全部需要重新登录。留空 = 任何人可直接使用 (仅适合局域网/Tailscale)。
+          </div>
+        </div>
+        <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12, marginTop: 4 }}>
+          <label style={label}>🧠 推理模型 (复杂题专用, 选填)</label>
+          <input
+            style={input}
+            type="text"
+            value={reasoningModel}
+            onChange={(e) => setReasoningModel(e.target.value)}
+            placeholder="如 deepseek/deepseek-reasoner 或 openai/o3-mini; 留空 = 不启用"
+          />
+          <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 4 }}>
+            遇到算账 / 比合同 / 多步推导这类硬题, CEO 汇总会自动切到这个会「打草稿」的推理模型(简单题仍用主模型, 省钱省时)。它挂了自动退回主模型。留空 = 关闭。
           </div>
         </div>
       </div>

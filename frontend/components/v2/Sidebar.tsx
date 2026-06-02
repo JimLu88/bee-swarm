@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Icon } from "./Icon";
 import { BUILTIN_MODES } from "./ModePicker";
 import { sceneIcon } from "../../lib/scenes";
@@ -46,6 +47,7 @@ export function Sidebar({
   tier,
   onUserClick,
 }: Props) {
+  const [menuOpen, setMenuOpen] = useState(false);
   return (
     <aside className="rail">
       <div className="rail-inner">
@@ -92,21 +94,75 @@ export function Sidebar({
           })}
         </div>
 
-        <div className="rail-foot">
-          <button type="button" className="foot-item" onClick={onOpenScenario}>
-            <Icon name="grid_view" /> 切换场景 · 顾问团
-          </button>
-          <button type="button" className="foot-item" onClick={onOpenSwarm}>
-            <Icon name="hub" /> 看顾问怎么协作
-          </button>
-          <button type="button" className="foot-item" onClick={onOpenSettings}>
-            <Icon name="settings" /> 设置
-          </button>
-          <button type="button" className="foot-user" onClick={onUserClick} title="我">
+        <div className="rail-foot" style={{ position: "relative" }}>
+          {menuOpen && (
+            <>
+              {/* 点击空白处关闭 */}
+              <div
+                onClick={() => setMenuOpen(false)}
+                style={{ position: "fixed", inset: 0, zIndex: 40 }}
+              />
+              <div
+                role="menu"
+                style={{
+                  position: "absolute",
+                  bottom: "calc(100% + 8px)",
+                  left: 0,
+                  right: 0,
+                  zIndex: 41,
+                  background: "var(--bg-card, #fff)",
+                  border: "1px solid var(--border)",
+                  borderRadius: 12,
+                  boxShadow: "0 10px 36px rgba(0,0,0,0.16)",
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  style={{
+                    padding: "10px 12px",
+                    borderBottom: "1px solid var(--border)",
+                    font: "600 12px var(--font-sans)",
+                    color: "var(--fg-3)",
+                  }}
+                >
+                  {userName} · {TIER_LABEL[tier]}
+                </div>
+                <button
+                  type="button"
+                  className="foot-item"
+                  onClick={() => { setMenuOpen(false); onOpenScenario(); }}
+                >
+                  <Icon name="grid_view" /> 切换场景 · 顾问团
+                </button>
+                <button
+                  type="button"
+                  className="foot-item"
+                  onClick={() => { setMenuOpen(false); onOpenSwarm(); }}
+                >
+                  <Icon name="hub" /> 看顾问怎么协作
+                </button>
+                <button
+                  type="button"
+                  className="foot-item"
+                  onClick={() => { setMenuOpen(false); onOpenSettings(); }}
+                >
+                  <Icon name="settings" /> 设置
+                </button>
+              </div>
+            </>
+          )}
+          <button
+            type="button"
+            className="foot-user"
+            onClick={() => setMenuOpen((o) => !o)}
+            title="菜单"
+            aria-expanded={menuOpen}
+          >
             <div className="avatar">{userName.slice(0, 1)}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ font: "600 13px var(--font-sans)", color: "var(--fg-1)" }}>{userName}</div>
             </div>
+            <Icon name={menuOpen ? "expand_more" : "expand_less"} />
           </button>
         </div>
       </div>
