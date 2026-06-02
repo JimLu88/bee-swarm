@@ -151,7 +151,7 @@ export function Composer({
                 <div style={{
                   position: "absolute", bottom: "calc(100% + 8px)", left: 0, zIndex: 41,
                   width: 280, padding: 6, borderRadius: 14,
-                  background: "var(--bg-card)", boxShadow: "0 12px 32px rgba(0,0,0,0.4)",
+                  background: "var(--bg-card)", boxShadow: "var(--shadow-lg)",
                   borderWidth: 1, borderStyle: "solid", borderColor: "var(--border)",
                 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-faint)", padding: "8px 10px 4px" }}>
@@ -200,7 +200,7 @@ export function Composer({
                   <div style={{
                     position: "absolute", bottom: "calc(100% + 6px)", left: 0, zIndex: 41,
                     width: 230, padding: 8, borderRadius: 10,
-                    background: "var(--bg-card)", boxShadow: "0 8px 28px rgba(0,0,0,0.35)",
+                    background: "var(--bg-card)", boxShadow: "var(--shadow-lg)",
                     borderWidth: 1, borderStyle: "solid", borderColor: "var(--border)",
                   }}>
                     <div style={{ fontSize: 11, color: "var(--text-faint)", padding: "2px 6px 6px" }}>

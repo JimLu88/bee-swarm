@@ -67,7 +67,7 @@ const modalBox: CSSProperties = {
   borderRadius: 12,
   borderWidth: 1, borderStyle: "solid", borderColor: "var(--border-strong)",
   display: "flex", flexDirection: "column", overflow: "hidden",
-  boxShadow: "0 8px 40px rgba(0,0,0,0.7)",
+  boxShadow: "var(--shadow-lg)",
 };
 
 const tabRow: CSSProperties = {

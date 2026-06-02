@@ -128,7 +128,7 @@ export function MapPins({
           borderRadius: 14,
           overflow: "hidden",
           border: "1px solid rgba(255,255,255,0.1)",
-          boxShadow: "0 8px 30px rgba(0,0,0,0.4)",
+          boxShadow: "var(--shadow-lg)",
         }}
       />
       <style>{`

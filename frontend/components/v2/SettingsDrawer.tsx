@@ -69,7 +69,7 @@ const drawer: CSSProperties = {
   borderLeftWidth: 1, borderLeftStyle: "solid",
   borderLeftColor: "var(--border-strong)",
   zIndex: 290, display: "flex", flexDirection: "column",
-  boxShadow: "-10px 0 40px rgba(0,0,0,0.6)",
+  boxShadow: "var(--shadow-lg)",
 };
 
 const headerBar: CSSProperties = {

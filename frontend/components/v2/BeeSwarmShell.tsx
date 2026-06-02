@@ -15,6 +15,8 @@ import { type Difficulty } from "./DifficultySlider";
 import { ResultPanel, type DecisionSummary } from "./ResultPanel";
 import { type HistoryRow } from "./HistoryPanel";
 import { SettingsDrawer } from "./SettingsDrawer";
+import { SettingsPage } from "./SettingsPage";
+import { ProfilePage } from "./ProfilePage";
 import { SwarmDashboardModal, type DeptHeat } from "./SwarmDashboardModal";
 import { Onboarding } from "./Onboarding";
 import { NotificationBell } from "./NotificationBell";
@@ -39,7 +41,7 @@ import { sceneSuggestions } from "../../lib/scenes";
 const AUTO_MODE = "__auto__";
 
 
-type View = "welcome" | "thread";
+type View = "welcome" | "thread" | "settings" | "profile";
 
 type Turn = {
   id: string;
@@ -778,10 +780,10 @@ export function BeeSwarmShell() {
         onDeleteHistory={deleteHistory}
         onOpenScenario={() => openSettings("scenario")}
         onOpenSwarm={() => setDashOpen(true)}
-        onOpenSettings={() => openSettings(undefined)}
+        onOpenSettings={() => setView("settings")}
         onCollapse={() => setRailCollapsed(true)}
         tier={tier}
-        onUserClick={cycleTier}
+        onUserClick={() => setView("profile")}
       />
 
       <div className="main">
@@ -905,6 +907,43 @@ export function BeeSwarmShell() {
         {/* 底部常驻 composer (thread 态) */}
         {view === "thread" && (
           <div className="composer-wrap">{composer}</div>
+        )}
+
+        {/* 设置 / 个人 整页 (覆盖 main; 隐藏顶栏场景 pill, 自带返回钮). 只换皮+绑现有状态, 逻辑不动 */}
+        {(view === "settings" || view === "profile") && (
+          <div style={{ position: "absolute", inset: 0, zIndex: 30, background: "var(--bg-app)", display: "flex", flexDirection: "column" }}>
+            {view === "settings" ? (
+              <SettingsPage
+                onBack={() => setView(turns.length ? "thread" : "welcome")}
+                theme={theme}
+                onSetTheme={(t) => {
+                  const actual: "light" | "dark" = t === "system"
+                    ? ((typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) ? "dark" : "light")
+                    : t;
+                  setTheme(actual);
+                  try {
+                    window.localStorage.setItem("h-semas:theme", actual);
+                    document.documentElement.setAttribute("data-theme", actual);
+                  } catch { /* ignore */ }
+                }}
+                tier={tier}
+                onSetTier={(t) => { setTierState(t); try { window.localStorage.setItem("h-semas:tier", t); } catch { /* ignore */ } }}
+                effort={difficulty}
+                onSetEffort={(n) => setDifficulty(n as 1 | 2 | 3 | 4)}
+                sceneLabel={BUILTIN_MODES.find((m) => m.mode_id === mode)?.label || mode}
+                onOpenScenario={() => openSettings("scenario")}
+                onOpenAdvanced={() => openSettings(undefined)}
+              />
+            ) : (
+              <ProfilePage
+                onBack={() => setView(turns.length ? "thread" : "welcome")}
+                userName="我"
+                tier={tier}
+                stats={{ consults: history.length }}
+                onOpenSettings={() => setView("settings")}
+              />
+            )}
+          </div>
         )}
       </div>
 

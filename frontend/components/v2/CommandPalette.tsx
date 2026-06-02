@@ -31,7 +31,7 @@ const panel: CSSProperties = {
   width: "min(640px, 92vw)", background: "var(--bg)", color: "var(--text)",
   borderRadius: 12, overflow: "hidden",
   borderWidth: 1, borderStyle: "solid", borderColor: "var(--border-strong)",
-  boxShadow: "0 20px 80px rgba(0,0,0,0.6)",
+  boxShadow: "var(--shadow-lg)",
   display: "flex", flexDirection: "column",
 };
 

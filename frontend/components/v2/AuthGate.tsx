@@ -162,7 +162,7 @@ const S: Record<string, React.CSSProperties> = {
     borderRadius: 16,
     background: "var(--bg-card, #fff)",
     border: "1px solid var(--border, rgba(0,0,0,0.08))",
-    boxShadow: "0 12px 40px rgba(0,0,0,0.12)",
+    boxShadow: "var(--shadow-lg)",
   },
   logo: { fontSize: 40, textAlign: "center" },
   title: { fontSize: 22, fontWeight: 700, textAlign: "center" },

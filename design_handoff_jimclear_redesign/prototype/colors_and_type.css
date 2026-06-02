@@ -1,0 +1,251 @@
+/* ============================================================================
+   JIM CLEAR — Design Tokens: Color + Type
+   Clean, calm clarity. Modern Gemini-inspired direction, blue primary.
+   Load Google Fonts before this file:
+     <link rel="preconnect" href="https://fonts.googleapis.com">
+     <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+============================================================================ */
+
+:root {
+  /* ----------------------------------------------------------------------
+     PRIMITIVE COLORS
+     ---------------------------------------------------------------------- */
+
+  /* Clarity Blue — primary brand scale */
+  --blue-50:  #EEF4FF;
+  --blue-100: #D9E6FF;
+  --blue-200: #B7CEFF;
+  --blue-300: #8DB0FF;
+  --blue-400: #5E8DFA;
+  --blue-500: #3B73F0;
+  --blue-600: #1F66E6;  /* PRIMARY */
+  --blue-700: #1A53BE;
+  --blue-800: #184696;
+  --blue-900: #173A78;
+
+  /* Cool neutral gray — slightly blue-tinted, calm and airy */
+  --gray-0:   #FFFFFF;
+  --gray-25:  #FBFCFE;  /* app background, lightest */
+  --gray-50:  #F4F7FB;
+  --gray-100: #E9EEF6;
+  --gray-200: #DCE3ED;
+  --gray-300: #C4CDD9;
+  --gray-400: #9AA5B4;
+  --gray-500: #6B7686;
+  --gray-600: #4D5765;
+  --gray-700: #373F4B;
+  --gray-800: #252B34;
+  --gray-900: #171B21;
+
+  /* Semantic hues */
+  --green-50:  #E7F5EE;
+  --green-500: #1E9E63;
+  --green-600: #14834F;
+  --amber-50:  #FBF1DD;
+  --amber-500: #E0A11A;
+  --amber-600: #B47A00;
+  --red-50:    #FCEBEA;
+  --red-500:   #E0413A;
+  --red-600:   #C42E27;
+
+  /* Brand gradient — the "clarity" / AI moment. Use sparingly. */
+  --gradient-brand: linear-gradient(135deg, #1F66E6 0%, #4C9AF5 48%, #8E7BF0 100%);
+  --gradient-brand-soft: linear-gradient(135deg, #EAF1FE 0%, #EEF1FE 55%, #F2EEFD 100%);
+  --gradient-sheen: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0));
+
+  /* ----------------------------------------------------------------------
+     SEMANTIC COLOR ROLES
+     ---------------------------------------------------------------------- */
+
+  /* Foreground (text / icon) */
+  --fg-1: var(--gray-900);   /* primary text, headlines */
+  --fg-2: var(--gray-600);   /* secondary text, body on light */
+  --fg-3: var(--gray-500);   /* tertiary, captions, meta */
+  --fg-4: var(--gray-400);   /* placeholder, disabled */
+  --fg-on-accent: #FFFFFF;   /* text on blue */
+  --fg-link: var(--blue-600);
+
+  /* Background / surface */
+  --bg-app: var(--gray-25);  /* the page canvas */
+  --bg-surface: var(--gray-0);     /* cards, sheets */
+  --bg-surface-2: var(--gray-50);  /* recessed / subtle fills */
+  --bg-hover: var(--gray-100);     /* hover wash on neutral */
+  --bg-active: var(--gray-200);
+  --bg-accent-soft: var(--blue-50);   /* selected / tinted blue surface */
+  --bg-accent-soft-2: var(--blue-100);
+
+  /* Accent / interactive */
+  --accent: var(--blue-600);
+  --accent-hover: var(--blue-700);
+  --accent-press: var(--blue-800);
+  --accent-soft: var(--blue-50);
+  --accent-ring: rgba(31,102,230,0.32);
+
+  /* Borders / dividers */
+  --border-1: var(--gray-200);   /* default hairline */
+  --border-2: var(--gray-300);   /* stronger / inputs */
+  --border-accent: var(--blue-300);
+  --divider: var(--gray-100);
+
+  /* Semantic states */
+  --success: var(--green-600);
+  --success-bg: var(--green-50);
+  --warning: var(--amber-600);
+  --warning-bg: var(--amber-50);
+  --danger: var(--red-600);
+  --danger-bg: var(--red-50);
+
+  /* ----------------------------------------------------------------------
+     TYPOGRAPHY
+     ---------------------------------------------------------------------- */
+  --font-sans: "Lexend", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* Type scale (1.250 major-third-ish, tuned) */
+  --text-display: 600 clamp(40px, 5vw, 60px)/1.05 var(--font-sans);
+  --text-h1:      600 36px/1.12 var(--font-sans);
+  --text-h2:      600 28px/1.18 var(--font-sans);
+  --text-h3:      600 22px/1.25 var(--font-sans);
+  --text-h4:      500 18px/1.3  var(--font-sans);
+  --text-body-lg: 400 17px/1.6  var(--font-sans);
+  --text-body:    400 15px/1.6  var(--font-sans);
+  --text-sm:      400 13px/1.5  var(--font-sans);
+  --text-caption: 500 12px/1.4  var(--font-sans);
+  --text-mono:    400 13px/1.5  var(--font-mono);
+
+  --tracking-tight: -0.02em;   /* display & headings */
+  --tracking-normal: 0;
+  --tracking-wide: 0.04em;     /* eyebrows / labels (uppercase) */
+
+  /* ----------------------------------------------------------------------
+     SPACING — 4px base
+     ---------------------------------------------------------------------- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+
+  /* ----------------------------------------------------------------------
+     RADII — generous, friendly
+     ---------------------------------------------------------------------- */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;   /* default control / small card */
+  --radius-lg: 20px;   /* cards, sheets */
+  --radius-xl: 28px;   /* large surfaces, hero */
+  --radius-pill: 999px;
+
+  /* ----------------------------------------------------------------------
+     ELEVATION — Gemini-style diffuse: wide blur, low alpha, cool-tinted,
+     negative spread so the shadow stays under the card and never hardens
+     into a crisp edge. These are the soft, "lifted-paper" shadows.
+     ---------------------------------------------------------------------- */
+  --shadow-xs: 0 1px 2px rgba(28,52,102,0.05), 0 1px 1px rgba(28,52,102,0.03);
+  --shadow-sm: 0 4px 16px -4px rgba(28,52,102,0.10), 0 1px 4px rgba(28,52,102,0.05);
+  --shadow-md: 0 12px 34px -8px rgba(28,52,102,0.13), 0 3px 12px -2px rgba(28,52,102,0.07);
+  --shadow-lg: 0 28px 64px -14px rgba(28,52,102,0.18), 0 10px 28px -8px rgba(28,52,102,0.10);
+  --shadow-accent: 0 6px 18px -4px rgba(31,102,230,0.30);
+  --glow: color-mix(in srgb, var(--accent) 14%, transparent);  /* brand halo for spark / send */
+  --ring-focus: 0 0 0 4px var(--accent-ring);
+  color-scheme: light;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.2, 0.7, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0.05, 0.36, 1);
+  --dur-fast: 120ms;
+  --dur: 200ms;
+  --dur-slow: 320ms;
+}
+
+/* ============================================================================
+   DARK THEME — calm cool-black, Gemini night. Toggle with
+   <html data-theme="dark"> (or add class .theme-dark to any subtree).
+   Only the SEMANTIC roles flip; primitives & type scale stay shared.
+============================================================================ */
+:root[data-theme="dark"],
+.theme-dark {
+  color-scheme: dark;
+
+  /* gradients re-tuned for dark surfaces */
+  --gradient-brand: linear-gradient(135deg, #2A72ED 0%, #4C9AF5 48%, #9B86F5 100%);
+  --gradient-brand-soft: linear-gradient(135deg, rgba(42,114,237,0.22) 0%, rgba(76,154,245,0.12) 55%, rgba(155,134,245,0.18) 100%);
+  --gradient-sheen: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0));
+
+  /* foreground */
+  --fg-1: #EEF1F6;
+  --fg-2: #AAB3C0;
+  --fg-3: #7F8895;
+  --fg-4: #5A626F;
+  --fg-on-accent: #0A1322;
+  --fg-link: #7FB0FF;
+
+  /* background / surface */
+  --bg-app: #0E1014;
+  --bg-surface: #171A20;
+  --bg-surface-2: #1E222A;
+  --bg-hover: #242A33;
+  --bg-active: #2C333E;
+  --bg-accent-soft: rgba(60,120,240,0.18);
+  --bg-accent-soft-2: rgba(60,120,240,0.28);
+
+  /* accent (lifted for legibility on dark) */
+  --accent: #4C9AF5;
+  --accent-hover: #6EAEF7;
+  --accent-press: #8DC0F9;
+  --accent-soft: rgba(60,120,240,0.16);
+  --accent-ring: rgba(76,154,245,0.42);
+
+  /* borders / dividers */
+  --border-1: rgba(255,255,255,0.09);
+  --border-2: rgba(255,255,255,0.17);
+  --border-accent: rgba(76,154,245,0.55);
+  --divider: rgba(255,255,255,0.07);
+
+  /* semantic states — lighter text hues + translucent fills */
+  --success: #46C88A;
+  --success-bg: rgba(30,158,99,0.16);
+  --warning: #E7B23E;
+  --warning-bg: rgba(224,161,26,0.15);
+  --danger: #F0726B;
+  --danger-bg: rgba(224,65,58,0.16);
+
+  /* elevation — diffuse, deeper on dark */
+  --shadow-xs: 0 1px 3px rgba(0,0,0,0.36);
+  --shadow-sm: 0 3px 14px -3px rgba(0,0,0,0.50), 0 1px 4px rgba(0,0,0,0.32);
+  --shadow-md: 0 12px 34px -8px rgba(0,0,0,0.58), 0 3px 12px -2px rgba(0,0,0,0.42);
+  --shadow-lg: 0 28px 64px -14px rgba(0,0,0,0.66), 0 10px 28px -8px rgba(0,0,0,0.46);
+  --shadow-accent: 0 6px 18px -4px rgba(31,102,230,0.48);
+  --glow: color-mix(in srgb, var(--accent) 32%, transparent);
+}
+
+/* ============================================================================
+   SEMANTIC ELEMENT STYLES — apply directly or copy as class bases
+============================================================================ */
+
+.jc-display { font: var(--text-display); letter-spacing: var(--tracking-tight); color: var(--fg-1); text-wrap: balance; }
+.jc-h1 { font: var(--text-h1); letter-spacing: var(--tracking-tight); color: var(--fg-1); text-wrap: balance; }
+.jc-h2 { font: var(--text-h2); letter-spacing: var(--tracking-tight); color: var(--fg-1); text-wrap: balance; }
+.jc-h3 { font: var(--text-h3); letter-spacing: var(--tracking-tight); color: var(--fg-1); }
+.jc-h4 { font: var(--text-h4); color: var(--fg-1); }
+.jc-body-lg { font: var(--text-body-lg); color: var(--fg-2); text-wrap: pretty; }
+.jc-body { font: var(--text-body); color: var(--fg-2); text-wrap: pretty; }
+.jc-sm { font: var(--text-sm); color: var(--fg-3); }
+.jc-caption { font: var(--text-caption); color: var(--fg-3); }
+.jc-eyebrow {
+  font: 600 12px/1.3 var(--font-sans);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.jc-mono { font: var(--text-mono); color: var(--fg-2); }
+.jc-link { color: var(--fg-link); text-decoration: none; }
+.jc-link:hover { text-decoration: underline; text-underline-offset: 2px; }

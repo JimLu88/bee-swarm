@@ -127,7 +127,7 @@ export function Sidebar({
                   background: "var(--bg-card, #fff)",
                   border: "1px solid var(--border)",
                   borderRadius: 12,
-                  boxShadow: "0 10px 36px rgba(0,0,0,0.16)",
+                  boxShadow: "var(--shadow-lg)",
                   overflow: "hidden",
                 }}
               >

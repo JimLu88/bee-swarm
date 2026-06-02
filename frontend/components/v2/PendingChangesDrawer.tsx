@@ -41,7 +41,7 @@ const drawerStyle: CSSProperties = {
   borderLeftColor: "var(--border-strong)",
   zIndex: 250, padding: 16, overflow: "auto",
   display: "flex", flexDirection: "column", gap: 12,
-  boxShadow: "-8px 0 30px rgba(0,0,0,0.6)",
+  boxShadow: "var(--shadow-lg)",
 };
 
 const card: CSSProperties = {

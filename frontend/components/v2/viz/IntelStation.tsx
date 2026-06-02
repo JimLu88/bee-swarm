@@ -150,7 +150,7 @@ export function IntelStation({ open, onClose, title = "情报站", mediaCards, m
                     style={{
                       ...span, position: "relative", borderRadius: 14, overflow: "hidden",
                       border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)",
-                      boxShadow: "0 8px 30px rgba(0,0,0,0.4)",
+                      boxShadow: "var(--shadow-lg)",
                       cursor: m.url ? "pointer" : "default",
                     }}
                     onClick={() => { if (m.url) window.open(m.url, "_blank", "noopener"); }}>

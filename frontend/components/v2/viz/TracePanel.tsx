@@ -191,7 +191,7 @@ function Node({ dot, title, tag, tagColor, children, last }: {
 
 const S: Record<string, CSSProperties> = {
   scrim: { position: "fixed", inset: 0, zIndex: 9998, background: "rgba(0,0,0,0.45)", display: "flex", justifyContent: "center", alignItems: "flex-start", padding: "max(24px, env(safe-area-inset-top)) 16px 24px" },
-  sheet: { width: "min(720px, 96vw)", maxHeight: "90vh", display: "flex", flexDirection: "column", background: "var(--bg-card, #fff)", color: "var(--text, #1a1a1a)", borderRadius: 16, border: "1px solid var(--border)", boxShadow: "0 20px 60px rgba(0,0,0,0.25)", overflow: "hidden", marginTop: "4vh" },
+  sheet: { width: "min(720px, 96vw)", maxHeight: "90vh", display: "flex", flexDirection: "column", background: "var(--bg-card, #fff)", color: "var(--text, #1a1a1a)", borderRadius: 16, border: "1px solid var(--border)", boxShadow: "var(--shadow-lg)", overflow: "hidden", marginTop: "4vh" },
   head: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px", borderBottom: "1px solid var(--border)" },
   x: { width: 32, height: 32, borderRadius: 8, border: "1px solid var(--border)", background: "transparent", color: "var(--text)", cursor: "pointer", fontSize: 15 },
   body: { padding: "18px 20px", overflowY: "auto" },

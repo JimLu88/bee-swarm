@@ -1974,7 +1974,7 @@ export function DecisionHub() {
                     padding: 18,
                     maxWidth: 480,
                     width: "100%",
-                    boxShadow: "0 8px 32px rgba(0,0,0,0.2)",
+                    boxShadow: "var(--shadow-lg)",
                   }}
                   onClick={(e) => e.stopPropagation()}
                 >

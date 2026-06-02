@@ -228,7 +228,7 @@ export function RouteFlow({ heats, labels, personas = [], candidates, editable =
                   <div style={{
                     position: "absolute", top: "calc(100% + 4px)", left: 0, zIndex: 41,
                     width: 200, maxHeight: 260, overflowY: "auto", padding: 6, borderRadius: 10,
-                    background: "var(--bg-card)", border: "1px solid var(--border)", boxShadow: "0 8px 28px rgba(0,0,0,0.35)",
+                    background: "var(--bg-card)", border: "1px solid var(--border)", boxShadow: "var(--shadow-lg)",
                   }}>
                     {addable.map((d) => (
                       <button key={d} type="button" onClick={() => addDept(d)}
