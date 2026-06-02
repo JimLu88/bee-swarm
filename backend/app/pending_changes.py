@@ -196,7 +196,14 @@ def _try_apply(evolver: str, kind: str, target: str, proposal_str: str) -> bool:
             except Exception:
                 return False
 
-        # 其它 kind (code_change / bug_fix / trend_integration):
+        if kind == "dev_rule_promote":
+            # 开发模式: 批准后把 learnings 晋升写入 rules.md. target=repo_key, proposal={rules:[...]}
+            from .dev_mode import constraints
+            rk = (proposal.get("repo_key") if isinstance(proposal, dict) else "") or target
+            rules = proposal.get("rules", []) if isinstance(proposal, dict) else []
+            return constraints.apply_rule_promotion_by_key(str(rk), list(rules)) >= 0
+
+        # 其它 kind (code_change / bug_fix / trend_integration / dev_sop_tweak):
         # 已是"提议", 不自动改文件. 标 approved 即可, 人审手工跟进.
         return True
     except Exception:

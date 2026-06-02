@@ -36,6 +36,7 @@ class BeeServiceClient:
         self.hands_url = os.environ.get("BEE_HANDS_URL", "http://127.0.0.1:8002")
         self.light_url = os.environ.get("BEE_LIGHT_URL", "http://127.0.0.1:8007")
         self.vision_url = os.environ.get("BEE_VISION_URL", "http://127.0.0.1:8006")
+        self.input_url = os.environ.get("BEE_INPUT_URL", "http://127.0.0.1:8008")
         self.ledger_url = os.environ.get("BEE_LEDGER_URL", "http://127.0.0.1:8001")
         self.memory_url = os.environ.get("BEE_MEMORY_URL", "http://127.0.0.1:8004")
         self.timeout = DEFAULT_TIMEOUT
@@ -121,6 +122,23 @@ class BeeServiceClient:
     def agent_approve(self, task_id: str) -> dict[str, Any]:
         return self._post("agent_hands", self.hands_url,
                           f"/agent_hands/hitl/{task_id}/approve")
+
+    def agent_exec(self, command: list[str], *, workdir: str = "", timeout: int = 180) -> dict[str, Any]:
+        """白名单命令直执行 (跑测试 / git worktree): 开发模式用. claude shell 被拦时走这个."""
+        return self._post("agent_hands", self.hands_url, "/agent_hands/exec",
+                          {"command": command, "workdir": workdir, "timeout": timeout},
+                          timeout=float(timeout) + 15)
+
+    # input — 键鼠 (8008): 人类测试员模拟点击/移动/输入 (win32)
+    def input_click(self, x: int, y: int, *, button: str = "left", double: bool = False) -> dict[str, Any]:
+        return self._post("input", self.input_url, "/input/click",
+                          {"x": int(x), "y": int(y), "button": button, "double": bool(double)})
+
+    def input_move(self, x: int, y: int) -> dict[str, Any]:
+        return self._post("input", self.input_url, "/input/move", {"x": int(x), "y": int(y)})
+
+    def input_type(self, text: str) -> dict[str, Any]:
+        return self._post("input", self.input_url, "/input/type", {"text": str(text)})
 
     # ledger (8001)
     def ledger_status(self) -> dict[str, Any]:

@@ -406,7 +406,9 @@ async def sandbox_exec(body: SandboxExecRequest) -> dict | JSONResponse:
 
 @app.get("/api/modes")
 def modes() -> list[dict]:
-    return [m.model_dump() for m in list_modes()]
+    # 后台产业场景(BACKSTAGE_MODE_IDS)不进前端选择器列表; 仍可经 classify/lookup 使用.
+    from .modes import BACKSTAGE_MODE_IDS
+    return [m.model_dump() for m in list_modes() if m.mode_id not in BACKSTAGE_MODE_IDS]
 
 
 @app.get("/api/catalog/dept-names")
@@ -1132,6 +1134,98 @@ async def decision_stream(ws: WebSocket, decision_id: str) -> None:
     except WebSocketDisconnect:
         return
 
+
+# ============================================================
+# v13 开发模式 (Software-Dev Mode): 群晖指挥 PC 上的 Claude Code 写码
+# ============================================================
+@app.post("/api/dev/start")
+async def dev_start(payload: dict = Body(default={})) -> dict[str, str]:
+    """启动一次开发会话 (后台跑, 立即返回 dev_id; 前端连 WS /api/dev/stream/{id} 看进度)."""
+    from .dev_mode import session as dev_session
+    task = str((payload or {}).get("task", "")).strip()
+    repo_root = str((payload or {}).get("repo_root", "")).strip()
+    if not task or not repo_root:
+        raise HTTPException(status_code=400, detail={"error": "task_and_repo_root_required",
+                                                     "hint": "需要 task(需求) + repo_root(PC 仓库路径)"})
+    test_cmd = (payload or {}).get("test_cmd") or None
+    if test_cmd is not None and not isinstance(test_cmd, list):
+        test_cmd = None
+    use_worktree = bool((payload or {}).get("use_worktree", True))
+    code_model = str((payload or {}).get("code_model", "") or "")
+    qa_points = [str(p) for p in ((payload or {}).get("qa_points") or []) if str(p).strip()]
+    dev_id = "dv-" + uuid.uuid4().hex[:12]
+
+    async def _bg() -> None:
+        try:
+            await dev_session.run_dev_session(
+                raw_request=task, repo_root=repo_root, test_cmd=test_cmd,
+                use_worktree=use_worktree, code_model=code_model,
+                qa_points=qa_points or None, dev_id=dev_id)
+        except Exception as e:  # 兜底: 后台异常不崩主进程, 推一条错误事件
+            try:
+                bus.publish(StreamEvent(type="dev_error", decision_id=dev_id, payload={"error": repr(e)}))
+            except Exception:
+                pass
+
+    asyncio.create_task(_bg())
+    return {"dev_id": dev_id}
+
+
+@app.websocket("/api/dev/stream/{dev_id}")
+async def dev_stream(ws: WebSocket, dev_id: str) -> None:
+    if auth_enabled():
+        token = ws.query_params.get("token", "") or ws.cookies.get("hsemas_token", "")
+        if not verify_token(token):
+            await ws.close(code=1008)
+            return
+    await ws.accept()
+    try:
+        async for event in bus.subscribe(dev_id):
+            await ws.send_text(json.dumps(event.model_dump(), ensure_ascii=False))
+    except WebSocketDisconnect:
+        return
+
+
+@app.post("/api/dev/{dev_id}/approve")
+async def dev_approve(dev_id: str, payload: dict = Body(default={})) -> dict[str, Any]:
+    """PR 闸门批准: 真合并各 worktree 分支到当前分支, 清理 worktree."""
+    from .dev_mode import session as dev_session
+    repo_root = str((payload or {}).get("repo_root", "")).strip()
+    branches = [str(b) for b in ((payload or {}).get("branches") or []) if str(b).strip()]
+    if not repo_root:
+        raise HTTPException(status_code=400, detail={"error": "repo_root_required"})
+    return await dev_session.merge_session(repo_root=repo_root, branches=branches, dev_id=dev_id)
+
+
+@app.post("/api/dev/feedback")
+def dev_feedback(payload: dict = Body(default={})) -> dict[str, Any]:
+    """用户对某次开发打分 → 回写 dev_bandit (教它哪种打法好). 返回更新后的臂 + 是否可自进化."""
+    from .dev_mode import dev_bandit, records
+    kind = str((payload or {}).get("kind", "feature"))
+    variant = str((payload or {}).get("variant", ""))
+    try:
+        reward = float((payload or {}).get("reward", 0.0))
+    except Exception:
+        reward = 0.0
+    out: dict[str, Any] = {"recorded": False}
+    if variant:
+        out = {"recorded": True, "arm": dev_bandit.record(kind, variant, reward)}
+    out["successful_count"] = records.successful_count()
+    out["can_auto_evolve"] = records.can_auto_evolve()
+    return out
+
+
+@app.post("/api/dev/human-test")
+async def dev_human_test(payload: dict = Body(default={})) -> dict[str, Any]:
+    """人类测试员: 对 PC 屏幕上当前被测应用做肉眼+鼠标走查 (bee-vision 看 + bee-input 点)."""
+    from .dev_mode import human_tester
+    points = [str(p) for p in ((payload or {}).get("test_points") or []) if str(p).strip()]
+    dev_id = str((payload or {}).get("dev_id", ""))
+    try:
+        max_steps = int((payload or {}).get("max_steps", 0) or 0)
+    except Exception:
+        max_steps = 0
+    return await human_tester.run_human_test(test_points=points, dev_id=dev_id, max_steps=max_steps)
 
 
 # ============================================================

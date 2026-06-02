@@ -267,7 +267,217 @@ MODES: dict[str, ModeInfo] = {
             "futurist":          "未来学家 (5-10 年外推/技术 S 曲线/黑天鹅/范式转移)",
         },
     ),
+    # ============================================================================
+    # 后台产业框架场景 (≈15, 不进前端 ModePicker; 供"理解世界 + 问技术问题"用).
+    # 每个 6 部门, 按 "上游材料 → 工艺制造 → 装备控制 → 质量标准 → 产业经济 → 前沿趋势" 六维特化.
+    # 团队由 team_generator 生成, 知识由 lazy_seed 灌入 bee-memory.
+    # ============================================================================
+    "industrialization": ModeInfo(
+        mode_id="industrialization", label="工业化",
+        departments=["industrial_system", "supply_chain_analyst", "smart_manufacturing",
+                     "energy_infrastructure", "industrial_economy", "standards_policy"],
+        department_labels={
+            "industrial_system":     "工业体系架构师 (产业门类/工业基础/产业升级路径)",
+            "supply_chain_analyst":  "产业链分析师 (上下游/卡脖子环节/国产替代/集群)",
+            "smart_manufacturing":   "智能制造专家 (工业4.0/数字化转型/工业互联网/MES)",
+            "energy_infrastructure": "能源与基础设施 (电力/物流/园区/产能布局)",
+            "industrial_economy":    "工业经济研究员 (增加值/投资/政策周期/全球分工)",
+            "standards_policy":      "标准与政策专家 (国标/产业政策/双碳/准入)",
+        },
+    ),
+    "machinery": ModeInfo(
+        mode_id="machinery", label="机械",
+        departments=["mechanical_design", "materials_process", "manufacturing_process",
+                     "automation_control", "quality_reliability", "mech_standards"],
+        department_labels={
+            "mechanical_design":   "机械设计工程师 (结构/传动/力学/公差/CAD)",
+            "materials_process":   "材料与工艺专家 (金属/热处理/表面处理/选材)",
+            "manufacturing_process":"制造工艺工程师 (车铣刨磨/铸锻焊/数控/增材)",
+            "automation_control":  "自动化控制专家 (PLC/伺服/液压气动/机器人)",
+            "quality_reliability": "质量与可靠性工程师 (检测/失效分析/寿命/MTBF)",
+            "mech_standards":      "机械标准法规专家 (GB/ISO/安全规范/认证)",
+        },
+    ),
+    "textiles": ModeInfo(
+        mode_id="textiles", label="纺织",
+        departments=["fiber_materials", "spinning_weaving", "dyeing_finishing",
+                     "apparel_engineering", "textile_machinery", "textile_testing"],
+        department_labels={
+            "fiber_materials":    "纤维材料专家 (天然/化纤/功能性纤维/纱线)",
+            "spinning_weaving":   "纺纱织造工程师 (纺纱/机织/针织/非织造)",
+            "dyeing_finishing":   "印染整理专家 (前处理/染色/印花/后整理/环保)",
+            "apparel_engineering":"服装工程师 (版型/工艺/功能服装/智能穿戴)",
+            "textile_machinery":  "纺织机械工程师 (纺机/织机/印染设备/自动化)",
+            "textile_testing":    "纺织标准与检测专家 (色牢度/成分/安全/法规)",
+        },
+    ),
+    "chemical_industry": ModeInfo(
+        mode_id="chemical_industry", label="化工",
+        departments=["chemical_process", "reaction_engineering", "fine_chemicals",
+                     "chemical_safety", "catalysis_materials", "chem_standards"],
+        department_labels={
+            "chemical_process":    "化工工艺工程师 (流程/单元操作/分离/换热/能耗)",
+            "reaction_engineering":"反应工程专家 (反应器/动力学/放大/连续流)",
+            "fine_chemicals":      "精细化工专家 (中间体/助剂/聚合物/配方)",
+            "chemical_safety":     "化工安全环保 (HAZOP/防爆/三废/危化品管理)",
+            "catalysis_materials": "催化与材料专家 (催化剂/新材料/绿色化学)",
+            "chem_standards":      "化工标准法规专家 (GB/REACH/危化品法规/认证)",
+        },
+    ),
+    "metallurgy": ModeInfo(
+        mode_id="metallurgy", label="冶金钢铁",
+        departments=["ironmaking_steelmaking", "metal_materials", "rolling_forming",
+                     "metallurgy_equipment", "metal_quality", "green_metallurgy"],
+        department_labels={
+            "ironmaking_steelmaking":"炼铁炼钢工程师 (高炉/转炉/电炉/连铸)",
+            "metal_materials":      "金属材料专家 (钢种/合金/相变/性能设计)",
+            "rolling_forming":      "轧制成形工程师 (热轧/冷轧/锻造/挤压)",
+            "metallurgy_equipment": "冶金装备工程师 (冶金机械/自动化/检测)",
+            "metal_quality":        "金属质量工程师 (缺陷/探伤/成分/力学性能)",
+            "green_metallurgy":     "绿色冶金专家 (氢冶金/节能减排/再生金属/双碳)",
+        },
+    ),
+    "electronics_semiconductor": ModeInfo(
+        mode_id="electronics_semiconductor", label="电子半导体",
+        departments=["chip_design", "wafer_process", "packaging_test",
+                     "electronic_materials", "equipment_eda", "semi_supply_chain"],
+        department_labels={
+            "chip_design":        "芯片设计工程师 (数字/模拟/RF/IP/验证)",
+            "wafer_process":      "晶圆制造工艺 (光刻/刻蚀/沉积/制程节点)",
+            "packaging_test":     "封装测试工程师 (先进封装/Chiplet/可靠性/测试)",
+            "electronic_materials":"电子材料专家 (硅/化合物半导体/光刻胶/靶材)",
+            "equipment_eda":      "设备与EDA专家 (光刻机/量测/EDA工具链)",
+            "semi_supply_chain":  "半导体产业链分析 (代工/IDM/卡脖子/国产替代)",
+        },
+    ),
+    "energy_power": ModeInfo(
+        mode_id="energy_power", label="能源电力",
+        departments=["power_generation", "grid_transmission", "new_energy",
+                     "energy_storage", "power_electronics", "energy_policy"],
+        department_labels={
+            "power_generation":  "发电工程师 (火电/水电/核电/燃机/效率)",
+            "grid_transmission": "电网输配电专家 (特高压/智能电网/调度/稳定)",
+            "new_energy":        "新能源专家 (光伏/风电/氢能/并网消纳)",
+            "energy_storage":    "储能工程师 (锂电/抽蓄/液流/系统集成)",
+            "power_electronics": "电力电子专家 (变流器/逆变/SiC/GaN)",
+            "energy_policy":     "能源经济与政策 (电力市场/碳交易/双碳路径)",
+        },
+    ),
+    "construction_materials": ModeInfo(
+        mode_id="construction_materials", label="建筑建材",
+        departments=["structural_engineering", "building_materials", "construction_tech",
+                     "green_building", "mep_systems", "construction_standards"],
+        department_labels={
+            "structural_engineering":"结构工程师 (混凝土/钢结构/抗震/荷载)",
+            "building_materials":   "建筑材料专家 (水泥/混凝土/新型墙材/外加剂)",
+            "construction_tech":    "施工技术工程师 (工法/装配式/BIM/进度)",
+            "green_building":       "绿色建筑专家 (节能/被动房/LEED/碳排放)",
+            "mep_systems":          "机电系统工程师 (暖通/给排水/电气/智能化)",
+            "construction_standards":"建筑标准规范专家 (国标/抗震规范/验收/认证)",
+        },
+    ),
+    "automotive": ModeInfo(
+        mode_id="automotive", label="汽车",
+        departments=["vehicle_design", "powertrain_3electric", "adas_autonomous",
+                     "auto_electronics", "auto_manufacturing", "auto_standards"],
+        department_labels={
+            "vehicle_design":      "整车工程师 (底盘/车身/NVH/空气动力)",
+            "powertrain_3electric":"动力总成/三电 (发动机/电机/电池/电控)",
+            "adas_autonomous":     "智能驾驶专家 (感知/决策/域控/功能安全)",
+            "auto_electronics":    "汽车电子专家 (E/E架构/车规芯片/软件定义汽车)",
+            "auto_manufacturing":  "制造与供应链 (冲压焊装涂装总装/精益/供应链)",
+            "auto_standards":      "汽车标准法规专家 (国标/ISO26262/碰撞/排放)",
+        },
+    ),
+    "food_processing": ModeInfo(
+        mode_id="food_processing", label="食品加工",
+        departments=["food_science", "processing_tech", "food_safety",
+                     "nutrition_formulation", "food_machinery", "food_standards"],
+        department_labels={
+            "food_science":         "食品科学家 (成分/风味/微生物/保鲜机理)",
+            "processing_tech":      "加工工艺工程师 (杀菌/干燥/发酵/冷链/包装)",
+            "food_safety":          "食品安全专家 (HACCP/添加剂/污染物/溯源)",
+            "nutrition_formulation":"营养与配方师 (配方设计/功能食品/标签)",
+            "food_machinery":       "食品机械工程师 (生产线/自动化/卫生设计)",
+            "food_standards":       "食品标准法规专家 (国标/GB2760/进出口/认证)",
+        },
+    ),
+    "pharma_biomfg": ModeInfo(
+        mode_id="pharma_biomfg", label="医药生物制造",
+        departments=["drug_discovery", "pharma_process", "biomanufacturing",
+                     "quality_gmp", "formulation", "pharma_regulatory"],
+        department_labels={
+            "drug_discovery":   "药物研发专家 (靶点/化合物/临床前/生物药)",
+            "pharma_process":   "制药工艺工程师 (原料药/合成/分离纯化/连续制造)",
+            "biomanufacturing": "生物制造专家 (发酵/细胞培养/酶工程/合成生物)",
+            "quality_gmp":      "质量与GMP专家 (GMP/质控/验证/无菌)",
+            "formulation":      "制剂工程师 (剂型/缓控释/递送系统/稳定性)",
+            "pharma_regulatory":"药事法规专家 (NMPA/FDA/注册/药典/合规)",
+        },
+    ),
+    "modern_agriculture": ModeInfo(
+        mode_id="modern_agriculture", label="现代农业",
+        departments=["crop_science", "agri_machinery", "smart_agriculture",
+                     "soil_fertilizer", "agri_supply_chain", "agri_policy"],
+        department_labels={
+            "crop_science":     "作物科学家 (育种/栽培/植保/基因)",
+            "agri_machinery":   "农业机械工程师 (农机/收获/植保无人机/智能装备)",
+            "smart_agriculture":"智慧农业专家 (物联网/遥感/精准农业/数字农业)",
+            "soil_fertilizer":  "土壤与肥料专家 (土壤改良/测土配方/水肥一体)",
+            "agri_supply_chain":"农产品供应链 (冷链/仓储/品牌/产销对接)",
+            "agri_policy":      "农业经济与政策 (粮食安全/补贴/土地/乡村振兴)",
+        },
+    ),
+    "aerospace": ModeInfo(
+        mode_id="aerospace", label="航空航天",
+        departments=["aero_structures", "propulsion", "avionics_control",
+                     "aero_materials", "aero_manufacturing", "aero_standards"],
+        department_labels={
+            "aero_structures":  "飞行器结构工程师 (气动/结构/强度/疲劳)",
+            "propulsion":       "推进系统专家 (航发/火箭发动机/燃烧/涡轮)",
+            "avionics_control": "航电与控制专家 (导航/飞控/制导/通信)",
+            "aero_materials":   "航空航天材料专家 (复合材料/高温合金/轻量化)",
+            "aero_manufacturing":"航空制造工程师 (精密加工/装配/增材/检测)",
+            "aero_standards":   "适航与标准专家 (适航认证/质量体系/可靠性)",
+        },
+    ),
+    "shipbuilding_marine": ModeInfo(
+        mode_id="shipbuilding_marine", label="船舶海工",
+        departments=["ship_design", "marine_propulsion", "ship_structures",
+                     "offshore_engineering", "ship_manufacturing", "marine_standards"],
+        department_labels={
+            "ship_design":        "船舶设计师 (船型/总布置/快速性/操纵性)",
+            "marine_propulsion":  "船舶动力专家 (主机/推进/双燃料/电力推进)",
+            "ship_structures":    "船体结构工程师 (强度/振动/焊接/规范)",
+            "offshore_engineering":"海洋工程专家 (平台/海上风电/水下/系泊)",
+            "ship_manufacturing": "船舶制造工程师 (分段建造/船坞/涂装/总装)",
+            "marine_standards":   "船级社与标准专家 (CCS/IMO/公约/绿色船舶)",
+        },
+    ),
+    "mining_extraction": ModeInfo(
+        mode_id="mining_extraction", label="矿业采掘",
+        departments=["geology_exploration", "mining_engineering", "mineral_processing",
+                     "mine_safety", "mining_equipment", "mining_environment"],
+        department_labels={
+            "geology_exploration":"地质勘探专家 (成矿/勘查/储量/物探)",
+            "mining_engineering": "采矿工程师 (露天/井工/采矿方法/通风)",
+            "mineral_processing": "选矿工程师 (破碎/磨矿/浮选/分选/回收率)",
+            "mine_safety":        "矿山安全专家 (瓦斯/顶板/水害/应急)",
+            "mining_equipment":   "矿山装备工程师 (采掘运/智能矿山/无人化)",
+            "mining_environment": "矿山环境与复垦 (尾矿/生态修复/绿色矿山)",
+        },
+    ),
 }
+
+# 后台场景: 注册在 MODES 里(get_mode/classify/lazy_seed 都能用), 但不进前端场景选择器.
+# /api/modes(喂前端选择器)会过滤掉这些; /api/modes/classify(自动识别)仍可路由到它们,
+# 这样用户问产业技术问题时能用上, 但日常前台菜单不被撑爆.
+BACKSTAGE_MODE_IDS: frozenset[str] = frozenset({
+    "industrialization", "machinery", "textiles", "chemical_industry", "metallurgy",
+    "electronics_semiconductor", "energy_power", "construction_materials", "automotive",
+    "food_processing", "pharma_biomfg", "modern_agriculture", "aerospace",
+    "shipbuilding_marine", "mining_extraction",
+})
 
 
 def _apply_scenario_yaml(base: ModeInfo) -> ModeInfo:

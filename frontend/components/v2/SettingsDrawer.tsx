@@ -8,6 +8,7 @@ import { ReviewPanel } from "./ReviewPanel";
 import { BackupConfigPanel } from "./BackupConfigPanel";
 import { UserMemoryPanel } from "./UserMemoryPanel";
 import { McpConfigPanel } from "./McpConfigPanel";
+import { DevModePanel } from "./DevModePanel";
 import { UpgradeLogPanel } from "./UpgradeLogPanel";
 import { ThinkingFrameworksPanel } from "./advanced/ThinkingFrameworksPanel";
 import { GeneEditor } from "./advanced/GeneEditor";
@@ -22,7 +23,7 @@ import { TeamPanel } from "./TeamPanel";
 import { ModelBadgeBar } from "./ModelBadgeBar";
 import { ScenarioWizard } from "./ScenarioWizard";
 
-type Tab = "scenario" | "ai" | "mcp" | "memory" | "advanced" | "tech";
+type Tab = "scenario" | "ai" | "mcp" | "dev" | "memory" | "advanced" | "tech";
 
 const TAB_LS_KEY = "h-semas:settings:tab";
 const DETAILS_LS_KEY = "h-semas:settings:details";
@@ -163,6 +164,9 @@ export function SettingsDrawer(props: Props) {
           <button type="button" style={tabBtn(tab === "mcp")} onClick={() => setTab("mcp")}>
             🔌 工具 (MCP)
           </button>
+          <button type="button" style={tabBtn(tab === "dev")} onClick={() => setTab("dev")}>
+            🛠 开发模式
+          </button>
           <button type="button" style={tabBtn(tab === "memory")} onClick={() => setTab("memory")}>
             💾 记忆 & 备份
           </button>
@@ -213,6 +217,12 @@ export function SettingsDrawer(props: Props) {
             <Wrap>
               <div style={sectionTitle}>给顾问团装实时工具 (按场景只露相关的几个, 防"装多了变笨")</div>
               <McpConfigPanel backendUrl={backendUrl} />
+            </Wrap>
+          )}
+          {tab === "dev" && (
+            <Wrap>
+              <div style={sectionTitle}>群晖指挥 PC 上的 Claude Code 写码 (需 PC 起 bee-agent-hands:8002)</div>
+              <DevModePanel backendUrl={backendUrl} />
             </Wrap>
           )}
 
