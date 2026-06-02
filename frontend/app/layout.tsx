@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { AuthGate } from "../components/v2/AuthGate";
 
 export const metadata: Metadata = {
   title: "智囊团 — H-SEMAS",
@@ -38,7 +39,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           rel="stylesheet"
         />
       </head>
-      <body suppressHydrationWarning>{children}</body>
+      <body suppressHydrationWarning>
+        <AuthGate>{children}</AuthGate>
+      </body>
     </html>
   );
 }

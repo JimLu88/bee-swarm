@@ -25,6 +25,7 @@ type HubSettings = {
   tavily_api_key?: string;        // server returns masked (***...)
   exa_api_key?: string;           // server returns masked (***...)
   amap_key?: string;              // 高德地图 Key, server returns masked (***...)
+  app_password?: string;          // 登录密码, server returns masked (***...)
 };
 
 const card: CSSProperties = {
@@ -182,6 +183,7 @@ export function SettingsPanel() {
   const [tavilyKey, setTavilyKey] = useState("");
   const [exaKey, setExaKey] = useState("");
   const [amapKey, setAmapKey] = useState("");
+  const [appPassword, setAppPassword] = useState("");
   const [presetId, setPresetId] = useState("aihubmix");
   const [msg, setMsg] = useState<string | null>(null);
   const [diagResult, setDiagResult] = useState<{
@@ -231,6 +233,7 @@ export function SettingsPanel() {
       if (tavilyKey && !tavilyKey.startsWith("***")) body.tavily_api_key = tavilyKey.trim();
       if (exaKey && !exaKey.startsWith("***")) body.exa_api_key = exaKey.trim();
       if (amapKey && !amapKey.startsWith("***")) body.amap_key = amapKey.trim();
+      if (appPassword && !appPassword.startsWith("***")) body.app_password = appPassword.trim();
       const r = await fetchWithTimeout(`${backendUrl}/api/settings/hub`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -441,6 +444,24 @@ export function SettingsPanel() {
           />
           <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 4 }}>
             在 <code>lbs.amap.com</code> 控制台免费申请, 服务平台选「Web服务」。留空则地图功能关闭。
+          </div>
+        </div>
+        <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12, marginTop: 4 }}>
+          <label style={label}>
+            🔒 登录密码 (公网访问时强烈建议设置)
+            {loaded?.app_password && loaded.app_password.startsWith("***") && (
+              <span style={{ marginLeft: 8, opacity: 0.55 }}>(已设置)</span>
+            )}
+          </label>
+          <input
+            style={input}
+            type="password"
+            value={appPassword}
+            onChange={(e) => setAppPassword(e.target.value)}
+            placeholder={loaded?.app_password ? "留空 = 不改密码" : "设一个密码, 留空 = 不启用登录"}
+          />
+          <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 4 }}>
+            设置后, 所有人访问都需先输入此密码。改密码会让已登录的设备全部需要重新登录。留空 = 任何人可直接使用 (仅适合局域网/Tailscale)。
           </div>
         </div>
       </div>

@@ -5,6 +5,7 @@ import {
   type ClipboardEvent as ReactClipboardEvent, type DragEvent as ReactDragEvent,
 } from "react";
 import { httpToWsOrigin, resolveBackendHttpBase } from "../../lib/backend";
+import { getAuthToken } from "../../lib/auth";
 import { fetchWithTimeout, TIMEOUT_MS } from "../../lib/http";
 
 import { BUILTIN_MODES, type ModeOption } from "./ModePicker";
@@ -301,7 +302,10 @@ export function BeeSwarmShell() {
   const attachStream = useCallback((decisionId: string, turnId: string) => {
     setCurrentDecisionId(decisionId);
     decisionStartRef.current = Date.now();
-    const ws = new WebSocket(`${wsBase}/api/decision/stream/${decisionId}`);
+    const _tok = getAuthToken();
+    const ws = new WebSocket(
+      `${wsBase}/api/decision/stream/${decisionId}${_tok ? `?token=${encodeURIComponent(_tok)}` : ""}`,
+    );
     ws.onmessage = (ev) => {
       try {
         const e = JSON.parse(ev.data);

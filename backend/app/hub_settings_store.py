@@ -37,6 +37,7 @@ HUB_FIELD_NAMES = frozenset(
         "tavily_api_key",
         "exa_api_key",
         "amap_key",
+        "app_password",
     }
 )
 
@@ -51,6 +52,7 @@ SECRET_FIELDS = frozenset(
         "tavily_api_key",
         "exa_api_key",
         "amap_key",
+        "app_password",
     }
 )
 
@@ -183,6 +185,7 @@ _ENV_FOR_SECRET: dict[str, tuple[str, ...]] = {
     "tavily_api_key": ("TAVILY_API_KEY",),
     "exa_api_key": ("EXA_API_KEY",),
     "amap_key": ("AMAP_KEY",),
+    "app_password": ("HSEMAS_APP_PASSWORD",),
 }
 
 

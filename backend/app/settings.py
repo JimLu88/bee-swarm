@@ -45,6 +45,10 @@ class Settings(BaseSettings):
     # 空字符串 → 地图钉店功能自动禁用 (best-effort, 不影响决策主链路).
     amap_key: str = ""
 
+    # 登录密码 (公网暴露时必设). 空 = 不启用登录 (向后兼容, 现状不变).
+    # 只从 .env / 环境变量 / 设置面板读, 绝不写进代码. 改密码后旧 Token 全部失效.
+    app_password: str = ""
+
 
 settings = Settings()
 

@@ -1,4 +1,7 @@
-/** Tiny fetch wrapper — avoids hung UI when backend is down. */
+/** Tiny fetch wrapper — avoids hung UI when backend is down.
+ *  同时统一注入登录 Token (Authorization 头) 并处理 401 (设了密码后才生效). */
+
+import { getAuthToken, clearAuthToken, HSEMAS_UNAUTHORIZED_EVENT } from "./auth";
 
 export const TIMEOUT_MS = {
   default: 20_000,
@@ -31,10 +34,24 @@ export async function fetchWithTimeout(
     catch { controller.abort(); }
   }, timeoutMs);
   try {
-    return await fetch(input, {
+    const token = getAuthToken();
+    const headers = new Headers(init?.headers ?? {});
+    if (token && !headers.has("Authorization")) {
+      headers.set("Authorization", `Bearer ${token}`);
+    }
+    const res = await fetch(input, {
       ...(init ?? {}),
+      headers,
       signal: controller.signal,
     });
+    // 登录失效 → 清本地 Token + 通知 AuthGate 弹回登录. 登录/状态接口本身的 401 不处理.
+    if (res.status === 401 && !String(input).includes("/api/auth/")) {
+      clearAuthToken();
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event(HSEMAS_UNAUTHORIZED_EVENT));
+      }
+    }
+    return res;
   } catch (e) {
     if (timedOut) throw new FetchTimeoutError(timeoutMs, String(input));
     throw e;

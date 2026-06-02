@@ -38,7 +38,7 @@ import uuid
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import Body, FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import Body, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -140,10 +140,76 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ============ 登录鉴权 (设了密码才生效; 配合 HTTPS 反代用于公网) ============
+from .auth import (  # noqa: E402
+    auth_enabled,
+    login_locked,
+    make_token,
+    record_login_failure,
+    record_login_success,
+    verify_password,
+    verify_token,
+)
+
+# 这些路径永不需要登录: 健康检查 + 登录接口本身.
+_AUTH_PUBLIC_PATHS = {"/api/health", "/api/auth/login", "/api/auth/status"}
+
+
+@app.middleware("http")
+async def _auth_guard(request: Request, call_next):
+    # 未设密码 → 鉴权关闭, 完全透传 (现状不变). OPTIONS 预检放行给 CORS.
+    if request.method != "OPTIONS" and auth_enabled():
+        path = request.url.path
+        if path.startswith("/api/") and path not in _AUTH_PUBLIC_PATHS:
+            token = ""
+            authz = request.headers.get("authorization", "")
+            if authz.lower().startswith("bearer "):
+                token = authz[7:].strip()
+            if not token:
+                token = request.cookies.get("hsemas_token", "") or request.query_params.get("token", "")
+            if not verify_token(token):
+                from fastapi.responses import JSONResponse
+
+                resp = JSONResponse({"detail": "unauthorized"}, status_code=401)
+                # 401 也带上 CORS 头, 跨域(开发态)时浏览器才能读到状态码.
+                origin = request.headers.get("origin")
+                if origin:
+                    resp.headers["Access-Control-Allow-Origin"] = origin
+                    resp.headers["Access-Control-Allow-Credentials"] = "true"
+                return resp
+    return await call_next(request)
+
 
 @app.get("/api/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/api/auth/status")
+def auth_status() -> dict[str, bool]:
+    """前端据此决定是否弹登录框 (enabled=false 时直接进主界面)."""
+    return {"enabled": auth_enabled()}
+
+
+@app.post("/api/auth/login")
+def auth_login(request: Request, payload: dict[str, Any] = Body(default={})) -> dict[str, Any]:
+    """密码正确 → 返回 30 天有效的登录 Token (含防暴力破解锁定)."""
+    if not auth_enabled():
+        return {"token": "", "enabled": False}
+    # 取真实来源 IP: 反代会带 X-Forwarded-For, 否则用直连 IP.
+    xff = request.headers.get("x-forwarded-for", "")
+    ip = (xff.split(",")[0].strip() if xff else "") or (request.client.host if request.client else "?")
+    locked = login_locked(ip)
+    if locked > 0:
+        raise HTTPException(status_code=429, detail=f"尝试次数过多, 请 {int(locked) + 1} 秒后再试")
+    if not verify_password(str(payload.get("password", ""))):
+        record_login_failure(ip)
+        import time as _t
+
+        _t.sleep(0.4)  # 失败再稍作延迟, 进一步拖慢爆破
+        raise HTTPException(status_code=401, detail="密码错误")
+    record_login_success(ip)
+    return {"token": make_token(), "enabled": True}
 
 
 # ============ v6-D 七剑客工具 (BeeServiceClient) ============
@@ -955,6 +1021,12 @@ async def decision_rerun_dept(decision_id: str, dept_id: str) -> dict[str, Any]:
 
 @app.websocket("/api/decision/stream/{decision_id}")
 async def decision_stream(ws: WebSocket, decision_id: str) -> None:
+    # 设了密码时, WS 也要校验 Token (浏览器无法给 WS 设 header, 故走 ?token= 查询参数).
+    if auth_enabled():
+        token = ws.query_params.get("token", "") or ws.cookies.get("hsemas_token", "")
+        if not verify_token(token):
+            await ws.close(code=1008)  # 1008 = policy violation
+            return
     await ws.accept()
     try:
         async for event in bus.subscribe(decision_id):
