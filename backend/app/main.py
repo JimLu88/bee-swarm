@@ -244,6 +244,16 @@ def mcp_config(payload: dict[str, Any] = Body(default={})) -> dict[str, Any]:
     return {"servers": mcp_tools.public_list()}
 
 
+@app.post("/api/mcp/probe")
+async def mcp_probe(payload: dict[str, Any] = Body(default={})) -> dict[str, Any]:
+    """第②步: 测试某 MCP 服务能否真连通 (配置页"测试"按钮). 不阻断, 返回 ok/错误原因."""
+    from . import mcp_client
+    sid = str((payload or {}).get("id", ""))
+    if not sid:
+        raise HTTPException(status_code=400, detail="missing_id")
+    return await mcp_client.probe(sid)
+
+
 @app.get("/api/auth/status")
 def auth_status() -> dict[str, bool]:
     """前端据此决定是否弹登录框 (enabled=false 时直接进主界面)."""

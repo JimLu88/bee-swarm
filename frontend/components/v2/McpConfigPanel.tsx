@@ -22,6 +22,8 @@ export function McpConfigPanel({ backendUrl }: { backendUrl: string }) {
   const [err, setErr] = useState("");
   const [draftKey, setDraftKey] = useState<Record<string, string>>({});
   const [draftUrl, setDraftUrl] = useState<Record<string, string>>({});
+  const [probing, setProbing] = useState<Record<string, boolean>>({});
+  const [probeRes, setProbeRes] = useState<Record<string, { ok: boolean; msg: string }>>({});
 
   const load = useCallback(async () => {
     setLoading(true); setErr("");
@@ -46,6 +48,28 @@ export function McpConfigPanel({ backendUrl }: { backendUrl: string }) {
     } catch { /* ignore */ }
   };
 
+  const probe = async (id: string) => {
+    setProbing((p) => ({ ...p, [id]: true }));
+    setProbeRes((p) => ({ ...p, [id]: { ok: false, msg: "测试中…" } }));
+    try {
+      const r = await fetchWithTimeout(`${backendUrl}/api/mcp/probe`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      }, 30_000);
+      const j = await r.json();
+      if (j.ok) {
+        const names = Array.isArray(j.sample) && j.sample.length ? ` · ${j.sample.slice(0, 4).join(", ")}` : "";
+        setProbeRes((p) => ({ ...p, [id]: { ok: true, msg: `✓ 连通, 拿到 ${j.tool_count ?? 0} 个工具${names}` } }));
+      } else {
+        setProbeRes((p) => ({ ...p, [id]: { ok: false, msg: `✗ ${j.error || "失败"}` } }));
+      }
+    } catch (e) {
+      setProbeRes((p) => ({ ...p, [id]: { ok: false, msg: `✗ ${e instanceof Error ? e.message : "请求失败"}` } }));
+    } finally {
+      setProbing((p) => ({ ...p, [id]: false }));
+    }
+  };
+
   return (
     <div style={card}>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -54,7 +78,7 @@ export function McpConfigPanel({ backendUrl }: { backendUrl: string }) {
       </div>
       <div style={{ fontSize: 11.5, color: "var(--text-faint)", margin: "6px 0 10px", lineHeight: 1.6 }}>
         给顾问团配实时工具(股价/天气/GitHub/文献…)。开关 + 填 Key 即可;每个场景模型最多只看到 {maxPer} 个相关工具(防变笨)。
-        <br />⚠ 实际调用为下一步:填好 Key 后我再接通(标 <code>stdio</code> 的需独立容器)。
+        <br />✅ 实际调用已接通:决策时顾问团会自动判断要不要查、查什么并采集实时资料。填好 Key 后点「测试」可先验证连通(标 <code>stdio</code> 的需独立容器, 暂不支持线上测试)。
       </div>
       {err && <div style={{ fontSize: 12, color: "#d6453d", marginBottom: 8 }}>⚠ {err}</div>}
 
@@ -90,6 +114,18 @@ export function McpConfigPanel({ backendUrl }: { backendUrl: string }) {
                     <input style={inp} placeholder="服务地址 URL" value={draftUrl[s.id] ?? s.url}
                       onChange={(e) => setDraftUrl({ ...draftUrl, [s.id]: e.target.value })} />
                     <button type="button" style={mini} onClick={() => save(s.id, { url: draftUrl[s.id] ?? s.url })}>存URL</button>
+                  </div>
+                )}
+                {s.transport === "http" && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <button type="button" style={mini} disabled={!!probing[s.id]} onClick={() => probe(s.id)}>
+                      {probing[s.id] ? "测试中…" : "🔬 测试连通"}
+                    </button>
+                    {probeRes[s.id] && (
+                      <span style={{ fontSize: 11.5, color: probeRes[s.id].ok ? "#1f9d57" : "#d6453d" }}>
+                        {probeRes[s.id].msg}
+                      </span>
+                    )}
                   </div>
                 )}
               </div>

@@ -1082,6 +1082,24 @@ async def run_decision(*, decision_id: str, task: str, mode_id: str, debate_roun
                 payload={"error": repr(e)},
             ))
 
+    # v13 #1 第②步: 决策前实时资料采集 (MCP 工具). best-effort, 失败/未配置自动跳过.
+    # 把天气/股价/网页/文献等实时结果拼进 task, 所有部门+CEO 共享 (env HSEMAS_MCP_FACTS=0 关).
+    try:
+        from . import mcp_orchestrator
+        mcp_facts, mcp_calls = await mcp_orchestrator.gather_facts(mode_id=mode.mode_id, task=task)
+        if mcp_facts:
+            task = f"{task}\n\n{mcp_facts}"
+            bus.publish(StreamEvent(
+                type="mcp_facts",
+                decision_id=decision_id,
+                payload={"calls": [{"server": c.get("server"), "tool": c.get("tool"),
+                                     "ok": c.get("ok")} for c in (mcp_calls or [])]},
+            ))
+    except Exception as _mcp_e:
+        bus.publish(StreamEvent(
+            type="mcp_facts_error", decision_id=decision_id, payload={"error": repr(_mcp_e)},
+        ))
+
     bus.publish(
         StreamEvent(
             type="decision_started",
