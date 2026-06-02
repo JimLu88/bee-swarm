@@ -623,9 +623,12 @@ export function BeeSwarmShell() {
   }, [backendUrl, currentDecisionId]);
 
   // --- 历史详情 → 单 turn 展示 ---
-  const pickHistory = useCallback(async (decisionId: string) => {
+  const pickHistory = useCallback(async (decisionId: string, modeId?: string) => {
+    // 「最近」是聚合所有场景的, 必须用那条自己的 mode_id 去取详情 (否则 detail 404)
+    const useMode = modeId || mode;
+    if (modeId && modeId !== mode) setMode(modeId);
     try {
-      const res = await fetchWithTimeout(`${backendUrl}/api/memory/${mode}/decision/${decisionId}`, undefined, TIMEOUT_MS.default);
+      const res = await fetchWithTimeout(`${backendUrl}/api/memory/${encodeURIComponent(useMode)}/decision/${decisionId}`, undefined, TIMEOUT_MS.default);
       if (!res.ok) throw new Error(`detail ${res.status}`);
       const j = await res.json() as DecisionSummary;
       setCurrentDecisionId(decisionId);
@@ -640,6 +643,19 @@ export function BeeSwarmShell() {
       setError((e as Error).message ?? "读历史记录出问题了");
     }
   }, [backendUrl, mode]);
+
+  // 删除某条历史 (左侧 ✕) — 用那条自己的 mode_id 删, 删完刷新列表
+  const deleteHistory = useCallback(async (decisionId: string, modeId?: string) => {
+    const useMode = modeId || mode;
+    try {
+      await fetchWithTimeout(
+        `${backendUrl}/api/memory/${encodeURIComponent(useMode)}/decision/${encodeURIComponent(decisionId)}`,
+        { method: "DELETE" }, TIMEOUT_MS.default,
+      );
+    } catch { /* ignore */ }
+    if (decisionId === activeId) { setActiveId(null); setTurns([]); setView("welcome"); }
+    refreshHistory();
+  }, [backendUrl, mode, activeId, refreshHistory]);
 
   // 新咨询
   const newConsult = useCallback(() => {
@@ -759,6 +775,7 @@ export function BeeSwarmShell() {
         activeId={activeId}
         onNewConsult={newConsult}
         onPickHistory={pickHistory}
+        onDeleteHistory={deleteHistory}
         onOpenScenario={() => openSettings("scenario")}
         onOpenSwarm={() => setDashOpen(true)}
         onOpenSettings={() => openSettings(undefined)}

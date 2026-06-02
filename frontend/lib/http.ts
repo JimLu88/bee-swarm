@@ -44,8 +44,14 @@ export async function fetchWithTimeout(
       headers,
       signal: controller.signal,
     });
-    // 登录失效 → 清本地 Token + 通知 AuthGate 弹回登录. 登录/状态接口本身的 401 不处理.
-    if (res.status === 401 && !String(input).includes("/api/auth/")) {
+    // 登录失效 → 清本地 Token + 通知 AuthGate 弹回登录.
+    // 仅当是「App 自身登录校验」返回的 401 (带 X-Auth-Required 头) 才登出;
+    // 下游子服务(bee-memory 等)/工具返回的 401 不会误把用户踢回登录页. 登录接口本身的 401 也不处理.
+    if (
+      res.status === 401 &&
+      res.headers.get("X-Auth-Required") === "1" &&
+      !String(input).includes("/api/auth/")
+    ) {
       clearAuthToken();
       if (typeof window !== "undefined") {
         window.dispatchEvent(new Event(HSEMAS_UNAUTHORIZED_EVENT));

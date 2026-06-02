@@ -22,7 +22,7 @@ import { TeamPanel } from "./TeamPanel";
 import { ModelBadgeBar } from "./ModelBadgeBar";
 import { ScenarioWizard } from "./ScenarioWizard";
 
-type Tab = "scenario" | "ai" | "memory" | "advanced" | "tech";
+type Tab = "scenario" | "ai" | "mcp" | "memory" | "advanced" | "tech";
 
 const TAB_LS_KEY = "h-semas:settings:tab";
 const DETAILS_LS_KEY = "h-semas:settings:details";
@@ -160,6 +160,9 @@ export function SettingsDrawer(props: Props) {
           <button type="button" style={tabBtn(tab === "ai")} onClick={() => setTab("ai")}>
             🧠 AI 大脑
           </button>
+          <button type="button" style={tabBtn(tab === "mcp")} onClick={() => setTab("mcp")}>
+            🔌 工具 (MCP)
+          </button>
           <button type="button" style={tabBtn(tab === "memory")} onClick={() => setTab("memory")}>
             💾 记忆 & 备份
           </button>
@@ -204,6 +207,11 @@ export function SettingsDrawer(props: Props) {
             <Wrap>
               <div style={sectionTitle}>AI 模型配置 (网关 / Key / 备用链 / 自更新)</div>
               <SettingsPanel />
+            </Wrap>
+          )}
+          {tab === "mcp" && (
+            <Wrap>
+              <div style={sectionTitle}>给顾问团装实时工具 (按场景只露相关的几个, 防"装多了变笨")</div>
               <McpConfigPanel backendUrl={backendUrl} />
             </Wrap>
           )}

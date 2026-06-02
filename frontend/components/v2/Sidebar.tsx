@@ -12,7 +12,9 @@ type Props = {
   /** 当前选中的历史决策 id (高亮) */
   activeId?: string | null;
   onNewConsult: () => void;
-  onPickHistory: (decisionId: string) => void;
+  onPickHistory: (decisionId: string, modeId?: string) => void;
+  /** 删除某条历史 (左侧 ✕) */
+  onDeleteHistory?: (decisionId: string, modeId?: string) => void;
   onOpenScenario: () => void;
   onOpenSwarm: () => void;
   onOpenSettings: () => void;
@@ -39,6 +41,7 @@ export function Sidebar({
   activeId,
   onNewConsult,
   onPickHistory,
+  onDeleteHistory,
   onOpenScenario,
   onOpenSwarm,
   onOpenSettings,
@@ -81,7 +84,7 @@ export function Sidebar({
                 key={`${id ?? "noid"}-${i}`}
                 type="button"
                 className={`conv${active ? " active" : ""}`}
-                onClick={() => id && onPickHistory(id)}
+                onClick={() => id && onPickHistory(id, h.mode_id)}
                 title={h.task ?? ""}
               >
                 <span className="conv-ico"><Icon name={sceneIcon(h.mode_id ?? "")} /></span>
@@ -89,6 +92,17 @@ export function Sidebar({
                   <span className="conv-title">{h.task || "(无标题咨询)"}</span>
                   <span className="conv-meta">{modeLabel(h.mode_id)} · 顾问团</span>
                 </span>
+                {id && onDeleteHistory && (
+                  <span
+                    role="button"
+                    title="删除这条历史"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (window.confirm("删除这条历史记录? 不可恢复。")) onDeleteHistory(id, h.mode_id);
+                    }}
+                    style={{ marginLeft: "auto", padding: "2px 6px", color: "var(--fg-4)", fontSize: 13, flexShrink: 0, cursor: "pointer" }}
+                  >✕</span>
+                )}
               </button>
             );
           })}

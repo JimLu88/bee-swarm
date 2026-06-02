@@ -134,6 +134,21 @@ class DecisionMemory:
                 f.write(json.dumps(r, ensure_ascii=False) + "\n")
         return True
 
+    def delete_decision(self, *, mode_id: str, decision_id: str) -> bool:
+        """删除某条决策摘要 (重写 jsonl 去掉该行). 删到=True."""
+        d = self._mode_dir(mode_id)
+        p = d / "decisions.jsonl"
+        if not p.exists():
+            return False
+        rows = self.read_all_summaries(mode_id=mode_id)
+        kept = [r for r in rows if r.get("decision_id") != decision_id]
+        if len(kept) == len(rows):
+            return False
+        with p.open("w", encoding="utf-8") as f:
+            for r in kept:
+                f.write(json.dumps(r, ensure_ascii=False) + "\n")
+        return True
+
     def get_by_decision_id(self, *, mode_id: str, decision_id: str) -> dict[str, Any] | None:
         for row in reversed(self.read_all_summaries(mode_id=mode_id)):
             if row.get("decision_id") == decision_id:

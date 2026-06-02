@@ -138,6 +138,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Auth-Required"],  # 跨域时前端要能读到这个头, 才能区分"登录过期"vs下游401
 )
 
 # ============ 登录鉴权 (设了密码才生效; 配合 HTTPS 反代用于公网) ============
@@ -171,6 +172,9 @@ async def _auth_guard(request: Request, call_next):
                 from fastapi.responses import JSONResponse
 
                 resp = JSONResponse({"detail": "unauthorized"}, status_code=401)
+                # 专属标记: 只有"App 自身登录校验"失败才带此头; 前端据此才登出,
+                # 避免下游子服务(bee-memory 等)/工具返回的 401 被误判成"登录过期"把用户踢走.
+                resp.headers["X-Auth-Required"] = "1"
                 # 401 也带上 CORS 头, 跨域(开发态)时浏览器才能读到状态码.
                 origin = request.headers.get("origin")
                 if origin:
@@ -703,6 +707,14 @@ def memory_retro(mode_id: str, decision_id: str, payload: dict[str, Any] = Body(
     if not ok:
         raise HTTPException(status_code=404, detail="decision_not_found")
     return {"ok": True, "decision_id": decision_id}
+
+
+@app.delete("/api/memory/{mode_id}/decision/{decision_id}")
+def memory_delete(mode_id: str, decision_id: str) -> dict:
+    """v13 删除某条历史决策 (左侧历史记录的删除按钮)."""
+    mem = DecisionMemory(_DATA_DIR)
+    ok = mem.delete_decision(mode_id=mode_id, decision_id=decision_id)
+    return {"ok": ok, "decision_id": decision_id}
 
 
 @app.get("/api/memory/{mode_id}/decision/{decision_id}")
