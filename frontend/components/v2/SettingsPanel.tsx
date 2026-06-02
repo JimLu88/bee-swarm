@@ -188,6 +188,7 @@ export function SettingsPanel() {
   const [reasoningModel, setReasoningModel] = useState("");
   const [presetId, setPresetId] = useState("aihubmix");
   const [msg, setMsg] = useState<string | null>(null);
+  const [connStatus, setConnStatus] = useState<{ ok: boolean; msg: string } | null>(null);
   const [diagResult, setDiagResult] = useState<{
     rows: { name: string; ok: boolean; detail: string; group: string }[];
     error?: string;
@@ -212,6 +213,7 @@ export function SettingsPanel() {
     setBusy(true);
     try {
       const r = await fetchWithTimeout(`${backendUrl}/api/settings/hub`, undefined, TIMEOUT_MS.default);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const j = await r.json();
       const s: HubSettings = j.settings ?? {};
       setLoaded(s);
@@ -221,6 +223,10 @@ export function SettingsPanel() {
       setReasoningModel(s.reasoning_model ?? "");
       setFallback(s.litellm_fallback_models ?? "");
       // openai_api_key / tavily_api_key / exa_api_key return masked ***...; don't overwrite the inputs
+      setConnStatus({ ok: true, msg: `已连上 ${backendUrl}` });
+    } catch (e) {
+      // 连不上不再崩溃 (红屏): 友好降级 + 明确提示, 让用户知道这个数据源没通.
+      setConnStatus({ ok: false, msg: `连不上 ${backendUrl} — ${e instanceof Error ? e.message : "网络错误"}` });
     } finally { setBusy(false); }
   }, [backendUrl]);
 
@@ -375,6 +381,21 @@ export function SettingsPanel() {
         <div style={{ fontSize: 11.5, color: "var(--text-faint)", marginBottom: 8 }}>
           当前: <code>{backendUrl}</code>
         </div>
+        {connStatus && (
+          <div style={{
+            fontSize: 12, marginBottom: 8, padding: "6px 10px", borderRadius: 6,
+            background: connStatus.ok ? "rgba(31,157,87,0.12)" : "rgba(214,69,61,0.12)",
+            color: connStatus.ok ? "#1f9d57" : "#d6453d",
+          }}>
+            {connStatus.ok ? "✓ " : "✗ "}{connStatus.msg}
+            {!connStatus.ok && (
+              <div style={{ marginTop: 4, color: "var(--text-dim)", lineHeight: 1.6 }}>
+                可能原因: 群晖后端没起 / IP 端口不对 / 这台电脑不在同一局域网 / 后端没放行跨域(CORS)。
+                <button type="button" onClick={() => refresh()} style={{ ...presetBtn, marginLeft: 6, padding: "2px 8px" }}>重新测试</button>
+              </div>
+            )}
+          </div>
+        )}
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <button type="button" style={presetBtn} onClick={() => connectBackend("http://192.168.31.21:8100")}>群晖 · 局域网</button>
           <button type="button" style={presetBtn} onClick={() => connectBackend("https://jimlu1029.synology.me:10443")}>群晖 · 外网</button>
