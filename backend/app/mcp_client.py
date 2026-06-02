@@ -49,7 +49,7 @@ _AUTH_STYLE: dict[str, str] = {
     "firecrawl": "path",
     "github": "bearer",
     "context7": "bearer",
-    "pubmed": "none",
+    "pubmed": "rest",  # 用户填的是 NCBI E-utilities REST, 非 MCP → 走 REST 适配器
     "google_maps": "stdio",
     "airbnb": "stdio",
     "pipedream": "bearer",
@@ -143,18 +143,34 @@ async def _rpc(
 
 
 async def _mcp_session(rt: dict[str, Any]):
-    """开一个 MCP 会话, 完成 initialize 握手, 返回 (client, url, headers). 调用方负责 aclose."""
+    """开一个 MCP 会话, 完成 initialize 握手, 返回 (client, url, headers). 调用方负责 aclose.
+
+    关键: 有状态服务(如 Context7)会在 initialize 响应头里下发 `Mcp-Session-Id`,
+    后续 tools/list、tools/call 必须带上, 否则 400 "No valid session ID provided".
+    """
     url, headers = _endpoint_and_headers(rt)
     client = httpx.AsyncClient(timeout=_HTTP_TIMEOUT, follow_redirects=True)
     try:
-        await _rpc(
-            client, url, headers, "initialize",
-            {
+        # 手动发 initialize 以便读响应头里的 session id.
+        init_body = {
+            "jsonrpc": "2.0", "id": 1, "method": "initialize",
+            "params": {
                 "protocolVersion": _PROTOCOL_VERSION,
                 "capabilities": {},
                 "clientInfo": {"name": "h-semas", "version": "13"},
             },
-        )
+        }
+        resp = await client.post(url, json=init_body, headers=headers)
+        if resp.status_code >= 400:
+            raise McpError(f"initialize HTTP {resp.status_code}: {resp.text[:200]}")
+        obj = _parse_rpc_response(resp)
+        if isinstance(obj, dict) and obj.get("error"):
+            err = obj["error"]
+            raise McpError(f"initialize RPC error: {err.get('message', err)}")
+        # 捕获会话 id (大小写不敏感), 注入后续请求头.
+        sid_hdr = resp.headers.get("mcp-session-id") or resp.headers.get("Mcp-Session-Id")
+        if sid_hdr:
+            headers["Mcp-Session-Id"] = sid_hdr
         # 发 initialized 通知 (协议要求); 无状态服务忽略亦可.
         try:
             await _rpc(client, url, headers, "notifications/initialized", {}, notify=True)
@@ -244,6 +260,16 @@ def _rest_tools(server_id: str) -> list[dict[str, Any]]:
                 "required": ["location"],
             },
         }]
+    if server_id == "pubmed":
+        return [{
+            "name": "search_pubmed",
+            "description": "检索 PubMed 权威医学文献. 参数 query=英文检索词(如 'metformin diabetes elderly'). 返回最相关的几篇标题/期刊/年份.",
+            "input_schema": {
+                "type": "object",
+                "properties": {"query": {"type": "string", "description": "英文检索词"}},
+                "required": ["query"],
+            },
+        }]
     return []
 
 
@@ -271,6 +297,32 @@ async def _rest_call(server_id: str, tool_name: str, args: dict[str, Any], rt: d
                     f"(体感 {main.get('feels_like')}°C), 湿度 {main.get('humidity')}%, 风速 {wind} m/s")
         except Exception:
             return json.dumps(d, ensure_ascii=False)[:1500]
+    if server_id == "pubmed":
+        q = str((args or {}).get("query") or (args or {}).get("term") or "").strip()
+        if not q:
+            raise McpError("pubmed: 缺少 query 参数")
+        base = (rt.get("url") or "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/").strip().rstrip("/")
+        async with httpx.AsyncClient(timeout=_HTTP_TIMEOUT, follow_redirects=True) as client:
+            r1 = await client.get(f"{base}/esearch.fcgi",
+                                  params={"db": "pubmed", "term": q, "retmax": 5, "retmode": "json"})
+            if r1.status_code >= 400:
+                raise McpError(f"PubMed esearch HTTP {r1.status_code}: {r1.text[:160]}")
+            ids = (((r1.json() or {}).get("esearchresult") or {}).get("idlist")) or []
+            if not ids:
+                return f"PubMed 未检索到与「{q}」相关的文献"
+            r2 = await client.get(f"{base}/esummary.fcgi",
+                                  params={"db": "pubmed", "id": ",".join(ids), "retmode": "json"})
+            if r2.status_code >= 400:
+                raise McpError(f"PubMed esummary HTTP {r2.status_code}: {r2.text[:160]}")
+            res = (r2.json() or {}).get("result") or {}
+        lines = [f"PubMed「{q}」相关文献:"]
+        for pid in ids:
+            it = res.get(pid) or {}
+            title = it.get("title", "").strip().rstrip(".")
+            journal = it.get("fulljournalname") or it.get("source") or ""
+            year = (it.get("pubdate") or "")[:4]
+            lines.append(f"- {title} ({journal}, {year}) PMID:{pid}")
+        return "\n".join(lines)
     raise McpError(f"未知 REST 服务: {server_id}")
 
 
