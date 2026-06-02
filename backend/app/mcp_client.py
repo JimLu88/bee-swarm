@@ -186,6 +186,9 @@ async def _list_tools_live(rt: dict[str, Any]) -> list[dict[str, Any]]:
     sid = rt.get("id", "")
     if _AUTH_STYLE.get(sid) == "rest":
         return _rest_tools(sid)
+    if _AUTH_STYLE.get(sid) == "stdio":
+        from . import mcp_stdio
+        return await mcp_stdio.list_tools(rt)
     client, url, headers = await _mcp_session(rt)
     try:
         obj = await _rpc(client, url, headers, "tools/list", {}, rpc_id=2)
@@ -237,6 +240,9 @@ async def call_tool(server_id: str, tool_name: str, args: dict[str, Any]) -> str
     rt = mcp_tools.server_runtime(server_id)
     if _AUTH_STYLE.get(server_id) == "rest":
         return await _rest_call(server_id, tool_name, args, rt)
+    if _AUTH_STYLE.get(server_id) == "stdio":
+        from . import mcp_stdio
+        return await mcp_stdio.call_tool(rt, tool_name, args)
     client, url, headers = await _mcp_session(rt)
     try:
         obj = await _rpc(
@@ -331,9 +337,6 @@ async def probe(server_id: str) -> dict[str, Any]:
     """测试某服务能否连通 + 拉到工具. 配置页"测试"按钮调用."""
     rt = mcp_tools.server_runtime(server_id)
     out: dict[str, Any] = {"id": server_id, "transport": rt.get("transport"), "ok": False}
-    if rt.get("transport") == "stdio":
-        out["error"] = "stdio 类型需在容器内起子进程, 暂不支持线上测试"
-        return out
     if rt.get("needs_key") and not rt.get("key"):
         out["error"] = "未填 Key"
         return out
@@ -341,7 +344,9 @@ async def probe(server_id: str) -> dict[str, Any]:
         out["error"] = "未填 URL"
         return out
     try:
-        tools = await asyncio.wait_for(list_tools(server_id, force=True), timeout=25.0)
+        # stdio 首次会拉起 node 子进程, 给宽一点 (30s); http 走 25s.
+        _timeout = 30.0 if rt.get("transport") == "stdio" else 25.0
+        tools = await asyncio.wait_for(list_tools(server_id, force=True), timeout=_timeout)
         out["ok"] = True
         out["tool_count"] = len(tools)
         out["sample"] = [t.get("name") for t in tools[:8]]

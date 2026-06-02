@@ -78,7 +78,7 @@ export function McpConfigPanel({ backendUrl }: { backendUrl: string }) {
       </div>
       <div style={{ fontSize: 11.5, color: "var(--text-faint)", margin: "6px 0 10px", lineHeight: 1.6 }}>
         给顾问团配实时工具(股价/天气/GitHub/文献…)。开关 + 填 Key 即可;每个场景模型最多只看到 {maxPer} 个相关工具(防变笨)。
-        <br />✅ 实际调用已接通:决策时顾问团会自动判断要不要查、查什么并采集实时资料。填好 Key 后点「测试」可先验证连通(标 <code>stdio</code> 的需独立容器, 暂不支持线上测试)。
+        <br />✅ 实际调用已接通:决策时顾问团会自动判断要不要查、查什么并采集实时资料。填好 Key 后点「测试」验证连通。标 <code>stdio</code> 的(地图/Airbnb)由容器内置 Node 子进程驱动, 仅旅行类场景用、只在调用那一刻临时启动, 不影响日常速度。
       </div>
       {err && <div style={{ fontSize: 12, color: "#d6453d", marginBottom: 8 }}>⚠ {err}</div>}
 
@@ -116,7 +116,7 @@ export function McpConfigPanel({ backendUrl }: { backendUrl: string }) {
                     <button type="button" style={mini} onClick={() => save(s.id, { url: draftUrl[s.id] ?? s.url })}>存URL</button>
                   </div>
                 )}
-                {s.transport === "http" && (
+                {(s.transport === "http" || s.transport === "stdio") && (
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <button type="button" style={mini} disabled={!!probing[s.id]} onClick={() => probe(s.id)}>
                       {probing[s.id] ? "测试中…" : "🔬 测试连通"}

@@ -14,9 +14,12 @@ RUN npm run build
 FROM python:3.11-slim
 WORKDIR /app
 
-# lxml/pandas 等部分包需要编译工具; 装完即清理, 控制镜像体积
-RUN apt-get update && apt-get install -y --no-install-recommends build-essential \
+# lxml/pandas 等部分包需要编译工具; 另装 Node (stdio 类 MCP: Airbnb/Google Maps 用 node 子进程)
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential nodejs npm \
     && rm -rf /var/lib/apt/lists/*
+
+# v13 #1: 预装 stdio MCP 服务包 (运行时不再联网下载 → 调用不卡). 失败不阻断构建 (运行时 npx -y 兜底).
+RUN npm install -g @openbnb/mcp-server-airbnb @modelcontextprotocol/server-google-maps || true
 
 COPY backend/requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
