@@ -1,5 +1,8 @@
 import type { MetadataRoute } from "next";
 
+// 兼容 next.config output:"export" 静态导出 (否则 build 报 manifest.webmanifest 错)
+export const dynamic = "force-static";
+
 /** PWA manifest → Next 自动暴露为 /manifest.webmanifest.
  *  让手机浏览器可「添加到主屏」, standalone 全屏打开, 像 App 一样 (无需上架审核). */
 export default function manifest(): MetadataRoute.Manifest {

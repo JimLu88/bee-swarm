@@ -16,12 +16,14 @@ services:
     environment:
       - HSEMAS_DISABLE_LOCAL_TIER=1     # 关闭 C 档离线档 → C 自动降级到 B 便宜云
       - BEE_SCRAPER_URL=http://bee-scraper:8003
+      - BEE_MEMORY_URL=http://bee-memory:8004
       - BEE_BEARER_TOKEN=${BEE_BEARER_TOKEN:-dev-token-change-me}
       - QDRANT_URL=http://qdrant:6333
     volumes:
       - ./backend/data:/app/data        # 决策历史/记忆/知识库 持久化
     depends_on:
       - bee-scraper
+      - bee-memory
       - qdrant
     restart: unless-stopped
 
@@ -36,6 +38,20 @@ services:
       - BEE_BEARER_TOKEN=${BEE_BEARER_TOKEN:-dev-token-change-me}
       - TAVILY_API_KEY=${TAVILY_API_KEY:-}
       - EXA_API_KEY=${EXA_API_KEY:-}
+    restart: unless-stopped
+
+  bee-memory:
+    image: bee-memory:latest
+    build:
+      context: "../AI 记忆中心/backend"   # 与本仓库并排克隆 (update.sh 会一起 pull)
+      dockerfile: Dockerfile
+    ports:
+      - "8004:8004"
+    environment:
+      - BEE_BEARER_TOKEN=${BEE_BEARER_TOKEN:-dev-token-change-me}
+    volumes:
+      # 5 池备份 Key (pool_config.json) + 记忆数据 持久化, 重建容器不丢
+      - "../AI 记忆中心/backend/data:/app/data"
     restart: unless-stopped
 
   qdrant:
