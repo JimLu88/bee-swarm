@@ -1132,6 +1132,12 @@ def memory_backup_retry_proxy(limit: int = 100) -> dict[str, Any]:
     return _proxy_memory_post(f"/memory/backup/retry?limit={limit}")
 
 
+@app.get("/api/memory/backup/config")
+def memory_backup_config_get_proxy() -> dict[str, Any]:
+    """前端进入 5 池备份面板时读取已存配置 (掩码); 转发给 bee-memory."""
+    return _proxy_memory_get("/memory/backup/config")
+
+
 @app.post("/api/memory/backup/config")
 def memory_backup_config_proxy(payload: dict[str, Any]) -> dict[str, Any]:
     """前端 5 池 Key 输入框提交; 转发给 bee-memory 持久化."""
