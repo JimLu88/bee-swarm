@@ -34,10 +34,7 @@ STDIO_SERVERS: dict[str, dict[str, Any]] = {
         "cmd": ["npx", "-y", "@openbnb/mcp-server-airbnb", "--ignore-robots-txt"],
         "env_key": None,  # 免 key
     },
-    "google_maps": {
-        "cmd": ["npx", "-y", "@modelcontextprotocol/server-google-maps"],
-        "env_key": "GOOGLE_MAPS_API_KEY",  # 用户填的 key 注入这个环境变量
-    },
+    # 注: Google Maps 因需境外信用卡, 已替换为 OpenStreetMap(REST, 见 mcp_client._osm_call)
 }
 
 

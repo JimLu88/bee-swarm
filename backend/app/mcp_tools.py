@@ -60,10 +60,10 @@ PRESETS: list[dict[str, Any]] = [
         "when": "健康/医疗问题需要循证依据时调用, 检索权威医学研究文献",
     },
     {
-        "id": "google_maps", "name": "Google Maps (海外)", "category": "地图",
-        "transport": "stdio", "url": "", "needs_key": True, "default": False,
+        "id": "osm", "name": "OpenStreetMap · 海外地图/路线", "category": "地图",
+        "transport": "http", "url": "https://nominatim.openstreetmap.org", "needs_key": False, "default": True,
         "scenes": ["travel_planning", "travel_deep", "study_abroad"],
-        "when": "海外地点/路线/距离/评分时调用 (国内默认走高德, 无需此项)",
+        "when": "海外地点/POI/路线/距离时调用 (免费免key免卡; 国内默认走高德)",
     },
     {
         "id": "airbnb", "name": "Airbnb · 房源", "category": "出行",

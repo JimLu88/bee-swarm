@@ -50,7 +50,7 @@ _AUTH_STYLE: dict[str, str] = {
     "github": "bearer",
     "context7": "bearer",
     "pubmed": "rest",  # 用户填的是 NCBI E-utilities REST, 非 MCP → 走 REST 适配器
-    "google_maps": "stdio",
+    "osm": "rest",      # OpenStreetMap: Nominatim 地理编码 + OSRM 路线, 免 key 免卡
     "airbnb": "stdio",
     "pipedream": "bearer",
 }
@@ -276,6 +276,30 @@ def _rest_tools(server_id: str) -> list[dict[str, Any]]:
                 "required": ["query"],
             },
         }]
+    if server_id == "osm":
+        return [
+            {
+                "name": "geocode_search",
+                "description": "查海外地点/POI 的坐标与地址 (OpenStreetMap). 参数 query=地点名(如 'Tokyo Tower' / '東京駅').",
+                "input_schema": {
+                    "type": "object",
+                    "properties": {"query": {"type": "string", "description": "地点名称"}},
+                    "required": ["query"],
+                },
+            },
+            {
+                "name": "get_route",
+                "description": "算两地之间的驾车路线距离与时长 (OpenStreetMap/OSRM). 参数 from=起点名, to=终点名.",
+                "input_schema": {
+                    "type": "object",
+                    "properties": {
+                        "from": {"type": "string", "description": "起点地名"},
+                        "to": {"type": "string", "description": "终点地名"},
+                    },
+                    "required": ["from", "to"],
+                },
+            },
+        ]
     return []
 
 
@@ -329,7 +353,61 @@ async def _rest_call(server_id: str, tool_name: str, args: dict[str, Any], rt: d
             year = (it.get("pubdate") or "")[:4]
             lines.append(f"- {title} ({journal}, {year}) PMID:{pid}")
         return "\n".join(lines)
+    if server_id == "osm":
+        return await _osm_call(tool_name, args, rt)
     raise McpError(f"未知 REST 服务: {server_id}")
+
+
+# OpenStreetMap: Nominatim (地理编码) + OSRM (路线). 公共端点免 key, 但要求 User-Agent + 低频.
+_OSM_UA = "h-semas/13 (personal travel advisor)"
+_OSRM_BASE = "https://router.project-osrm.org"
+
+
+async def _osm_geocode(client: httpx.AsyncClient, base: str, query: str) -> dict[str, Any] | None:
+    r = await client.get(
+        f"{base.rstrip('/')}/search",
+        params={"q": query, "format": "json", "limit": 1, "addressdetails": 1},
+        headers={"User-Agent": _OSM_UA},
+    )
+    if r.status_code >= 400:
+        raise McpError(f"Nominatim HTTP {r.status_code}: {r.text[:120]}")
+    arr = r.json()
+    return arr[0] if isinstance(arr, list) and arr else None
+
+
+async def _osm_call(tool_name: str, args: dict[str, Any], rt: dict[str, Any]) -> str:
+    base = (rt.get("url") or "https://nominatim.openstreetmap.org").strip()
+    async with httpx.AsyncClient(timeout=_HTTP_TIMEOUT, follow_redirects=True) as client:
+        if tool_name == "geocode_search":
+            q = str((args or {}).get("query") or "").strip()
+            if not q:
+                raise McpError("osm: 缺少 query")
+            hit = await _osm_geocode(client, base, q)
+            if not hit:
+                return f"OpenStreetMap 未找到「{q}」"
+            return (f"{q} → {hit.get('display_name', '')} "
+                    f"(类型: {hit.get('type', '?')}, 坐标: {hit.get('lat')},{hit.get('lon')})")
+        if tool_name == "get_route":
+            a = str((args or {}).get("from") or "").strip()
+            b = str((args or {}).get("to") or "").strip()
+            if not a or not b:
+                raise McpError("osm: 缺少 from/to")
+            pa = await _osm_geocode(client, base, a)
+            pb = await _osm_geocode(client, base, b)
+            if not pa or not pb:
+                return f"路线查询失败: {'起点' if not pa else '终点'}定位不到"
+            coords = f"{pa['lon']},{pa['lat']};{pb['lon']},{pb['lat']}"
+            r = await client.get(f"{_OSRM_BASE}/route/v1/driving/{coords}",
+                                 params={"overview": "false"})
+            if r.status_code >= 400:
+                raise McpError(f"OSRM HTTP {r.status_code}: {r.text[:120]}")
+            routes = (r.json() or {}).get("routes") or []
+            if not routes:
+                return f"{a} → {b}: 未找到驾车路线"
+            dist_km = round(routes[0].get("distance", 0) / 1000, 1)
+            dur_min = round(routes[0].get("duration", 0) / 60)
+            return f"{a} → {b}: 驾车约 {dist_km} 公里, 约 {dur_min} 分钟"
+        raise McpError(f"osm: 未知工具 {tool_name}")
 
 
 # ---------- 配置页"测试连通"用 ----------

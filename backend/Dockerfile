@@ -19,7 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends build-essential
     && rm -rf /var/lib/apt/lists/*
 
 # v13 #1: 预装 stdio MCP 服务包 (运行时不再联网下载 → 调用不卡). 失败不阻断构建 (运行时 npx -y 兜底).
-RUN npm install -g @openbnb/mcp-server-airbnb @modelcontextprotocol/server-google-maps || true
+RUN npm install -g @openbnb/mcp-server-airbnb || true
 
 COPY backend/requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
