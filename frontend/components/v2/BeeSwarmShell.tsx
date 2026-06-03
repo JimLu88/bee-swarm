@@ -29,7 +29,6 @@ import { SceneSwitcher } from "./SceneSwitcher";
 import { Composer } from "./Composer";
 import { SwarmStrip } from "./SwarmStrip";
 import { RouteFlow } from "./RouteFlow";
-import { sceneSuggestions } from "../../lib/scenes";
 
 /**
  * BeeSwarmShell — v8 Jim Clear + Gemini 对话式主壳.
@@ -50,7 +49,7 @@ type Turn = {
   docNames?: string[];
   effort: Difficulty;
   summary?: DecisionSummary | null;
-  status: "running" | "done" | "error";
+  status: "running" | "done" | "error" | "stopped";
   decisionId?: string;
   rounds: number;
 };
@@ -194,6 +193,7 @@ export function BeeSwarmShell() {
   const [dashOpen, setDashOpen] = useState(false);
 
   const decisionStartRef = useRef<number | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
   const [rerunningDept, setRerunningDept] = useState<string | null>(null);
   const [currentDecisionId, setCurrentDecisionId] = useState<string | null>(null);
   const [runMeta, setRunMeta] = useState<{ route: string; rounds_band: string; difficulty: string } | null>(null);
@@ -309,6 +309,7 @@ export function BeeSwarmShell() {
     const ws = new WebSocket(
       `${wsBase}/api/decision/stream/${decisionId}${_tok ? `?token=${encodeURIComponent(_tok)}` : ""}`,
     );
+    wsRef.current = ws;
     ws.onmessage = (ev) => {
       try {
         const e = JSON.parse(ev.data);
@@ -335,7 +336,7 @@ export function BeeSwarmShell() {
           if (_sum.decision_id) setActiveId(_sum.decision_id);
           setBusy(false);
           refreshHistory();
-          ws.close();
+          ws.close(); wsRef.current = null;
         } else if (e.type === "debate_converged") {
           setProgress(90);
         }
@@ -346,8 +347,18 @@ export function BeeSwarmShell() {
       setBusy(false);
       setTurns((prev) => prev.map((t) => t.id === turnId && t.status === "running" ? { ...t, status: "error" } : t));
     };
-    ws.onclose = () => { /* ok */ };
+    ws.onclose = () => { wsRef.current = null; };
   }, [wsBase, refreshHistory]);
+
+  // --- 停止: 关掉流, 解除 busy, 本轮标记为已停止 (后端那次会在后台自然跑完, 不再回传 UI) ---
+  const stopRun = useCallback(() => {
+    try { wsRef.current?.close(); } catch { /* ignore */ }
+    wsRef.current = null;
+    setBusy(false);
+    setPlanLoading(false);
+    setProgress(0);
+    setTurns((prev) => prev.map((t) => t.status === "running" ? { ...t, status: "stopped" } : t));
+  }, []);
 
   // --- 发起咨询 (Composer 发送 / 建议卡片 / 重新生成) ---
   const submitTask = useCallback((text: string, modeOverride?: string) => {
@@ -675,7 +686,6 @@ export function BeeSwarmShell() {
     setSettingsOpen(true);
   }, []);
 
-  const suggestions = useMemo(() => sceneSuggestions(mode), [mode]);
 
   // 附件预览 slot (Composer 上方)
   const attachSlot = (images.length > 0 || docFiles.length > 0 || attachWarn) ? (
@@ -755,6 +765,7 @@ export function BeeSwarmShell() {
           }
         }}
         onSend={onComposerSend}
+        onStop={stopRun}
         onAttach={openFilePicker}
         busy={busy}
         error={error}
@@ -816,17 +827,6 @@ export function BeeSwarmShell() {
           {view === "welcome" ? (
             <section className="welcome">
               <h1 className="greet">你好，<span className="grad">今天想解决什么？</span></h1>
-              <p className="greet-sub">
-                把你正在纠结的事写下来。我会先分诊，再请这套场景里最合适的几位顾问一起讨论，给你一个能落地的答案。
-              </p>
-              <div className="sugs">
-                {suggestions.map((s, i) => (
-                  <button key={i} type="button" className="sug" onClick={() => submitTask(s.text)}>
-                    <Icon name={s.icon} />
-                    <span className="t">{s.text}</span>
-                  </button>
-                ))}
-              </div>
               <div className="composer-inline">{composer}</div>
             </section>
           ) : (
@@ -881,6 +881,11 @@ export function BeeSwarmShell() {
                           <div className="callout warn">
                             <div className="callout-h"><Icon name="error" />出了点问题</div>
                             <div className="risk"><Icon name="chevron_right" /><span className="rt">{error ?? "AI 服务暂时没响应, 换个说法或稍后重试"}</span></div>
+                          </div>
+                        )}
+                        {turn.status === "stopped" && (
+                          <div className="callout">
+                            <div className="risk"><Icon name="stop_circle" /><span className="rt">你已停止这次讨论。可以重新提问或换个说法。</span></div>
                           </div>
                         )}
                         {turn.status === "done" && turn.summary && (

@@ -28,6 +28,21 @@ def _bearer() -> str:
     return os.environ.get("BEE_BEARER_TOKEN", "dev-token-change-me")
 
 
+def _search_keys() -> dict[str, str]:
+    """v9: 把 UI 里存的搜索 key (hub_settings.json → llm_rag_settings) 随请求带给爬虫,
+    让用户在前端填一次即生效, 无需在爬虫容器单独配 env/.env。缺失则空 (爬虫退回自身 env)。"""
+    out: dict[str, str] = {}
+    try:
+        from ..settings_llm_rag import llm_rag_settings as _s
+        for field in ("tavily_api_key", "exa_api_key"):
+            v = getattr(_s, field, None)
+            if isinstance(v, str) and v.strip():
+                out[field] = v.strip()
+    except Exception:
+        pass
+    return out
+
+
 class BeeServiceClient:
     """七剑客 HTTP client. 进程级单例 = bee_clients."""
 
@@ -78,12 +93,12 @@ class BeeServiceClient:
     # scraper (8003)
     def scrape(self, site: str, keyword: str = "", limit: int = 20) -> dict[str, Any]:
         return self._post("scraper", self.scraper_url, "/scraper/task",
-                          {"site": site, "keyword": keyword, "limit": limit})
+                          {"site": site, "keyword": keyword, "limit": limit, **_search_keys()})
 
     def web_search(self, query: str,
                    providers: list[str] | None = None) -> dict[str, Any]:
         return self._post("scraper", self.scraper_url, "/scraper/search/query",
-                          {"query": query, "providers": providers or []})
+                          {"query": query, "providers": providers or [], **_search_keys()})
 
     # vision (8006)
     def ocr(self, image_b64: str, engine: str = "rapidocr") -> dict[str, Any]:

@@ -27,6 +27,7 @@ type Props = {
   tier: Tier;
   onTierChange: (t: Tier) => void;
   onSend: () => void;
+  onStop?: () => void;
   onAttach?: () => void;
   busy?: boolean;
   error?: string | null;
@@ -55,7 +56,7 @@ const TIERS: { v: Tier; label: string; hint: string }[] = [
 ];
 
 export function Composer({
-  value, onChange, effort, onEffortChange, tier, onTierChange, onSend, onAttach, busy, error, placeholder, attachSlot,
+  value, onChange, effort, onEffortChange, tier, onTierChange, onSend, onStop, onAttach, busy, error, placeholder, attachSlot,
   frameworks, aiFrameworks, onToggleFramework,
 }: Props) {
   const taRef = useRef<HTMLTextAreaElement>(null);
@@ -236,16 +237,29 @@ export function Composer({
               )}
             </div>
           )}
-          <button
-            type="button"
-            className={`send${ready ? " ready" : ""}`}
-            onClick={() => ready && onSend()}
-            disabled={!ready}
-            title={busy ? "顾问们正在讨论…" : "开始"}
-            aria-label="发送"
-          >
-            <Icon name={busy ? "progress_activity" : "arrow_upward"} className={busy ? "spinning" : ""} />
-          </button>
+          {busy && onStop ? (
+            <button
+              type="button"
+              className="send"
+              onClick={onStop}
+              title="停止顾问讨论"
+              aria-label="停止"
+              style={{ background: "var(--bad)" }}
+            >
+              <Icon name="stop" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              className={`send${ready ? " ready" : ""}`}
+              onClick={() => ready && onSend()}
+              disabled={!ready}
+              title={busy ? "顾问们正在讨论…" : "开始"}
+              aria-label="发送"
+            >
+              <Icon name={busy ? "progress_activity" : "arrow_upward"} className={busy ? "spinning" : ""} />
+            </button>
+          )}
         </div>
       </div>
       {error

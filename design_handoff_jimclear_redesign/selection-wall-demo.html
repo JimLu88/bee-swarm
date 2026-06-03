@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>H-SEMAS · 决策大屏「选择墙」设计稿</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --accent:#1F66E6; --accent-ink:#0B3FA0;
+    --bg-app:#F4F6FB; --bg-surface:#FFFFFF; --bg-card:#FFFFFF; --bg-soft:#EEF2FB;
+    --fg-1:#10131A; --fg-2:#39414F; --fg-3:#6B7486; --fg-4:#9AA3B2;
+    --divider:rgba(28,52,102,.08); --border:rgba(28,52,102,.10);
+    --good:#1E9E63; --warn:#E0A11A; --bad:#E2553D;
+    --glow:color-mix(in srgb, var(--accent) 14%, transparent);
+    --shadow-sm:0 4px 16px -4px rgba(28,52,102,.10),0 1px 4px rgba(28,52,102,.05);
+    --shadow-md:0 12px 34px -8px rgba(28,52,102,.13),0 3px 12px -2px rgba(28,52,102,.07);
+    --shadow-lg:0 28px 64px -14px rgba(28,52,102,.18),0 10px 28px -8px rgba(28,52,102,.10);
+    --font-sans:'Lexend',system-ui,-apple-system,'Segoe UI',Roboto,'PingFang SC','Microsoft YaHei',sans-serif;
+  }
+  :root[data-theme="dark"]{
+    --accent:#4C9AF5; --accent-ink:#9CC4FA;
+    --bg-app:#0E1014; --bg-surface:#171A21; --bg-card:#1B1F27; --bg-soft:#222734;
+    --fg-1:#F2F5FA; --fg-2:#C4CCDA; --fg-3:#8B95A7; --fg-4:#5C667A;
+    --divider:rgba(255,255,255,.07); --border:rgba(255,255,255,.10);
+    --good:#46C88A; --warn:#E7B23E; --bad:#F0726B;
+    --glow:color-mix(in srgb, var(--accent) 30%, transparent);
+    --shadow-md:0 12px 34px -8px rgba(0,0,0,.5),0 3px 12px -2px rgba(0,0,0,.4);
+    --shadow-lg:0 28px 64px -14px rgba(0,0,0,.6),0 10px 28px -8px rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{font-family:var(--font-sans);background:var(--bg-app);color:var(--fg-1);-webkit-font-smoothing:antialiased}
+  .app{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+
+  .top{display:flex;align-items:center;gap:14px;padding:14px 22px;background:var(--bg-surface);border-bottom:1px solid var(--divider);flex:none}
+  .spark{width:38px;height:38px;border-radius:13px;background:linear-gradient(135deg,var(--accent),var(--accent-ink));display:grid;place-items:center;color:#fff;font-weight:700;box-shadow:0 5px 16px -4px var(--glow);flex:none}
+  .ttl{font-size:17px;font-weight:600}
+  .sub{font-size:12.5px;color:var(--fg-3);margin-top:1px}
+  .count{margin-left:6px;font-size:12.5px;font-weight:600;color:var(--accent);background:var(--glow);padding:4px 10px;border-radius:999px}
+  .spacer{flex:1}
+  .modes{display:flex;gap:4px;background:var(--bg-soft);padding:4px;border-radius:12px}
+  .modes button{border:0;background:transparent;color:var(--fg-3);font:500 13.5px var(--font-sans);padding:7px 14px;border-radius:9px;cursor:pointer}
+  .modes button.on{background:var(--bg-card);color:var(--fg-1);box-shadow:var(--shadow-sm)}
+  .iconbtn{width:40px;height:40px;border-radius:999px;border:0;background:var(--bg-surface);box-shadow:var(--shadow-sm);cursor:pointer;font-size:17px;color:var(--fg-2)}
+
+  .filters{display:flex;gap:8px;align-items:center;padding:12px 22px 6px;flex-wrap:wrap;flex:none}
+  .chip{border:1px solid var(--border);background:var(--bg-card);color:var(--fg-2);font:500 12.5px var(--font-sans);padding:6px 13px;border-radius:999px;cursor:pointer}
+  .chip.on{background:var(--accent);color:#fff;border-color:transparent}
+  .chip .n{opacity:.7;margin-left:5px}
+  .hint{padding:6px 22px 0;font:400 12px var(--font-sans);color:var(--fg-4)}
+
+  .body{flex:1;overflow:auto;padding:10px 22px 120px}
+  .split{display:grid;grid-template-columns:1fr;gap:18px}
+  .split.map{grid-template-columns:1.35fr .9fr}
+
+  .wall{columns:5 220px;column-gap:16px}
+  @media(max-width:1500px){.wall{columns:4 220px}}
+  @media(max-width:1100px){.wall{columns:3 200px}}
+  @media(max-width:760px){.wall{columns:2 150px}}
+  .card{break-inside:avoid;margin:0 0 16px;background:var(--bg-card);border-radius:18px;box-shadow:var(--shadow-md);overflow:hidden;cursor:pointer;transition:transform .15s,box-shadow .15s;position:relative}
+  .card:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg)}
+  .thumb{height:120px;position:relative}
+  .thumb.tall{height:190px}.thumb.short{height:84px}
+  .thumb .src{position:absolute;left:9px;top:9px;font:600 11px var(--font-sans);background:rgba(0,0,0,.55);color:#fff;padding:3px 8px;border-radius:999px;backdrop-filter:blur(4px)}
+  .thumb .pick{position:absolute;right:8px;top:8px;width:30px;height:30px;border-radius:999px;border:0;background:rgba(255,255,255,.92);cursor:pointer;font-size:15px;box-shadow:var(--shadow-sm)}
+  .thumb .pick.on{background:var(--accent);color:#fff}
+  .ci{padding:11px 13px 13px}
+  .cname{font:600 14px var(--font-sans);line-height:1.35;color:var(--fg-1)}
+  .cmeta{display:flex;align-items:center;gap:8px;margin-top:7px}
+  .price{font:700 15px var(--font-sans);color:var(--accent)}
+  .score{font:600 12px var(--font-sans);color:var(--good);background:color-mix(in srgb,var(--good) 14%,transparent);padding:2px 7px;border-radius:7px}
+  .tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:9px}
+  .tag{font:500 11px var(--font-sans);color:var(--fg-3);background:var(--bg-soft);padding:3px 8px;border-radius:6px}
+  .why{font:400 12px var(--font-sans);color:var(--fg-3);margin-top:9px;line-height:1.5}
+
+  .mappanel{position:sticky;top:0;height:calc(100vh - 230px);border-radius:18px;overflow:hidden;box-shadow:var(--shadow-md);background:radial-gradient(circle at 30% 30%,#2a3550,#10131a)}
+  .mapnote{position:absolute;left:14px;top:14px;font:600 12.5px var(--font-sans);color:#cfe0ff;background:rgba(0,0,0,.4);padding:6px 11px;border-radius:999px}
+  .pin{position:absolute;transform:translate(-50%,-100%);cursor:pointer}
+  .pin b{display:block;background:var(--accent);color:#fff;font:600 11.5px var(--font-sans);padding:4px 9px;border-radius:999px;white-space:nowrap;box-shadow:var(--shadow-md)}
+  .pin.on b{background:#fff;color:var(--accent);outline:2px solid var(--accent)}
+  .pin i{display:block;width:2px;height:9px;background:var(--accent);margin:0 auto}
+
+  .globewrap{display:grid;grid-template-columns:1fr 360px;gap:20px;align-items:center;min-height:calc(100vh - 240px)}
+  .globe{position:relative;aspect-ratio:1;max-width:560px;margin:auto;border-radius:50%;background:radial-gradient(circle at 35% 30%,#3b73f0,#0b1f4d 70%);box-shadow:0 0 80px -10px var(--glow),inset -30px -30px 80px rgba(0,0,0,.5);overflow:hidden;animation:spin 36s linear infinite}
+  .globe::before{content:"";position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.18) 1px,transparent 1.4px);background-size:18px 18px;opacity:.5}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .gnode{position:absolute;width:9px;height:9px;border-radius:50%;background:#9cc4fa;box-shadow:0 0 12px 3px var(--glow)}
+  .glist{display:flex;flex-direction:column;gap:10px}
+  .gsrc{background:var(--bg-card);border-radius:14px;box-shadow:var(--shadow-sm);padding:12px 14px;display:flex;gap:10px;align-items:center}
+  .gflag{width:32px;height:32px;border-radius:9px;background:var(--bg-soft);display:grid;place-items:center;font-size:17px;flex:none}
+
+  .tray{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--bg-card);box-shadow:var(--shadow-lg);border-radius:16px;padding:12px 16px;display:flex;align-items:center;gap:14px;max-width:92vw}
+  .tray .lab{font:600 13px var(--font-sans)}
+  .tray .items{display:flex;gap:8px}
+  .tdot{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#6aa0f5,#2f6bd6);color:#fff;font:600 11px var(--font-sans);display:grid;place-items:center}
+  .tbtn{border:0;background:var(--accent);color:#fff;font:600 13px var(--font-sans);padding:9px 16px;border-radius:11px;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div class="spark">智</div>
+    <div>
+      <div class="ttl">送礼参谋 · 决策大屏<span class="count" id="cnt">54 条候选</span></div>
+      <div class="sub">爸爸 62 岁 · 预算有限 · 父亲节 —— 一屏挑，不用来回翻</div>
+    </div>
+    <div class="spacer"></div>
+    <div class="modes" id="modes">
+      <button data-m="wall" class="on">▦ 卡片墙</button>
+      <button data-m="map">🗺 墙+地图</button>
+      <button data-m="globe">🌐 地球图</button>
+    </div>
+    <button class="iconbtn" id="theme" title="深浅色">◐</button>
+  </div>
+
+  <div class="filters" id="filters">
+    <span class="chip on">全部<span class="n">54</span></span>
+    <span class="chip">💰 低价位<span class="n">21</span></span>
+    <span class="chip">⚖️ 中档<span class="n">19</span></span>
+    <span class="chip">✨ 高品质<span class="n">14</span></span>
+    <span class="chip">🩺 健康<span class="n">12</span></span>
+    <span class="chip">🤝 手作走心<span class="n">8</span></span>
+    <span class="chip">🌍 海淘小众<span class="n">9</span></span>
+    <span class="chip">⭐ 高评分优先</span>
+  </div>
+  <div class="hint">设计稿 · 塑料数据。真实版每条来自：部门联网搜(Tavily/Exa) + 爬虫图文(小红书/什么值得买/Reddit) + 知识库书目，去重后铺满 50–60 条；这批候选同时喂给八位顾问讨论，所以「瀑布 = 顾问讨论的 = 最终建议引用的」。</div>
+
+  <div class="body">
+    <div class="split" id="split">
+      <div class="wall" id="wall"></div>
+      <div class="mappanel" id="mappanel" style="display:none">
+        <div class="mapnote">📍 同城可自提 / 当面送 的 12 处（hover 左侧卡片联动）</div>
+      </div>
+    </div>
+    <div class="globewrap" id="globewrap" style="display:none">
+      <div class="globe" id="globe"></div>
+      <div class="glist" id="glist"></div>
+    </div>
+  </div>
+
+  <div class="tray" id="tray" style="display:none">
+    <span class="lab">已挑 <span id="trayn">0</span> 件对比</span>
+    <div class="items" id="trayitems"></div>
+    <button class="tbtn">让顾问团帮我定 →</button>
+  </div>
+</div>
+
+<script>
+const SRC=["小红书","什么值得买","知乎","Reddit","Tavily","京东","海淘"];
+const NAMES=["不锈钢保温杯·焖茶款","颈肩按摩仪 揉捏热敷","乳清蛋白礼盒","定制家庭相册","真皮钥匙包","蓝牙老人手机","羊毛围巾 重磅","足浴盆 全自动","血压计 臂式","钓鱼折叠椅","紫砂茶壶 手工","老花镜 防蓝光","养生壶 玻璃","电动剃须刀","暖手宝 充电","羽绒马甲","回忆录代写服务","按摩披肩 车载","枸杞原浆礼盒","太极养生书","黑胶唱片机复古","保暖护膝 自发热","智能手环 血氧","钢笔礼盒 铱金","茶叶礼盒 明前龙井","加湿器 静音","护腰靠垫 记忆棉","老照片修复服务","保温饭盒 多层","泡脚药包 30天","羊绒袜 5双","台灯 护眼调光","象棋 红木","收音机 充电","暖风机 速热","真皮手套 触屏","蜂蜜礼盒 农家","定制刻字酒","老人相机 简单","护眼仪 蒸汽","骨传导耳机","暖脚电热毯","保健核桃礼盒","按摩椅垫","老人智能音箱","羊毛地垫","便携血糖仪","刮痧板 玉石","养生菜谱 图解","保温饭袋","防滑老人鞋","记忆枕 颈椎","加厚睡袍","日本羽毛被 Nishikawa"];
+const WHY=["实用日常用得上,温度刚好","缓解疲劳,爸爸常喊腰酸","健康向,性价比高","情感价值拉满,成本低","小物件,天天用得到","海外测评高分,本地少见","手作走心,不撞款","退换无忧,物流来得及"];
+const PRICES=[39,59,79,89,99,118,128,158,168,188,228,268,299,358,458,598];
+const SIZES=["tall","","","short","","tall","","short","",""];
+function rnd(a){return a[Math.floor(Math.random()*a.length)]}
+const items=[];for(let i=0;i<54;i++){items.push({id:i,name:NAMES[i%NAMES.length],src:rnd(SRC),price:rnd(PRICES),score:(3.8+Math.random()*1.1).toFixed(1),why:rnd(WHY),size:SIZES[i%SIZES.length],tags:[rnd(["健康","实用","走心","小众","热门"]),rnd(["低价位","中档","高品质"])]});}
+
+const wall=document.getElementById('wall');
+const picked=new Set();
+function render(){
+  wall.innerHTML='';
+  items.forEach(it=>{
+    const c=document.createElement('div');c.className='card';
+    c.innerHTML=`<div class="thumb ${it.size}" style="background:linear-gradient(135deg,hsl(${(it.id*37)%360} 65% 62%),hsl(${(it.id*37+40)%360} 60% 45%))">
+        <span class="src">${it.src}</span>
+        <button class="pick ${picked.has(it.id)?'on':''}">${picked.has(it.id)?'✓':'☆'}</button>
+      </div>
+      <div class="ci">
+        <div class="cname">${it.name}</div>
+        <div class="cmeta"><span class="price">¥${it.price}</span><span class="score">★ ${it.score}</span></div>
+        <div class="tags">${it.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>
+        <div class="why">${it.why}</div>
+      </div>`;
+    c.querySelector('.pick').onclick=e=>{e.stopPropagation();picked.has(it.id)?picked.delete(it.id):picked.add(it.id);render();tray();};
+    c.onmouseenter=()=>document.querySelectorAll('.pin').forEach((p,i)=>p.classList.toggle('on', i===it.id%12));
+    wall.appendChild(c);
+  });
+}
+function tray(){
+  const t=document.getElementById('tray');const n=picked.size;
+  document.getElementById('trayn').textContent=n;t.style.display=n?'flex':'none';
+  document.getElementById('trayitems').innerHTML=[...picked].slice(0,8).map(id=>`<div class="tdot">¥${items[id].price}</div>`).join('');
+}
+render();
+
+const mp=document.getElementById('mappanel');
+for(let i=0;i<12;i++){const p=document.createElement('div');p.className='pin';p.style.left=(15+Math.random()*70)+'%';p.style.top=(15+Math.random()*65)+'%';p.innerHTML=`<b>${items[i].name.slice(0,5)} ¥${items[i].price}</b><i></i>`;mp.appendChild(p);}
+
+const gb=document.getElementById('globe');
+for(let i=0;i<14;i++){const n=document.createElement('div');n.className='gnode';n.style.left=(20+Math.random()*60)+'%';n.style.top=(15+Math.random()*70)+'%';gb.appendChild(n);}
+const GS=[["🇯🇵","日本 Rakuten","Nishikawa 羽毛被 · 中老年睡眠口碑款"],["🇸🇪","北欧 Sagaform","多功能电热毯 · 简约安全"],["🇺🇸","Reddit r/BuyItForLife","RENPHO 肩颈按摩仪 · 评价高"],["🇩🇪","德国亚马逊","Braun 血压计 · 临床级"],["🇰🇷","韩国 Coupang","低周波理疗贴 · 便携"],["🇬🇧","英国 John Lewis","羊绒围巾 · 重磅手感"]];
+document.getElementById('glist').innerHTML=GS.map(g=>`<div class="gsrc"><div class="gflag">${g[0]}</div><div><div style="font:600 13.5px var(--font-sans)">${g[1]}</div><div style="font:400 12px var(--font-sans);color:var(--fg-3);margin-top:2px">${g[2]}</div></div></div>`).join('');
+
+document.getElementById('modes').onclick=e=>{
+  const b=e.target.closest('button');if(!b)return;
+  document.querySelectorAll('#modes button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+  const m=b.dataset.m;const split=document.getElementById('split');const gw=document.getElementById('globewrap');
+  if(m==='globe'){split.style.display='none';gw.style.display='grid';}
+  else{gw.style.display='none';split.style.display='grid';
+    if(m==='map'){split.classList.add('map');mp.style.display='block';}
+    else{split.classList.remove('map');mp.style.display='none';}}
+};
+document.getElementById('theme').onclick=()=>{const r=document.documentElement;r.dataset.theme=r.dataset.theme==='dark'?'light':'dark';};
+document.getElementById('filters').onclick=e=>{const c=e.target.closest('.chip');if(!c)return;document.querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));c.classList.add('on');};
+</script>
+</body>
+</html>

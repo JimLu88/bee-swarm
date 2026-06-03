@@ -27,7 +27,7 @@ import os
 from typing import Any
 from urllib.parse import urlparse
 
-MAX_CARDS = 40  # v11: 12→40 条 (用户要更丰富的图文流; 配合 /api/img 代理修坏图)
+MAX_CARDS = 60  # v14: 40→60 (大屏选择墙: 一屏铺 50-60 真候选供挑选)
 
 # 场景 mode_id → 该领域最相关的爬取平台 (web_search 通用之外的垂直补充).
 # 平台名必须是 数据爬虫/platforms.py 注册的 fetcher key.
@@ -221,10 +221,10 @@ def _collect_sync(task: str, mode_id: str) -> list[dict[str, Any]]:
     except Exception:
         pass
 
-    # 2) 场景垂直平台 (每个少量, 控制总耗时)
+    # 2) 场景垂直平台 (每个少量, 控制总耗时). v14: 4→6 平台 × 4→6 条, 配合 MAX_CARDS=60 凑满选择墙
     platforms = SCENE_PLATFORMS.get(mode_id, _DEFAULT_PLATFORMS)
-    per = 4
-    for plat in platforms[:4]:
+    per = 6
+    for plat in platforms[:6]:
         try:
             resp = bee_clients.scrape(plat, keyword=query, limit=per)
             items = resp.get("items") or []
@@ -288,11 +288,41 @@ async def _llm_quality_gate(task: str, cards: list[dict[str, Any]]) -> list[dict
         return cards
 
 
-async def gather_media_cards(task: str, mode_id: str) -> list[dict[str, Any]]:
-    """决策 finalize 时调用: 聚合相关图文/视频/链接给前端信息流.
+# v14: 同一批候选既喂给部门讨论(决策开始时), 又复用做 media_cards/大屏(finalize).
+# 按 decision_id 缓存, 避免一次决策爬两遍 (并保证"部门读到的"=="瀑布展示的").
+_CARD_CACHE: dict[str, list[dict[str, Any]]] = {}
+
+
+def candidates_digest(cards: list[dict[str, Any]], limit: int = 30) -> str:
+    """把候选压成给部门读的紧凑清单 (标题+来源+简介), 拼进 task 让所有部门+CEO 共享真实资料。"""
+    if not cards:
+        return ""
+    lines: list[str] = []
+    for i, c in enumerate(cards[:limit], 1):
+        title = str(c.get("title") or "").strip()[:60]
+        if not title:
+            continue
+        src = str(c.get("source") or "").strip()
+        body = str(c.get("body") or c.get("desc") or "").strip()[:90]
+        seg = f"{i}. {title}"
+        if src:
+            seg += f" [{src}]"
+        if body:
+            seg += f" — {body}"
+        lines.append(seg)
+    if not lines:
+        return ""
+    return ("[实时联网/爬虫候选 — 以下是刚抓到的真实资料/商品/案例/店铺, 讨论与给建议时请优先参考并引用真实项, "
+            "不要凭空编造具体型号/店名/链接]\n" + "\n".join(lines))
+
+
+async def gather_media_cards(task: str, mode_id: str, decision_id: str = "") -> list[dict[str, Any]]:
+    """聚合相关图文/视频/链接. 决策开始时调一次(喂部门+缓存), finalize 再调直接命中缓存.
 
     完全 best-effort: 关闭开关 / 无网络 / 爬虫服务没起 → 返回 []. 绝不抛异常.
     """
+    if decision_id and decision_id in _CARD_CACHE:
+        return _CARD_CACHE[decision_id]
     if os.environ.get("BEE_MEDIA_FEED", "1") == "0":
         return []
     try:
@@ -302,4 +332,9 @@ async def gather_media_cards(task: str, mode_id: str) -> list[dict[str, Any]]:
         return []
     for c in cards:  # 清掉内部排序字段, 不外泄给前端
         c.pop("_q", None)
+    if decision_id:
+        _CARD_CACHE[decision_id] = cards
+        if len(_CARD_CACHE) > 100:  # 防泄漏: 超量清掉一半旧的
+            for k in list(_CARD_CACHE)[:50]:
+                _CARD_CACHE.pop(k, None)
     return cards

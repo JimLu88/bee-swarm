@@ -801,7 +801,7 @@ async def finalize_decision_bundle(
     media_cards: list[dict[str, Any]] = []
     try:
         from .media_aggregator import gather_media_cards
-        media_cards = await gather_media_cards(task, mode_id)
+        media_cards = await gather_media_cards(task, mode_id, decision_id=decision_id)
     except Exception:
         media_cards = []
 
@@ -1098,6 +1098,22 @@ async def run_decision(*, decision_id: str, task: str, mode_id: str, debate_roun
     except Exception as _mcp_e:
         bus.publish(StreamEvent(
             type="mcp_facts_error", decision_id=decision_id, payload={"error": repr(_mcp_e)},
+        ))
+
+    # v14: 决策前实时候选采集 (联网+爬虫). 拼进 task 让所有部门+CEO 共享同一批真实资料
+    # (答案与图文瀑布/大屏同源, 解决"图文与回答脱节"); 按 decision_id 缓存供 finalize 复用, 不重复爬. best-effort.
+    try:
+        from .media_aggregator import gather_media_cards as _gmc, candidates_digest as _cdg
+        _cands = await _gmc(task, mode.mode_id, decision_id=decision_id)
+        _dg = _cdg(_cands)
+        if _dg:
+            task = f"{task}\n\n{_dg}"
+        bus.publish(StreamEvent(
+            type="live_candidates", decision_id=decision_id, payload={"count": len(_cands)},
+        ))
+    except Exception as _ce:
+        bus.publish(StreamEvent(
+            type="live_candidates_error", decision_id=decision_id, payload={"error": repr(_ce)},
         ))
 
     bus.publish(

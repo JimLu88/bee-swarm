@@ -47,6 +47,25 @@ async def lazy_seed_run(mode_id: str) -> dict[str, Any]:
             "note": "已丢后台灌书, 用 GET /api/learning/lazy-seed/status/{mode} 看进度"}
 
 
+@router.post("/seed-all")
+async def seed_all_run(only_missing: bool = True) -> dict[str, Any]:
+    """全场景预灌书 (一次性, 取代"首问才懒加载"). 后台跑, 立即返回; 量大耗时较长。
+
+    only_missing=True: 跳过已 done 的场景 (可反复调用续灌, 直到全部 done)。
+    """
+    from . import seed_all as _sa
+    if _sa.seed_all_progress().get("running"):
+        return {"started": False, "reason": "already_running", **_sa.seed_all_progress()}
+    asyncio.get_running_loop().create_task(_sa.seed_all_modes(only_missing=only_missing))
+    return {"started": True, "note": "全场景灌书已在后台开始, 用 GET /api/learning/seed-all/status 看进度"}
+
+
+@router.get("/seed-all/status")
+def seed_all_status() -> dict[str, Any]:
+    from . import seed_all as _sa
+    return _sa.seed_all_progress()
+
+
 @router.get("/overview")
 def overview() -> dict[str, Any]:
     out: dict[str, Any] = {"inbox": inbox.stats()}

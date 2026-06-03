@@ -38,6 +38,10 @@ services:
       - BEE_BEARER_TOKEN=${BEE_BEARER_TOKEN:-dev-token-change-me}
       - TAVILY_API_KEY=${TAVILY_API_KEY:-}
       - EXA_API_KEY=${EXA_API_KEY:-}
+      # 兜底: 读后端 hub_settings.json (UI 填的搜索 key); 主路径是后端随请求带 key
+      - BEE_HUB_SETTINGS=/hub/hub_settings.json
+    volumes:
+      - ./backend/data:/hub:ro
     restart: unless-stopped
 
   bee-memory:
