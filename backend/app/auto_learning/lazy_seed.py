@@ -287,7 +287,13 @@ _RUNNING: set[str] = set()
 
 
 async def run_lazy_seed(mode_id: str, team: dict[str, Any] | None = None) -> dict[str, Any]:
-    """实际灌书 (async). team 为空则从 team_store 读."""
+    """v15: LLM 灌书已彻底停用 (避免模型花费)。知识库一律由人工撰写后离线导入。"""
+    _set_status(mode_id, status="disabled", note="LLM 灌书已停用 (改人工离线导入)")
+    return {"mode_id": mode_id, "status": "disabled"}
+
+
+async def _run_lazy_seed_legacy(mode_id: str, team: dict[str, Any] | None = None) -> dict[str, Any]:
+    """旧实现, 保留备查, 不再调用。"""
     from ..modes import get_mode
     if mode_id in _RUNNING:
         return {"mode_id": mode_id, "status": "already_running"}

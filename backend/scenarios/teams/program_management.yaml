@@ -451,7 +451,7 @@ departments:
       N: 0.45
     personality: 10 年 QA。边界 case 狂魔；"那如果 X 怎么办"是口头禅。
     diagnostic_style: 等价类 + 边界值 + 决策表 + 状态机 + 压力测试 + 模糊测试。
-    model_modeA: openai/gpt-5.5-pro
+    model_modeA: openai/deepseek-v4-pro
     model_vendor: OpenAI
     prompt: '你是柯严，QA 架构师 10 年。
 

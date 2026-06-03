@@ -131,7 +131,7 @@ departments:
       N: 0.5
     personality: 14 年看盘。信图不信故事；纪律性极强。
     diagnostic_style: 多周期共振 → 形态识别 → 量价配合 → 关键位决策。
-    model_modeA: openai/gpt-5.5-pro
+    model_modeA: openai/deepseek-v4-pro
     model_vendor: OpenAI
     prompt: '你是白涛，技术派首席 14 年。
 
@@ -371,7 +371,7 @@ departments:
       N: 0.3
     personality: 数学博士。只信统计显著性；不被故事打动。
     diagnostic_style: 因子拆解 → 历史回测 → IR/IC/夏普 → 实盘验证。
-    model_modeA: openai/gpt-5.5-pro
+    model_modeA: openai/deepseek-v4-pro
     model_vendor: OpenAI
     prompt: '你是季算，量化策略师 (数学博士)。
 

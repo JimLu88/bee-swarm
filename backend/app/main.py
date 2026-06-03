@@ -104,13 +104,7 @@ async def lifespan(_app: FastAPI):
         start_scheduler()
     except Exception:
         pass
-    # v14: 启动时自动把手写知识库幂等灌进 bee-memory (后台跑, 不阻塞启动, 用户无需敲命令)
-    try:
-        import asyncio as _aio
-        from .seed_knowledge.loader import auto_seed
-        _aio.create_task(auto_seed())
-    except Exception:
-        pass
+    # v15: 已移除启动自动灌库 —— 知识库一律由人工撰写后离线导入, 程序绝不自动灌书。
     yield
     try:
         from .evolution_coordinator.coordinator import stop_scheduler

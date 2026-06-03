@@ -23,20 +23,17 @@ router = APIRouter(prefix="/api/team", tags=["team"])
 
 @router.post("/generate/{mode_id}")
 async def generate(mode_id: str) -> dict[str, Any]:
-    try:
-        team = await team_generator.generate_full_team(mode_id)
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"generate_failed: {e}")
-    saved = team_store.save_team(mode_id, team)
-    # v9 懒加载: 后台(非前台手写)场景生成团队后, 后台异步用 DeepSeek 按 30/50/80 灌专业书库.
-    # 前台 13 场景已手写, maybe_lazy_seed 内部会自动跳过.
-    seed_info: dict[str, Any] = {}
-    try:
-        from ..auto_learning.lazy_seed import maybe_lazy_seed
-        seed_info = maybe_lazy_seed(mode_id, team)
-    except Exception as e:
-        seed_info = {"scheduled": False, "error": repr(e)}
-    return {"mode_id": mode_id, "team": team, "saved": saved, "lazy_seed": seed_info}
+    # v15: "召集顾问团"(用 LLM 实时生成团队) 已彻底停用 —— 避免高额模型花费。
+    # 所有场景一律使用预置的 scenarios/teams/<mode>.yaml (人工/模板生成, 零成本), 也不触发任何自动灌书。
+    team = team_store.load_team(mode_id)
+    if team:
+        return {"mode_id": mode_id, "team": team,
+                "saved": {"note": "已使用预置 team.yaml (实时生成已停用)"},
+                "lazy_seed": {"scheduled": False, "reason": "disabled"}}
+    raise HTTPException(
+        status_code=400,
+        detail="团队实时生成已停用; 该场景暂无预置 team.yaml。",
+    )
 
 
 @router.post("/regen-dept/{mode_id}/{dept_id}")

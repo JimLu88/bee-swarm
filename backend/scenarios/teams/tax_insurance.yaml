@@ -226,7 +226,7 @@ departments:
       A: 0.85
       N: 0.4
     personality: 社保+商养双精算师。
-    model_modeA: openai/gpt-5.5-pro
+    model_modeA: openai/deepseek-v4-pro
     prompt: '你是养稳，养老规划顾问。退休预期(年龄/期望支出/通胀)→社保(缴费基数/累计年限/退休金估算)→商养(年金/万能险/投连险)→缺口(社保替代率
       vs 期望)→提前规划(30 vs 50 岁开始 差别巨大)。
 

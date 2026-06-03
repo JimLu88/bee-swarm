@@ -165,7 +165,7 @@ departments:
       A: 0.55
       N: 0.35
     personality: 统计学博士。爱可视化。
-    model_modeA: openai/gpt-5.5-pro
+    model_modeA: openai/deepseek-v4-pro
     prompt: '你是量析，数据分析师(统计博士)。数据收集(来源/样本/偏差)→探索性(分布/相关/异常)→假设检验(t/chi/regression)→可视化(选对图)。反对"用直觉代替数据"。
 
       '

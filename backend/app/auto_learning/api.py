@@ -53,11 +53,9 @@ async def seed_all_run(only_missing: bool = True) -> dict[str, Any]:
 
     only_missing=True: 跳过已 done 的场景 (可反复调用续灌, 直到全部 done)。
     """
-    from . import seed_all as _sa
-    if _sa.seed_all_progress().get("running"):
-        return {"started": False, "reason": "already_running", **_sa.seed_all_progress()}
-    asyncio.get_running_loop().create_task(_sa.seed_all_modes(only_missing=only_missing))
-    return {"started": True, "note": "全场景灌书已在后台开始, 用 GET /api/learning/seed-all/status 看进度"}
+    # v15: LLM 灌书已彻底停用 (避免模型花费)。知识库一律由人工撰写后离线导入。
+    return {"started": False, "reason": "disabled",
+            "note": "程序灌书(调用大模型)已停用; 知识库改由人工撰写离线导入。"}
 
 
 @router.get("/seed-all/status")

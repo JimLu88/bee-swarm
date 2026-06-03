@@ -33,7 +33,7 @@ EVOLVERS = [
     ("p13_model_discovery","模型自动发现 (LMSYS/LiteLLM)", "L6"),
     ("p14_skill_discovery","Skill/MCP 自发现 (GitHub)",   "L9"),
     ("p15_team_evolve",   "主管自演化 (ELO + Shadow 14天)", "L3"),
-    ("p16_knowledge_curator", "知识策展员 (8 层知识库充实)", "L2"),
+    # v15: p16_knowledge_curator 已停用 (它用 LLM 自动生成/充实知识库 = 自动灌书, 会产生模型花费)。
     ("p17_trend_monitor",  "趋势监控 (扫外部 → 提案入待审池)", "L7"),
     ("p18_capability_radar", "能力雷达 (扫前沿→差距分析→升级提案, 全部待审)", "L8"),
     ("p19_dev_evolve",     "开发模式自进化 (满8次→提议改dev_sop/晋升learnings, 全待审)", "L7"),
@@ -197,12 +197,10 @@ def start_scheduler() -> dict:
     sch = AsyncIOScheduler()
     sch.add_job(_run_all_evolvers_serial, CronTrigger(hour=2, minute=0),
                 id="ev_all_02", replace_existing=True)
-    # v9 每天 20:00 CEO 梳理今天联网搜到的新知识 → 写进 bee-memory
-    sch.add_job(_run_knowledge_digest, CronTrigger(hour=20, minute=0),
-                id="knowledge_digest_20", replace_existing=True)
+    # v15: 已移除 20:00 知识梳理 cron (它用 LLM 把联网新知写进 bee-memory = 自动灌书, 有花费)。
     sch.start()
     _SCHEDULER = sch
-    return {"started": True, "cron": "evolvers@02:00 + knowledge_digest@20:00",
+    return {"started": True, "cron": "evolvers@02:00",
             "evolvers": [e for e, _, _ in EVOLVERS]}
 
 

@@ -211,7 +211,7 @@ departments:
       N: 0.4
     personality: 美元基金 IR 经验。估值模型派。
     diagnostic_style: 财务三表 + 估值 + 融资策略 + 投资人匹配。
-    model_modeA: openai/gpt-5.5-pro
+    model_modeA: openai/deepseek-v4-pro
     model_vendor: OpenAI
     prompt: '你是金筹，CFO/融资 (美元基金 IR)。
 

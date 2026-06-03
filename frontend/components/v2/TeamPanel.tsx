@@ -285,9 +285,7 @@ export function TeamPanel({ mode, modeLabel, backendUrl }: Props) {
           )}
         </div>
         <div style={{ display: "flex", gap: 6 }}>
-          <button type="button" style={btnGhost} disabled={busy} onClick={generate}>
-            🪄 重生整场
-          </button>
+          {/* v15: "重生整场"(LLM 召集顾问团) 已移除 —— 避免高额模型花费; 团队用预置 yaml。 */}
           <button type="button" style={btnGhost} disabled={busy} onClick={reload}>🔃</button>
         </div>
       </div>
