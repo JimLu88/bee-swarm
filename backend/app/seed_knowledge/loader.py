@@ -46,6 +46,20 @@ def _save_state(state: dict) -> None:
         log.warning("seed state save failed: %r", e)
 
 
+def _already_in_memory(persona_id: str, title: str) -> bool:
+    """查 bee-memory 该 persona 是否已有同名知识 (DB 级去重: 手动灌 + 开机自动灌互不重复)。"""
+    try:
+        from urllib.parse import quote
+        from ..persona.knowledge_store import _get
+        r = _get(f"/memory/recall?persona_id={quote(persona_id)}&query={quote(title[:24])}&k=20")
+        for it in (r.get("items") or []):
+            if title in str(it.get("content") or ""):
+                return True
+    except Exception:
+        return False
+    return False
+
+
 def seed_sync(force: bool = False) -> dict:
     """同步灌库 (add_knowledge 是同步 urllib)。返回各 mode 的灌入统计。"""
     from ..persona.knowledge_store import add_knowledge
@@ -62,6 +76,9 @@ def seed_sync(force: bool = False) -> dict:
             for layer, title, content in entries:
                 key = f"{dept_id}::{title}"
                 if key in done:
+                    continue
+                if not force and _already_in_memory(persona_id, title):
+                    done.add(key)  # 库里已有(可能他处已灌) → 标记跳过, 不重复插
                     continue
                 r = add_knowledge(
                     layer=layer, mode_id=mode_id, persona_id=persona_id,
@@ -89,6 +106,12 @@ async def auto_seed() -> dict:
     except Exception as e:  # noqa: BLE001
         log.warning("auto_seed failed: %r", e)
         return {"error": repr(e)}
+
+
+def seed_status() -> dict:
+    """返回各场景已灌条数 (来自状态文件)。"""
+    st = _load_state()
+    return {m: len(v) for m, v in st.items() if isinstance(v, list)}
 
 
 if __name__ == "__main__":

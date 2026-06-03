@@ -66,6 +66,31 @@ def seed_all_status() -> dict[str, Any]:
     return _sa.seed_all_progress()
 
 
+@router.post("/seed-corpus")
+async def seed_corpus_run(force: bool = False) -> dict[str, Any]:
+    """把手写知识库语料(corpus, 礼物+15产业)幂等灌进 bee-memory。
+
+    开机已自动灌一次; 此端点供手动重灌/补灌 (DB 级去重, 已存在的自动跳过)。
+    """
+    from ..seed_knowledge.loader import seed_sync
+    res = await asyncio.to_thread(seed_sync, force)
+    return {"inserted": res, "note": "已灌入 (幂等, 已存在的自动跳过)"}
+
+
+@router.get("/seed-corpus/status")
+def seed_corpus_status() -> dict[str, Any]:
+    """查看手写知识库已灌入进度 (各场景已灌条数 vs 语料总数)。"""
+    from ..seed_knowledge.loader import seed_status
+    from ..seed_knowledge.corpus import CORPUS
+    seeded = seed_status()
+    total = {m: sum(len(e) for e in depts.values()) for m, depts in CORPUS.items()}
+    return {
+        "seeded": seeded,
+        "corpus_total": total,
+        "all_done": all(seeded.get(m, 0) >= n for m, n in total.items()),
+    }
+
+
 @router.get("/overview")
 def overview() -> dict[str, Any]:
     out: dict[str, Any] = {"inbox": inbox.stats()}
