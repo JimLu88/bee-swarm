@@ -60,6 +60,17 @@ def _already_in_memory(persona_id: str, title: str) -> bool:
     return False
 
 
+def _persona_map(mode_id: str) -> dict[str, str]:
+    """从 team.yaml 取 dept_id -> head.persona_id, 保证书精确绑到该场景真实角色 (不靠猜)。"""
+    try:
+        from ..persona.team_store import load_team
+        team = load_team(mode_id) or {}
+        return {str(d.get("dept_id")): str((d.get("head") or {}).get("persona_id") or "")
+                for d in (team.get("departments") or []) if d.get("dept_id")}
+    except Exception:
+        return {}
+
+
 def seed_sync(force: bool = False) -> dict:
     """同步灌库 (add_knowledge 是同步 urllib)。返回各 mode 的灌入统计。"""
     from ..persona.knowledge_store import add_knowledge
@@ -70,9 +81,10 @@ def seed_sync(force: bool = False) -> dict:
     result: dict[str, int] = {}
     for mode_id, depts in CORPUS.items():
         done = set() if force else set(state.get(mode_id, []))
+        pmap = _persona_map(mode_id)  # dept_id -> 真实 head.persona_id
         n = 0
         for dept_id, entries in depts.items():
-            persona_id = f"head_{mode_id}_{dept_id}"
+            persona_id = pmap.get(dept_id) or f"head_{mode_id}_{dept_id}"
             for layer, title, content in entries:
                 key = f"{dept_id}::{title}"
                 if key in done:
