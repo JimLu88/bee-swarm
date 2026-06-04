@@ -125,8 +125,11 @@ class BookStore:
             r = rowmap.get(i)
             if not r:
                 continue
-            if scenario and r["scenario"] and r["scenario"] != scenario:
-                continue
+            if scenario and r["scenario"]:
+                # scenario 字段可能是逗号拼接的多场景串 → 按成员匹配, 不做精确相等
+                owners = {s.strip() for s in str(r["scenario"]).split(",")}
+                if scenario not in owners:
+                    continue
             out.append({"id": i, "title": r["title"], "author": r["author"],
                         "scenario": r["scenario"], "dept": r["dept"],
                         "content": r["content"], "score": round(ranks[i], 5)})
