@@ -43,6 +43,8 @@ services:
       # 反爬熔断器(保命底)告警 + 阈值; webhook 空则只熔断不推送
       - WECOM_WEBHOOK_URL=${WECOM_WEBHOOK_URL:-}
       - GUARD_SCOPE=${GUARD_SCOPE:-platform}
+      # PC 端重爬(MediaCrawler 浏览器农场)地址; 空=禁用→只走 NAS 本地 site_search
+      - BEE_MEDIACRAWLER_URL=${BEE_MEDIACRAWLER_URL:-}
     volumes:
       - ./backend/data:/hub:ro
     restart: unless-stopped
