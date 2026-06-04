@@ -84,3 +84,14 @@ async def fetch_legal_ep(body: dict = Body(default={})) -> dict[str, Any]:
         return {"ok": True, **res}
     except Exception as e:  # noqa: BLE001
         return {"ok": False, "error": repr(e)}
+
+
+@router.post("/classify")
+async def classify_ep() -> dict[str, Any]:
+    """分清单:合法可下载(公版)vs 待自行获取(无合法免费源),各出一份 CSV。"""
+    try:
+        from .books_rag.fetch_legal import classify
+        res = await asyncio.to_thread(classify)
+        return {"ok": True, **res}
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "error": repr(e)}
