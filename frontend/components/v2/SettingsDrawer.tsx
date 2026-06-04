@@ -22,8 +22,9 @@ import { ModePicker, BUILTIN_MODES } from "./ModePicker";
 import { TeamPanel } from "./TeamPanel";
 import { ModelBadgeBar } from "./ModelBadgeBar";
 import { ScenarioWizard } from "./ScenarioWizard";
+import { BooksPanel } from "./BooksPanel";
 
-type Tab = "scenario" | "ai" | "mcp" | "dev" | "memory" | "advanced" | "tech";
+type Tab = "scenario" | "ai" | "mcp" | "dev" | "memory" | "books" | "advanced" | "tech";
 
 const TAB_LS_KEY = "h-semas:settings:tab";
 const DETAILS_LS_KEY = "h-semas:settings:details";
@@ -116,7 +117,7 @@ export function SettingsDrawer(props: Props) {
   const [tab, setTab] = useState<Tab>(() => {
     if (typeof window === "undefined") return "scenario";
     const saved = window.localStorage.getItem(TAB_LS_KEY) as Tab | null;
-    return saved && ["scenario", "ai", "memory", "advanced", "tech"].includes(saved) ? saved : "scenario";
+    return saved && ["scenario", "ai", "memory", "books", "advanced", "tech"].includes(saved) ? saved : "scenario";
   });
   const [details, setDetails] = useState<DetailsState>(loadDetails);
   const [wizardOpen, setWizardOpen] = useState(false);
@@ -169,6 +170,9 @@ export function SettingsDrawer(props: Props) {
           </button>
           <button type="button" style={tabBtn(tab === "memory")} onClick={() => setTab("memory")}>
             💾 记忆 & 备份
+          </button>
+          <button type="button" style={tabBtn(tab === "books")} onClick={() => setTab("books")}>
+            📚 书库
           </button>
           <button type="button" style={tabBtn(tab === "advanced")} onClick={() => setTab("advanced")}>
             🛠️ 高级 (人工干预)
@@ -233,6 +237,13 @@ export function SettingsDrawer(props: Props) {
               <UserMemoryPanel backendUrl={backendUrl} />
               <BackupConfigPanel backendUrl={backendUrl} />
               <UpgradeLogPanel backendUrl={backendUrl} />
+            </Wrap>
+          )}
+
+          {tab === "books" && (
+            <Wrap>
+              <div style={sectionTitle}>书库 = 给各部门灌真书(扫描到位 / 切块入库 / 导出书单 / 合法源下载)</div>
+              <BooksPanel backendUrl={backendUrl} />
             </Wrap>
           )}
 

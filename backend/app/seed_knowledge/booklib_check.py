@@ -148,6 +148,69 @@ def match(required: dict, files: list) -> tuple:
     return present, file_for, extra
 
 
+def summary(dropzone: str | None = None) -> dict:
+    """结构化统计(供后端端点/前端书库面板用)。"""
+    dz = Path(dropzone) if dropzone else DEFAULT_DROPZONE
+    dz.mkdir(parents=True, exist_ok=True)
+    required = load_required()
+    ingested = load_ingested()
+    files = scan_dropzone(dz)
+    present, _file_for, extra = match(required, files)
+    done = in_place = 0
+    missing: list[str] = []
+    for key, ent in required.items():
+        if key in present and key in ingested:
+            done += 1
+        elif key in present:
+            in_place += 1
+        else:
+            missing.append(ent["title"])
+    return {"total": len(required), "done": done, "in_place": in_place,
+            "missing": len(missing), "extra": len(extra),
+            "dropzone": str(dz), "files_in_dropzone": len(files)}
+
+
+def export_lists() -> dict:
+    """把全部书单导出为 CSV(书名/作者/豆瓣/Goodreads/类/归属) + 纯书名 TXT。"""
+    import csv as _csv
+    import io as _io
+    books: dict[str, dict] = {}
+    for md in sorted(BOOKLISTS_DIR.glob("*.md")):
+        if md.name.startswith(("_inventory", "_导出")):
+            continue
+        sc = md.stem
+        for headers, rows in _iter_md_tables(md.read_text(encoding="utf-8")):
+            if "书名" not in headers:
+                continue
+            ti = headers.index("书名")
+            ai = headers.index("作者") if "作者" in headers else None
+            di = headers.index("豆瓣") if "豆瓣" in headers else None
+            gi = headers.index("Goodreads") if "Goodreads" in headers else None
+            ci = next((headers.index(h) for h in headers if h.startswith("类")), None)
+            for r in rows:
+                if ti >= len(r) or not r[ti].strip() or r[ti].strip() == "书名":
+                    continue
+                k = _norm(r[ti])
+                if len(k) < 2:
+                    continue
+                e = books.setdefault(k, {"title": r[ti].strip(), "author": "",
+                                         "douban": "", "gr": "", "cls": "", "scenes": set()})
+                e["scenes"].add(sc)
+                for idx, fld in ((ai, "author"), (di, "douban"), (gi, "gr"), (ci, "cls")):
+                    if idx is not None and idx < len(r) and not e[fld]:
+                        e[fld] = r[idx].strip()
+    csv_p = BOOKLISTS_DIR / "_导出_全部书单.csv"
+    txt_p = BOOKLISTS_DIR / "_导出_书名清单.txt"
+    with _io.open(csv_p, "w", encoding="utf-8-sig", newline="") as fp:
+        w = _csv.writer(fp)
+        w.writerow(["书名", "作者", "豆瓣", "Goodreads", "类", "归属场景"])
+        for e in sorted(books.values(), key=lambda x: x["title"]):
+            w.writerow([e["title"], e["author"], e["douban"], e["gr"], e["cls"],
+                        ";".join(sorted(e["scenes"]))])
+    txt_p.write_text("\n".join(sorted(e["title"] for e in books.values())), encoding="utf-8")
+    return {"unique": len(books), "csv": str(csv_p), "txt": str(txt_p)}
+
+
 def main():
     ap = argparse.ArgumentParser(description="书库到位检查器")
     ap.add_argument("--dropzone", default=str(DEFAULT_DROPZONE),

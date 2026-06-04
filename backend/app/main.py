@@ -1340,6 +1340,10 @@ app.include_router(favorites_router)
 from .auto_learning.api import router as learning_router  # noqa: E402
 app.include_router(learning_router)
 
+# v6-RAG 书库管理 (/api/books/*): 扫描/灌库/导出书单/合法书源下载
+from .books_api import router as books_router  # noqa: E402
+app.include_router(books_router)
+
 
 # ============ v6-O bee-memory 代理 (解决前端跨域 + bearer 问题) ============
 def _proxy_memory_get(path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
