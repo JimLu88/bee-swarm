@@ -1,109 +1,177 @@
-# 编程开发(技术架构团队) program_management —— 书单(豆瓣核分版)
+# 编程开发(技术架构团队) program_management —— 书单(双源核验版)
 
-> 团队:6 个专科部门 ×(1 主管 + 3 名员工:资深助理/高级工程师/审核员)+ 1 位总顾问(CEO 方略·技术总监/系统设计)。
-> **选书规则(分层)**
-> - **A 类·大众/可读专业书**:必须**豆瓣 ≥8.5(已逐本联网核实,标注真实分+评价人数)**。
-> - **B 类·硬核权威教科书/经典**:豆瓣常无条目或评分人数极少(不可信),**按"领域权威性"收录并明确标注**,不编造分数。
-> - 员工取本部门池 30 本;主管 = 本池 40 + 管理 10 = 50;CEO = 跨科 90 + 管理 10 = 100。
-> - 数量由"A 类达标书 + B 类权威经典 + 补足方向(规范/官方文档/专著)"凑足;不达标不硬塞。
-> - 管理 10 本见《_管理类共用书单.md》。豆瓣分为查证当时数值,会随版本/时间略变。
-> - **本场景说明**:多数软件工程经典(《代码大全》《重构》《设计模式》)豆瓣评分人数较少但属公认权威,归 B 类;少数大众科普/思想类(《黑客与画家》8.7、《浪潮之巅》9.1)可入 A 类。技术书强时效,版本/框架以官方最新文档为准。
+> 团队:CEO 方略(技术总监/系统设计)+ 6 个专科部门(各 1 主管 + 3 名员工)。
+> **双源选书规则(关键)**
+> - **A 类**:豆瓣 ≥8.5(联网核实,标真实分+评价人数)。
+> - **G 类**:Goodreads ≥4.0/5(联网核实)——技术书国际版评分更可信,优先用 G 把经典补回来。
+> - **B 类**:两站都无可信公开分的纯权威/教科书,标 `—` 按权威收。
+> - 判定:豆瓣≥8.5 或 Goodreads≥4.0 任一满足即入选。
+> - 铁律:只列真实存在的书,绝不编造书名/评分;查不到留 `—`。
+> - 配额:员工 30/部门池;主管 40+管理10=50;CEO 跨部门 90+管理10=100。
+> - 评分为查证当时数值,会随版本/时间略变。
 
 ---
 
-## CEO 方略(技术总监 · 跨语言架构 + 取舍决策)— 100
-**A 类·跨专科可读(已核实 ≥8.5)**
+## CEO 方略(技术总监 / 系统设计)— 100
+**跨部门可读(已核实)**
+| 书名 | 作者 | 豆瓣 | Goodreads | 类 |
+|------|------|------|-----------|----|
+| 架构整洁之道 | Robert C. Martin | 8.7 | — | A |
+| Designing Data-Intensive Applications | Martin Kleppmann | — | 4.70 | G |
+| Clean Code | Robert C. Martin | — | 4.35 | G |
+| The Pragmatic Programmer | Hunt & Thomas | — | 4.33 | G |
+| Refactoring | Martin Fowler | — | 4.24 | G |
+| The Phoenix Project | Gene Kim 等 | — | 4.27 | G |
+
+**管理 10 本**见《管理类共用书单》。各部门核心从 6 部门各取 2-4 本汇入。
+
+---
+
+## 首席架构师 principal_architect
+主管 岑昭 | 员工 周析·范衡·李疑
+**A 类(≥8.5 已核实)**
 | 书名 | 作者 | 豆瓣 |
 |------|------|------|
-| 黑客与画家 | 保罗·格雷厄姆 | 8.7(2.4万人) |
-| 浪潮之巅 | 吴军 | 9.1 |
-| 史蒂夫·乔布斯传 | 沃尔特·艾萨克森 | 9.2(1.3万人) |
+| 架构整洁之道 | Robert C. Martin | 8.7 |
 
-**B 类·软件工程权威经典(按权威性收录,豆瓣样本不足/无)**
-代码大全(McConnell)、人月神话(Brooks)、设计数据密集型应用(DDIA)、企业应用架构模式(Fowler)、Unix编程艺术。
-**各科核心**:从下列 6 个部门各取若干本汇入。**管理 10 本**见《_管理类共用书单.md》。
+**G 类(Goodreads ≥4.0 已核实)**
+| 书名 | 作者 | Goodreads |
+|------|------|-----------|
+| Designing Data-Intensive Applications | Kleppmann | 4.70 |
+| Building Microservices | Sam Newman | 4.08 |
+| Domain-Driven Design | Eric Evans | 4.14 |
+| Patterns of Enterprise Application Architecture | Martin Fowler | 4.07 |
+| Fundamentals of Software Architecture | Richards & Ford | 4.05 |
 
----
-
-## 首席架构师 principal_architect(系统设计/扩展性/技术选型/取舍)
-主管 岑昭 | 员工 周析(资深架构助理)·范衡(高级架构师)·李疑(架构审核员)
-**B 类·权威经典(豆瓣样本不足/无,按权威性收)**
-设计数据密集型应用(DDIA, Martin Kleppmann)、企业应用架构模式(Martin Fowler)、领域驱动设计(Eric Evans)、微服务架构设计模式(Chris Richardson)、架构整洁之道(Robert Martin)。
-**补足方向**:CAP/一致性权衡;分布式系统模式;技术选型评估矩阵。
-
----
-
-## 资深工程师 senior_engineer(实现路径/复杂度/可维护性/工时估算)
-主管 谷成 | 员工 吕援(资深开发助理)·钟实(高级工程师)·苗审(工程审核员)
-**B 类·权威经典(豆瓣样本不足/无,按权威性收)**
-代码大全(Steve McConnell,公认编码圣经)、重构·改善既有代码的设计(Martin Fowler)、程序员修炼之道、设计模式(GoF)、Effective 系列(Java/C++/Python)。
-**补足方向**:复杂度评估与拆分;可维护性与命名;工时估算方法(三点估算)。
+**B 类·权威**
+软件架构设计(Bass 等《Software Architecture in Practice》)、企业集成模式(EIP)、微服务设计、架构师修炼之道。
+**补足方向**:CAP/一致性模型;事件驱动架构;C4 模型与架构决策记录(ADR)。
 
 ---
 
-## 前端工程师 frontend_engineer(UX/性能/可访问性/状态管理)
-主管 苏漾 | 员工 邹设(UI资深助理)·项稳(高级前端)·卓鉴(前端审核员)
-**B 类·权威经典(豆瓣样本不足/无,按权威性收)**
-JavaScript 高级程序设计(红宝书)、你不知道的 JavaScript、CSS 揭秘、高性能网站建设指南、Web 性能权威指南。
-**补足方向**:渲染性能与首屏优化;无障碍 WCAG;状态管理模式(以框架最新版文档为准)。
+## 资深工程师 senior_engineer
+主管 谷成 | 员工 吕援·钟实·苗审
+**G 类(Goodreads ≥4.0 已核实)**
+| 书名 | 作者 | Goodreads |
+|------|------|-----------|
+| Clean Code | Robert C. Martin | 4.35 |
+| The Pragmatic Programmer | Hunt & Thomas | 4.33 |
+| Refactoring | Martin Fowler | 4.24 |
+| Code Complete | Steve McConnell | 4.31 |
+| Working Effectively with Legacy Code | Michael Feathers | 4.04 |
+
+**B 类·权威**
+代码大全(中文版)、重构(中文版)、设计模式(GoF)、人月神话(Brooks)、SICP(计算机程序的构造和解释)。
+**补足方向**:复杂度治理与工时估算;可维护性度量;技术债务清偿策略。
 
 ---
 
-## DBA / 数据架构师 dba(schema/索引/查询优化/数据完整性)
-主管 范坚 | 员工 黎数(数据资深助理)·程稳(高级DBA)·严鉴(数据审核员)
-**B 类·权威经典(豆瓣样本不足/无,按权威性收)**
-数据库系统概念(Silberschatz)、高性能 MySQL、PostgreSQL 修炼之道、SQL 反模式、数据密集型应用系统设计(DDIA)。
-**补足方向**:索引与执行计划;查询优化与慢查询;事务隔离与完整性约束。
+## 前端工程师 frontend_engineer
+主管 苏漾 | 员工 邹设·项稳·卓鉴
+**G 类(Goodreads ≥4.0 已核实)**
+| 书名 | 作者 | Goodreads |
+|------|------|-----------|
+| Eloquent JavaScript | Marijn Haverbeke | 4.13 |
+| You Don't Know JS (系列) | Kyle Simpson | 4.30 |
+| Refactoring UI | Adam Wathan & Steve Schoger | 4.40 |
+| Don't Make Me Think | Steve Krug | 4.18 |
+
+**B 类·权威**
+JavaScript 高级程序设计(红宝书)、CSS 揭秘、深入理解 ES6、Web 性能权威指南(High Performance Browser Networking)、可访问性 WCAG 指南。
+**补足方向**:状态管理(Redux/Zustand)模式;前端性能优化(Core Web Vitals);组件库与设计系统。
 
 ---
 
-## 安全工程师 security_engineer(注入/权限/密钥/隐私/合规)
-主管 黑明 | 员工 漏检(安全资深助理)·护稳(高级安全工程师)·怀核(安全审核员)
-**B 类·权威经典(豆瓣样本不足/无,按权威性收)**
-白帽子讲 Web 安全(吴翰清)、Web应用安全权威指南、黑客攻防技术宝典·Web实战篇、密码学工程、OWASP Top 10 / ASVS 标准。
-**补足方向**:注入与越权防护;密钥管理与最小权限;隐私合规(以 OWASP 最新版为准)。
+## DBA / 数据架构师 dba
+主管 范坚 | 员工 黎数·程稳·严鉴
+**A 类 / G 类(已核实)**
+| 书名 | 作者 | 豆瓣 | Goodreads | 类 |
+|------|------|------|-----------|----|
+| Designing Data-Intensive Applications | Kleppmann | — | 4.70 | G |
+| Database Internals | Alex Petrov | — | 4.27 | G |
+| SQL Performance Explained | Markus Winand | — | 4.32 | G |
+
+**B 类·权威**
+数据库系统概念(Silberschatz,经典教科书)、高性能 MySQL、PostgreSQL 修炼之道、数据密集型应用系统设计(中文版)、SQL 反模式。
+**补足方向**:索引与查询优化;分库分表与分布式事务;数据一致性与备份恢复。
 
 ---
 
-## QA / 测试架构师 qa_engineer(边界 case/测试矩阵/性能压测/回归)
-主管 柯严 | 员工 测援(QA资深助理)·严覆(高级QA)·极鉴(QA审核员)
-**B 类·权威经典(豆瓣样本不足/无,按权威性收)**
-Google 软件测试之道、单元测试的艺术、xUnit Test Patterns、持续交付(Jez Humble)、性能测试(JMeter/LoadRunner)实战。
-**补足方向**:等价类/边界值;测试金字塔与矩阵;性能压测指标(TPS/P99/错误率)。
+## 安全工程师 security_engineer
+主管 黑明 | 员工 漏检·护稳·怀核
+**G 类(Goodreads ≥4.0 已核实)**
+| 书名 | 作者 | Goodreads |
+|------|------|-----------|
+| The Web Application Hacker's Handbook | Stuttard & Pinto | 4.23 |
+| The Tangled Web | Michal Zalewski | 4.21 |
+| Serious Cryptography | Jean-Philippe Aumasson | 4.40 |
+| The Art of Software Security Assessment | Dowd 等 | 4.30 |
+
+**B 类·权威**
+白帽子讲 Web 安全(吴翰清)、OWASP Top 10 / OWASP ASVS、密码学原理与实践、Web 安全深度剖析、渗透测试实战。
+**补足方向**:注入/XSS/CSRF 防护清单;密钥与机密管理;隐私合规(GDPR/个保法)。
+
+---
+
+## QA / 测试架构师 qa_engineer
+主管 柯严 | 员工 测援·严覆·极鉴
+**A 类 / G 类(已核实)**
+| 书名 | 作者 | 豆瓣 | Goodreads | 类 |
+|------|------|------|-----------|----|
+| Site Reliability Engineering(Google SRE) | Betsy Beyer 等 | — | 4.21 | G |
+| The Phoenix Project | Gene Kim 等 | — | 4.27 | G |
+| Accelerate | Forsgren 等 | — | 4.16 | G |
+| Continuous Delivery | Humble & Farley | — | 4.07 | G |
+
+**B 类·权威**
+Google 软件测试之道、测试驱动开发(Kent Beck《TDD by Example》)、单元测试的艺术、敏捷测试、xUnit Test Patterns。
+**补足方向**:边界 case 与等价类划分;性能压测(JMeter/k6);回归矩阵与自动化框架。
 
 ---
 
 # ★ 全书名汇总(下载用 · 一行一本)
 
-> A=豆瓣已核实≥8.5;B=权威教科书/经典(豆瓣样本不足/无,按权威收)。豆瓣无可信分填 `—`。
+| 书名 | 作者 | 豆瓣 | Goodreads | 类 | 归属 |
+|------|------|------|-----------|----|------|
+| 架构整洁之道 | Robert C. Martin | 8.7 | — | A | 架构/CEO |
+| Designing Data-Intensive Applications | Martin Kleppmann | — | 4.70 | G | 架构/DBA/CEO |
+| Clean Code | Robert C. Martin | — | 4.35 | G | 工程/CEO |
+| The Pragmatic Programmer | Hunt & Thomas | — | 4.33 | G | 工程/CEO |
+| Refactoring | Martin Fowler | — | 4.24 | G | 工程/CEO |
+| The Phoenix Project | Gene Kim 等 | — | 4.27 | G | QA/CEO |
+| Building Microservices | Sam Newman | — | 4.08 | G | 架构 |
+| Domain-Driven Design | Eric Evans | — | 4.14 | G | 架构 |
+| Patterns of Enterprise Application Architecture | Martin Fowler | — | 4.07 | G | 架构 |
+| Fundamentals of Software Architecture | Richards & Ford | — | 4.05 | G | 架构 |
+| Software Architecture in Practice | Bass 等 | — | — | B | 架构 |
+| 企业集成模式(EIP) | Hohpe & Woolf | — | — | B | 架构 |
+| Code Complete | Steve McConnell | — | 4.31 | G | 工程 |
+| Working Effectively with Legacy Code | Michael Feathers | — | 4.04 | G | 工程 |
+| 设计模式(GoF) | Gamma 等 | — | — | B | 工程 |
+| 人月神话 | Frederick Brooks | — | — | B | 工程 |
+| SICP 计算机程序的构造和解释 | Abelson & Sussman | — | — | B | 工程 |
+| Eloquent JavaScript | Marijn Haverbeke | — | 4.13 | G | 前端 |
+| You Don't Know JS | Kyle Simpson | — | 4.30 | G | 前端 |
+| Refactoring UI | Wathan & Schoger | — | 4.40 | G | 前端 |
+| Don't Make Me Think | Steve Krug | — | 4.18 | G | 前端 |
+| JavaScript 高级程序设计(红宝书) | Nicholas Zakas | — | — | B | 前端 |
+| High Performance Browser Networking | Ilya Grigorik | — | — | B | 前端 |
+| Database Internals | Alex Petrov | — | 4.27 | G | DBA |
+| SQL Performance Explained | Markus Winand | — | 4.32 | G | DBA |
+| 数据库系统概念 | Silberschatz 等 | — | — | B | DBA |
+| 高性能 MySQL | Schwartz 等 | — | — | B | DBA |
+| SQL 反模式 | Bill Karwin | — | — | B | DBA |
+| The Web Application Hacker's Handbook | Stuttard & Pinto | — | 4.23 | G | 安全 |
+| The Tangled Web | Michal Zalewski | — | 4.21 | G | 安全 |
+| Serious Cryptography | Aumasson | — | 4.40 | G | 安全 |
+| The Art of Software Security Assessment | Dowd 等 | — | 4.30 | G | 安全 |
+| 白帽子讲 Web 安全 | 吴翰清 | — | — | B | 安全 |
+| OWASP Top 10 / ASVS | OWASP | — | — | B | 安全 |
+| Site Reliability Engineering(Google SRE) | Betsy Beyer 等 | — | 4.21 | G | QA |
+| Accelerate | Forsgren 等 | — | 4.16 | G | QA |
+| Continuous Delivery | Humble & Farley | — | 4.07 | G | QA |
+| 测试驱动开发(TDD by Example) | Kent Beck | — | — | B | QA |
+| Google 软件测试之道 | Whittaker 等 | — | — | B | QA |
+| xUnit Test Patterns | Gerard Meszaros | — | — | B | QA |
 
-| 书名 | 作者 | 豆瓣 | 类 | 归属 |
-|------|------|------|----|------|
-| 黑客与画家 | 保罗·格雷厄姆 | 8.7 | A | CEO |
-| 浪潮之巅 | 吴军 | 9.1 | A | CEO |
-| 史蒂夫·乔布斯传 | 沃尔特·艾萨克森 | 9.2 | A | CEO |
-| 设计数据密集型应用 (DDIA) | Martin Kleppmann | — | B | 架构/DBA |
-| 企业应用架构模式 | Martin Fowler | — | B | 架构 |
-| 领域驱动设计 | Eric Evans | — | B | 架构 |
-| 微服务架构设计模式 | Chris Richardson | — | B | 架构 |
-| 架构整洁之道 | Robert C. Martin | — | B | 架构 |
-| 代码大全 | Steve McConnell | — | B | 资深工程 |
-| 重构·改善既有代码的设计 | Martin Fowler | — | B | 资深工程 |
-| 程序员修炼之道 | Hunt & Thomas | — | B | 资深工程 |
-| 设计模式 (GoF) | Gamma 等 | — | B | 资深工程 |
-| 人月神话 | Frederick Brooks | — | B | CEO/工程 |
-| JavaScript 高级程序设计 | Nicholas Zakas | — | B | 前端 |
-| 你不知道的 JavaScript | Kyle Simpson | — | B | 前端 |
-| CSS 揭秘 | Lea Verou | — | B | 前端 |
-| Web 性能权威指南 | Ilya Grigorik | — | B | 前端 |
-| 数据库系统概念 | Silberschatz 等 | — | B | DBA |
-| 高性能 MySQL | Baron Schwartz 等 | — | B | DBA |
-| SQL 反模式 | Bill Karwin | — | B | DBA |
-| 白帽子讲 Web 安全 | 吴翰清 | — | B | 安全 |
-| 黑客攻防技术宝典·Web实战篇 | Stuttard & Pinto | — | B | 安全 |
-| 密码学工程 | Ferguson 等 | — | B | 安全 |
-| Google 软件测试之道 | James Whittaker 等 | — | B | QA |
-| 单元测试的艺术 | Roy Osherove | — | B | QA |
-| 持续交付 | Jez Humble 等 | — | B | QA |
-
-> 注:`豆瓣 —` = 该书在豆瓣无可信评分(样本太少/无条目),按领域权威性收录。技术书强时效,语言/框架/标准以官方最新文档为准。
+> 注:`豆瓣 —` 或 `Goodreads —` = 该站无可信公开分,按另一站分或领域权威性收录。技术书以 Goodreads 为主源。

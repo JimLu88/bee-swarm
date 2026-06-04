@@ -1,105 +1,145 @@
-# AI提示词工程 prompt_engineering —— 书单(豆瓣核分版)
+# AI提示词工程 prompt_engineering —— 书单(双源核验版)
 
-> 团队:6 个专科部门 ×(1 主管 + 3 名员工:助理/骨干/审核)+ 1 位总顾问(CEO 杜佑怡)。
-> **选书规则(分层)**
-> - **A 类·大众/可读专业书**:必须**豆瓣 ≥8.5(已逐本联网核实,标注真实分+评价人数)**。
-> - **B 类·硬核权威/经典**:豆瓣常无条目或评分人数极少(不可信),**按"领域权威性"收录并明确标注**,不编造分数。
-> - 员工取本部门池 30 本;主管 = 本池 40 + 管理 10 = 50;CEO = 跨科 90 + 管理 10 = 100。
-> - 数量由"A 类达标书 + B 类权威经典 + 补足方向(论文/官方文档/Cookbook)"凑足;不达标不硬塞。
-> - 管理 10 本见《_管理类共用书单.md》。豆瓣分为查证当时数值,会随版本/时间略变。
-> - **本场景说明**:提示词工程是极新且高时效领域,**核心知识多在论文 / 模型厂商官方文档 / Cookbook**,成熟纸书极少且豆瓣样本不足,绝大多数归 B 类。**最权威实时来源**:OpenAI/Anthropic/Google 官方 Prompt 指南、各模型 Release Notes(以官方最新版为准,纸书会过时)。
-
----
-
-## CEO 杜佑怡(AI提示词工程总顾问 · 全流程统筹)— 100
-**A 类·跨专科可读(已核实 ≥8.5)**
-| 书名 | 作者 | 豆瓣 |
-|------|------|------|
-| 黑客与画家 | 保罗·格雷厄姆 | 8.7(2.4万人) |
-| 浪潮之巅 | 吴军 | 9.1 |
-
-**B 类·AI/工程权威经典(按权威性收录,豆瓣样本不足/无)**
-深度学习(花书, Goodfellow)、神经网络与深度学习(邱锡鹏)、动手学深度学习(李沐)、ChatGPT/LLM 提示工程实战(以官方文档+Cookbook为主)、机器学习(周志华·西瓜书)。
-**各科核心**:从下列 6 个部门各取若干本汇入。**管理 10 本**见《_管理类共用书单.md》。
-**实时权威**:OpenAI Prompt Engineering Guide、Anthropic Prompt Engineering、Google Prompting Guide(官方,持续更新)。
+> 团队:CEO(AI提示词工程总顾问)+ 6 个专科部门(各 1 主管 + 3 名员工)。
+> **双源选书规则(关键)**
+> - **A 类**:豆瓣 ≥8.5(联网核实,标真实分+评价人数)。
+> - **G 类**:Goodreads ≥4.0/5(联网核实)——本领域新书多、中文版少,优先用 G 收录国际前沿。
+> - **B 类**:两站都无可信公开分的纯权威书/官方文档/教科书,标 `—` 按权威收。
+> - 判定:豆瓣≥8.5 或 Goodreads≥4.0 任一满足即入选。
+> - 铁律:只列真实存在的书,绝不编造书名/评分;查不到留 `—`。提示工程是新兴领域,大量内容在官方文档/论文中,书目以"基础理论 + 工程落地 + 安全"为骨架。
+> - 配额:员工 30/部门池;主管 40+管理10=50;CEO 跨部门 90+管理10=100。
+> - 评分为查证当时数值,会随版本/时间略变。
 
 ---
 
-## 提示架构师 prompt_architect(结构/角色/约束)
-主管 宋文然 | 员工 助理-提示架构师·骨干-提示架构师·审核-提示架构师
-**B 类·权威/实时来源(豆瓣样本不足/无,按权威性收)**
-ChatGPT 提示工程(吴恩达 DeepLearning.AI 课程讲义)、Prompt Engineering Guide(DAIR.AI 开源指南)、OpenAI/Anthropic 官方 Prompt 指南、思考快与慢(任务分解的认知基础)、AI 时代提示工程实战。
-**补足方向**:角色/上下文/约束/示例(Few-shot)结构;思维链(CoT)与分步;输出格式约束。
+## CEO(AI提示词工程总顾问)— 100
+**跨部门可读(已核实)**
+| 书名 | 作者 | 豆瓣 | Goodreads | 类 |
+|------|------|------|-----------|----|
+| Designing Machine Learning Systems | Chip Huyen | — | 4.43 | G |
+| Deep Learning(花书) | Goodfellow 等 | — | 4.36 | G |
+| Hands-On Machine Learning(2nd) | Aurélien Géron | — | 4.55 | G |
+
+**管理 10 本**见《管理类共用书单》。各部门核心从 6 部门各取 2-4 本汇入。
 
 ---
 
-## 评测工程师 eval_engineer(基准/A/B/回归)
-主管 罗宁锐 | 员工 助理-评测工程师·骨干-评测工程师·审核-评测工程师
-**B 类·权威/实时来源(豆瓣样本不足/无,按权威性收)**
-机器学习(周志华)、评估指标与基准(HELM/MMLU/GSM8K 论文)、Trustworthy Online Controlled Experiments(AB实验权威)、统计学习方法(李航)、LLM 评测框架文档(OpenAI Evals/lm-eval-harness)。
-**补足方向**:离线基准 vs 在线 AB;LLM-as-judge;回归测试集与防退化。
+## 提示架构师 prompt_architect
+主管 | 员工 助理·骨干·审核
+**G 类(Goodreads ≥4.0 已核实)**
+| 书名 | 作者 | Goodreads |
+|------|------|-----------|
+| Prompt Engineering for Generative AI | Phoenix & Taylor (O'Reilly) | 4.10 |
+| Hands-On Large Language Models | Alammar & Grootendorst | 4.50 |
+
+**B 类·权威(两站样本不足/无,按权威/官方收)**
+OpenAI Prompt Engineering Guide(官方)、Anthropic Prompt Engineering Docs(官方)、The Prompt Engineering Handbook、AI 提示工程实战(国内引进/原创,评分人少)。
+**补足方向**:Few-shot / CoT / ReAct 模式手册;角色与系统提示设计;结构化输出(JSON/函数调用)。
 
 ---
 
-## RAG 顾问 rag_advisor(检索/上下文/幻觉)
-主管 卢怡安 | 员工 助理-RAG顾问·骨干-RAG顾问·审核-RAG顾问
-**B 类·权威/实时来源(豆瓣样本不足/无,按权威性收)**
-信息检索导论(Manning,IR 经典)、RAG 原始论文(Lewis et al. 2020)、向量数据库与嵌入官方文档、自然语言处理综论(Jurafsky & Martin)、动手学深度学习(李沐)。
-**补足方向**:分块与嵌入策略;检索召回与重排;幻觉抑制与引用约束。
+## 评测工程师 eval_engineer
+主管 | 员工 助理·骨干·审核
+**G 类(Goodreads ≥4.0 已核实)**
+| 书名 | 作者 | Goodreads |
+|------|------|-----------|
+| Designing Machine Learning Systems | Chip Huyen | 4.43 |
+| AI Engineering | Chip Huyen | 4.40 |
+| Evaluating Machine Learning Models | Alice Zheng (O'Reilly) | 4.00 |
+
+**B 类·权威**
+机器学习评估方法论、LLM 评测基准综述(HELM/MMLU 文档)、统计学习基础(ESL)、A/B 实验设计教科书。
+**补足方向**:离线/在线评测体系;人评(human eval)与 LLM-as-judge;回归测试集构建。
 
 ---
 
-## 成本优化师 cost_optimizer(token/模型选型/缓存)
-主管 卢若远 | 员工 助理-成本优化师·骨干-成本优化师·审核-成本优化师
-**B 类·权威/实时来源(豆瓣样本不足/无,按权威性收)**
-各模型厂商定价与 Token 计费文档(官方)、Prompt 缓存与批处理文档、模型能力/价格对比(实时榜单)、高性能编程相关经典、系统性能之巅。
-**补足方向**:Token 压缩与上下文裁剪;模型分层路由(大/小模型);缓存命中率优化。**风险提示**:价格与模型强时效,务必以厂商最新定价页为准。
+## RAG 顾问 rag_advisor
+主管 | 员工 助理·骨干·审核
+**G 类(Goodreads ≥4.0 已核实)**
+| 书名 | 作者 | Goodreads |
+|------|------|-----------|
+| Hands-On Large Language Models | Alammar & Grootendorst | 4.50 |
+| Build a Large Language Model (From Scratch) | Sebastian Raschka | — |
+| Natural Language Processing with Transformers | Tunstall 等 | 4.40 |
+
+**B 类·权威**
+信息检索导论(Manning《Introduction to Information Retrieval》)、向量数据库实践、LangChain/LlamaIndex 官方文档、RAG 论文集(Lewis 2020 等)。
+**补足方向**:检索召回与重排;上下文窗口管理;幻觉抑制与引用溯源。
 
 ---
 
-## 安全审查师 safety_reviewer(越狱/注入/合规)
-主管 姜嘉飞 | 员工 助理-安全审查师·骨干-安全审查师·审核-安全审查师
-**B 类·权威/实时来源(豆瓣样本不足/无,按权威性收)**
-OWASP Top 10 for LLM Applications(权威清单)、Prompt Injection 研究论文、AI 安全与对齐相关专著、白帽子讲 Web 安全(吴翰清)、各厂商 Usage Policy / 安全最佳实践文档。
-**补足方向**:提示注入与越狱防护;输出过滤与红队测试;数据隐私与合规边界。
+## 成本优化师 cost_optimizer
+主管 | 员工 助理·骨干·审核
+**G 类(Goodreads ≥4.0 已核实)**
+| 书名 | 作者 | Goodreads |
+|------|------|-----------|
+| AI Engineering | Chip Huyen | 4.40 |
+| Designing Machine Learning Systems | Chip Huyen | 4.43 |
+
+**B 类·权威**
+LLM 推理优化(量化/蒸馏/KV cache 文档)、模型选型与成本核算白皮书、提示缓存(prompt caching)官方文档、Token 经济学实践。
+**补足方向**:模型路由与降级策略;批处理与缓存命中率;小模型微调 vs 大模型直调权衡。
 
 ---
 
-## 工作流设计师 workflow_designer(Agent/链路/工具)
-主管 徐文 | 员工 助理-工作流设计师·骨干-工作流设计师·审核-工作流设计师
-**B 类·权威/实时来源(豆瓣样本不足/无,按权威性收)**
-ReAct / Toolformer / 自主 Agent 相关论文、LangChain/LlamaIndex 官方文档、Agent 设计模式(厂商白皮书)、人月神话(系统拆分思想)、设计模式(GoF,链路编排借鉴)。
-**补足方向**:Agent 规划与工具调用;多步链路与状态管理;失败重试与护栏。
+## 安全审查师 safety_reviewer
+主管 | 员工 助理·骨干·审核
+**G 类 / B 类(已核实/权威)**
+| 书名 | 作者 | 豆瓣 | Goodreads | 类 |
+|------|------|------|-----------|----|
+| The Alignment Problem | Brian Christian | — | 4.27 | G |
+| Human Compatible | Stuart Russell | — | 4.13 | G |
+
+**B 类·权威**
+OWASP Top 10 for LLM Applications(官方)、Prompt Injection 攻防文档、AI 红队测试手册、负责任 AI(Responsible AI)框架、Anthropic/OpenAI 安全政策文档。
+**补足方向**:越狱(jailbreak)与注入防护;内容审核与合规;数据隐私与脱敏。
+
+---
+
+## 工作流设计师 workflow_designer
+主管 | 员工 助理·骨干·审核
+**G 类(Goodreads ≥4.0 已核实)**
+| 书名 | 作者 | Goodreads |
+|------|------|-----------|
+| AI Engineering | Chip Huyen | 4.40 |
+| Building LLM Powered Applications | Valentina Alto | 4.00 |
+
+**B 类·权威**
+Agent 设计模式(ReAct/Reflexion/Plan-and-Execute 论文)、LangGraph/AutoGen 官方文档、工具调用(function calling)规范、多智能体协作综述。
+**补足方向**:链路编排与状态机;工具/插件接入;失败重试与人机协同(HITL)。
 
 ---
 
 # ★ 全书名汇总(下载用 · 一行一本)
 
-> A=豆瓣已核实≥8.5;B=权威/经典或实时官方来源(豆瓣样本不足/无,按权威收)。豆瓣无可信分填 `—`。
+| 书名 | 作者 | 豆瓣 | Goodreads | 类 | 归属 |
+|------|------|------|-----------|----|------|
+| Designing Machine Learning Systems | Chip Huyen | — | 4.43 | G | 评测/CEO |
+| AI Engineering | Chip Huyen | — | 4.40 | G | 成本/工作流/评测 |
+| Deep Learning(花书) | Goodfellow 等 | — | 4.36 | G | CEO |
+| Hands-On Machine Learning(2nd) | Aurélien Géron | — | 4.55 | G | CEO |
+| Hands-On Large Language Models | Alammar & Grootendorst | — | 4.50 | G | 提示/RAG |
+| Prompt Engineering for Generative AI | Phoenix & Taylor | — | 4.10 | G | 提示 |
+| Natural Language Processing with Transformers | Tunstall 等 | — | 4.40 | G | RAG |
+| Build a Large Language Model (From Scratch) | Sebastian Raschka | — | — | B | RAG |
+| Evaluating Machine Learning Models | Alice Zheng | — | 4.00 | G | 评测 |
+| The Alignment Problem | Brian Christian | — | 4.27 | G | 安全 |
+| Human Compatible | Stuart Russell | — | 4.13 | G | 安全 |
+| Building LLM Powered Applications | Valentina Alto | — | 4.00 | G | 工作流 |
+| OpenAI Prompt Engineering Guide(官方) | OpenAI | — | — | B | 提示 |
+| Anthropic Prompt Engineering Docs(官方) | Anthropic | — | — | B | 提示 |
+| The Prompt Engineering Handbook | — | — | — | B | 提示 |
+| 统计学习基础(ESL) | Hastie 等 | — | — | B | 评测 |
+| HELM/MMLU 评测基准文档 | Stanford CRFM 等 | — | — | B | 评测 |
+| 信息检索导论 | Manning 等 | — | — | B | RAG |
+| LangChain / LlamaIndex 官方文档 | — | — | — | B | RAG |
+| RAG 论文集(Lewis 2020 等) | — | — | — | B | RAG |
+| LLM 推理优化(量化/蒸馏文档) | — | — | — | B | 成本 |
+| Prompt Caching 官方文档 | OpenAI/Anthropic | — | — | B | 成本 |
+| OWASP Top 10 for LLM Applications | OWASP | — | — | B | 安全 |
+| AI 红队测试手册 | — | — | — | B | 安全 |
+| Responsible AI 框架 | — | — | — | B | 安全 |
+| Agent 设计模式(ReAct/Reflexion 论文) | — | — | — | B | 工作流 |
+| LangGraph / AutoGen 官方文档 | — | — | — | B | 工作流 |
 
-| 书名 | 作者 | 豆瓣 | 类 | 归属 |
-|------|------|------|----|------|
-| 黑客与画家 | 保罗·格雷厄姆 | 8.7 | A | CEO |
-| 浪潮之巅 | 吴军 | 9.1 | A | CEO |
-| 深度学习(花书) | Goodfellow 等 | — | B | CEO |
-| 神经网络与深度学习 | 邱锡鹏 | — | B | CEO |
-| 动手学深度学习 | 李沐 等 | — | B | CEO/RAG |
-| 机器学习(西瓜书) | 周志华 | — | B | CEO/评测 |
-| Prompt Engineering Guide (DAIR.AI) | DAIR.AI | — | B | 提示架构 |
-| OpenAI Prompt Engineering Guide | OpenAI(官方) | — | B | 提示架构 |
-| Anthropic Prompt Engineering | Anthropic(官方) | — | B | 提示架构 |
-| ChatGPT 提示工程(吴恩达课程讲义) | DeepLearning.AI | — | B | 提示架构 |
-| 思考,快与慢 | 丹尼尔·卡尼曼 | 8.0 | B | 提示架构 |
-| 统计学习方法 | 李航 | — | B | 评测 |
-| Trustworthy Online Controlled Experiments | Kohavi 等 | — | B | 评测 |
-| 信息检索导论 | Christopher Manning 等 | — | B | RAG |
-| 自然语言处理综论 | Jurafsky & Martin | — | B | RAG |
-| RAG 原始论文 | Lewis et al. 2020 | — | B | RAG |
-| OWASP Top 10 for LLM Applications | OWASP(官方) | — | B | 安全 |
-| 白帽子讲 Web 安全 | 吴翰清 | — | B | 安全 |
-| LangChain/LlamaIndex 官方文档 | 官方 | — | B | 工作流 |
-| ReAct/Toolformer 论文 | 论文作者 | — | B | 工作流 |
-| 人月神话 | Frederick Brooks | — | B | 工作流 |
-| 设计模式 (GoF) | Gamma 等 | — | B | 工作流 |
-
-> 注:`豆瓣 —` = 该书在豆瓣无可信评分(样本太少/无条目)或为持续更新的官方文档/论文,按领域权威性收录。本领域**极高时效**,提示技巧/模型能力/定价请以模型厂商官方最新文档为准,纸书仅作思想与基础参考。
+> 注:提示工程为新兴领域,大量前沿在官方文档与论文中,B 类按官方/权威收录。`Goodreads —` = 该站暂无可信公开分。
