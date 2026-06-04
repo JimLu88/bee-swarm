@@ -63,7 +63,9 @@ export function InfoFeed({ deptQuotes = [], mediaCards = [], mapPlaces = [], bac
   // 图片代理: 走后端 /api/img 带 Referer 取图, 解决小红书/点评/抖音防盗链空白
   const proxied = (u?: string): string => {
     if (!u) return "";
-    if (u.startsWith("data:") || !backendUrl) return u;
+    if (u.startsWith("data:")) return u;
+    // backendUrl 为空=同源部署 → 用相对路径 /api/img 仍能走后端代理(绕过外站防盗链);
+    // 之前 `|| !backendUrl` 会在同源时直接返回原图 → 被防盗链挡 → 全空白。
     return `${backendUrl}/api/img?url=${encodeURIComponent(u)}`;
   };
 

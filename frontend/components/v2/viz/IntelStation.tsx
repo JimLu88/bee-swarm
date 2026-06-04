@@ -34,7 +34,8 @@ export function IntelStation({ open, onClose, title = "情报站", mediaCards, m
 
   const proxied = (u?: string): string => {
     if (!u) return "";
-    if (u.startsWith("data:") || !backendUrl) return u;
+    if (u.startsWith("data:")) return u;
+    // backendUrl 为空=同源部署 → 相对 /api/img 仍走后端代理(绕过防盗链);见 InfoFeed 同款修复。
     return `${backendUrl}/api/img?url=${encodeURIComponent(u)}`;
   };
 
