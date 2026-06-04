@@ -89,14 +89,17 @@ def add_knowledge(
         "source_url": source_url,
         **(extra_meta or {}),
     }
+    # bee-memory /memory/store 的 StoreRequest 只收 kind/content/mode_id/importance/emotional_tag/meta,
+    # 且 meta 必须是 dict(对象)。之前发 json.dumps(meta) 字符串 + 多余顶层字段 → 422。
+    # novelty/predictive_value 并入 meta 保留(服务端不识别为顶层字段)。
+    meta.setdefault("novelty", float(d["novelty"]))
+    meta.setdefault("predictive_value", float(d["predictive_value"]))
     payload = {
         "kind": f"knowledge_{layer}",
         "content": content[:50_000],
         "mode_id": mode_id,
         "importance": int(importance if importance is not None else d["importance"]),
-        "novelty": float(d["novelty"]),
-        "predictive_value": float(d["predictive_value"]),
-        "meta": json.dumps(meta, ensure_ascii=False),
+        "meta": meta,
     }
     try:
         return _post("/memory/store", payload)
