@@ -22,7 +22,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends build-essential
 RUN npm install -g @openbnb/mcp-server-airbnb || true
 
 COPY backend/requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r /app/requirements.txt
+# 国内 NAS 直连 files.pythonhosted.org 慢/易超时 → 走阿里云 PyPI 镜像 + 重试/超时加长
+RUN pip install --no-cache-dir \
+    -i https://mirrors.aliyun.com/pypi/simple/ \
+    --retries 5 --timeout 180 \
+    -r /app/requirements.txt
 
 COPY backend/ /app
 # 把前端静态产物放进后端托管目录 (main.py 挂 StaticFiles(static_ui) 于 /)
