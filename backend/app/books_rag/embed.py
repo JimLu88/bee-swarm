@@ -41,25 +41,40 @@ class STEmbedder:
 
 
 class APIEmbedder:
-    """OpenAI 兼容 /embeddings(通义 text-embedding-v3 等)。便宜、批量。"""
-    def __init__(self, base: str, key: str, model: str, dim: int):
+    """OpenAI 兼容 /embeddings(通义 text-embedding-v3 等)。便宜、批量。
+
+    注意:DashScope text-embedding-v3 单次请求最多 10 条 input(超过会报
+    "batch size is invalid, it should not be larger than 10")。因此 encode()
+    内部按 _batch(默认 10,可用 BOOKS_EMBED_BATCH 调)切片多次请求,
+    再按返回的 index 排序拼回,保证与输入顺序一致。
+    """
+    def __init__(self, base: str, key: str, model: str, dim: int, batch: int = 10):
         self._base = base.rstrip("/")
         self._key = key
         self.name = f"api:{model}"
         self.dim = dim
         self._model = model
+        self._batch = max(1, int(batch))
 
-    def encode(self, texts: List[str]) -> List[List[float]]:
+    def _encode_one_batch(self, group: List[str]) -> List[List[float]]:
         import json
         import urllib.request
-        body = json.dumps({"model": self._model, "input": texts}).encode("utf-8")
+        body = json.dumps({"model": self._model, "input": group}).encode("utf-8")
         req = urllib.request.Request(
             f"{self._base}/embeddings", data=body,
             headers={"Authorization": f"Bearer {self._key}", "Content-Type": "application/json"},
         )
         with urllib.request.urlopen(req, timeout=60) as r:
             data = json.loads(r.read().decode("utf-8"))
-        return [_l2norm([float(x) for x in d["embedding"]]) for d in data["data"]]
+        # 服务端可能乱序返回 → 按 index 排回输入顺序
+        items = sorted(data["data"], key=lambda d: int(d.get("index", 0)))
+        return [_l2norm([float(x) for x in d["embedding"]]) for d in items]
+
+    def encode(self, texts: List[str]) -> List[List[float]]:
+        out: List[List[float]] = []
+        for i in range(0, len(texts), self._batch):
+            out.extend(self._encode_one_batch(texts[i:i + self._batch]))
+        return out
 
 
 class DeterministicEmbedder:
@@ -98,7 +113,8 @@ def _build_embedder() -> Optional[Embedder]:
         base = os.environ.get("BOOKS_EMBED_API_BASE", "https://dashscope.aliyuncs.com/compatible-mode/v1")
         model = os.environ.get("BOOKS_EMBED_MODEL", "text-embedding-v3")
         dim = int(os.environ.get("BOOKS_EMBED_DIM", "1024"))
-        return APIEmbedder(base, key, model, dim)
+        batch = int(os.environ.get("BOOKS_EMBED_BATCH", "10"))
+        return APIEmbedder(base, key, model, dim, batch)
     try:
         import sentence_transformers  # noqa: F401
         model = os.environ.get("BOOKS_EMBED_MODEL", "BAAI/bge-small-zh-v1.5")
