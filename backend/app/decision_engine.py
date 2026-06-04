@@ -221,6 +221,16 @@ async def _run_dept(
         except Exception:
             pass
 
+    # v6-RAG: 书库向量检索 — 从已灌入的真实书籍 (books_rag: sqlite-vec+FTS5 混合) 召回本场景片段,
+    # 与 bee-memory 召回并行注入. 库不存在/无命中则静默跳过, 不影响决策。
+    try:
+        from .books_rag.pipeline import retrieve_context as _books_ctx
+        _bc = _books_ctx(task, scenario=mode_id, k=3)
+        if _bc:
+            gene_prompt = f"{gene_prompt}\n\n{_bc}"
+    except Exception:
+        pass
+
     # Shadow gene (if any): run "in background" and score vs active.
     shadows = _genes.list_shadows(mode_id=mode_id, dept=dept, limit=1)
     shadow_rec = shadows[0] if shadows else None
@@ -685,6 +695,14 @@ async def finalize_decision_bundle(
                 ceo_kb_section = _fmt_kb(_ceo_bundle)
             except Exception:
                 ceo_kb_section = ""
+            # v6-RAG: CEO 也接书库向量检索 (跨部门真书), 追加到知识段
+            try:
+                from .books_rag.pipeline import retrieve_context as _books_ctx
+                _ceo_books = _books_ctx(task, scenario=mode_id, k=4)
+                if _ceo_books:
+                    ceo_kb_section = f"{ceo_kb_section}\n\n{_ceo_books}" if ceo_kb_section else _ceo_books
+            except Exception:
+                pass
             # v11 餐饮试点: CEO 富输出 — 不当转发员, 必须加入自己的判断 (1️⃣先立场 + 2️⃣逐条批判 + 结构化富输出).
             if mode_id == "dining_recommendation":
                 ceo_output_spec = (

@@ -188,6 +188,30 @@ def retrieve(query: str, scenario: Optional[str] = None, k: int = 5) -> List[dic
     return res
 
 
+def retrieve_context(query: str, scenario: Optional[str] = None, k: int = 3,
+                     max_chars: int = 1200) -> str:
+    """给决策流用:检索命中书摘 → 拼成可注入 prompt 的文本块。
+    库不存在或无命中 → 返回空串(绝不影响决策)。"""
+    try:
+        if not _db_path().exists():
+            return ""
+        hits = retrieve(query, scenario=scenario, k=k)
+    except Exception:
+        return ""
+    if not hits:
+        return ""
+    lines = ["[书库检索 — 来自已灌入的真实书籍, 请优先据此作答, 并在结论中标注引用的书名]"]
+    used = 0
+    for h in hits:
+        seg = " ".join((h.get("content") or "").split())[:400]
+        piece = f"《{h.get('title')}》: {seg}"
+        if used + len(piece) > max_chars:
+            break
+        lines.append(piece)
+        used += len(piece)
+    return "\n".join(lines)
+
+
 # ---------- CLI ----------
 def main():
     import argparse
