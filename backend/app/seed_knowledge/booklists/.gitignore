@@ -1,0 +1,3 @@
+# 运行时生成物,不入 git
+_inventory_report.md
+.ingested.json
