@@ -86,6 +86,31 @@ async def fetch_legal_ep(body: dict = Body(default={})) -> dict[str, Any]:
         return {"ok": False, "error": repr(e)}
 
 
+@router.post("/ingest-cards")
+async def ingest_cards_ep(body: dict = Body(default={})) -> dict[str, Any]:
+    """#3 书目卡片层:把 2610 书单做成卡片灌进向量库(零成本/无盗版)。"""
+    force = bool(body.get("force"))
+    try:
+        from .books_rag.pipeline import ingest_cards
+        res = await asyncio.to_thread(ingest_cards, force)
+        return {"ok": True, **res}
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "error": repr(e)}
+
+
+@router.post("/fetch-opendata")
+async def fetch_opendata_ep(body: dict = Body(default={})) -> dict[str, Any]:
+    """#4 现成开放数据集(MedRAG 医学教科书)→ 医学场景。"""
+    limit = int(body.get("limit_chunks", 8000))
+    embed = bool(body.get("embed_vectors", True))
+    try:
+        from .books_rag.fetch_opendata import fetch_medrag
+        res = await asyncio.to_thread(fetch_medrag, limit, embed)
+        return res if isinstance(res, dict) and "ok" in res else {"ok": True, **res}
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "error": repr(e)}
+
+
 @router.post("/classify")
 async def classify_ep() -> dict[str, Any]:
     """分清单:合法可下载(公版)vs 待自行获取(无合法免费源),各出一份 CSV。"""

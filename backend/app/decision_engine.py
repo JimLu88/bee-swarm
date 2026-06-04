@@ -231,6 +231,15 @@ async def _run_dept(
     except Exception:
         pass
 
+    # v6-RAG #2: 联网实时增强(env BOOKS_WEB_RAG=1 才启用)—— 书库没到位时用实时网络补深度
+    try:
+        from .books_rag.web_rag import web_context as _web_ctx
+        _wc = _web_ctx(task, k=3)
+        if _wc:
+            gene_prompt = f"{gene_prompt}\n\n{_wc}"
+    except Exception:
+        pass
+
     # Shadow gene (if any): run "in background" and score vs active.
     shadows = _genes.list_shadows(mode_id=mode_id, dept=dept, limit=1)
     shadow_rec = shadows[0] if shadows else None
@@ -701,6 +710,14 @@ async def finalize_decision_bundle(
                 _ceo_books = _books_ctx(task, scenario=mode_id, k=4)
                 if _ceo_books:
                     ceo_kb_section = f"{ceo_kb_section}\n\n{_ceo_books}" if ceo_kb_section else _ceo_books
+            except Exception:
+                pass
+            # v6-RAG #2: CEO 也接联网实时增强(env 开关)
+            try:
+                from .books_rag.web_rag import web_context as _web_ctx
+                _ceo_web = _web_ctx(task, k=4)
+                if _ceo_web:
+                    ceo_kb_section = f"{ceo_kb_section}\n\n{_ceo_web}" if ceo_kb_section else _ceo_web
             except Exception:
                 pass
             # v11 餐饮试点: CEO 富输出 — 不当转发员, 必须加入自己的判断 (1️⃣先立场 + 2️⃣逐条批判 + 结构化富输出).

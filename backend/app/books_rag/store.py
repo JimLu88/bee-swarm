@@ -51,8 +51,12 @@ class BookStore:
         r = self.db.execute("SELECT size FROM books WHERE book_key=?", (book_key,)).fetchone()
         return bool(r) and int(r["size"]) == int(size)
 
+    def commit(self) -> None:
+        self.db.commit()
+
     def add_book(self, book_key, title, author, scenario, dept, file, size,
-                 chunks: List[str], embeddings: Optional[List[List[float]]]) -> int:
+                 chunks: List[str], embeddings: Optional[List[List[float]]],
+                 commit: bool = True) -> int:
         c = self.db
         # 幂等:先删旧
         old = [r["id"] for r in c.execute("SELECT id FROM chunks WHERE book_key=?", (book_key,))]

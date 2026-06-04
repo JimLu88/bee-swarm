@@ -188,6 +188,42 @@ def retrieve(query: str, scenario: Optional[str] = None, k: int = 5) -> List[dic
     return res
 
 
+def ingest_cards(force: bool = False) -> dict:
+    """#3-lite 书目卡片层:把书单 2610 本做成"卡片"灌进向量库(零成本/无盗版)。
+    每张卡 = 《书名》作者+场景定位,让系统在没真书前就"知道每个场景有哪些权威书"。
+    真书灌入后两者并存、互不覆盖(卡片 book_key 带 card:: 前缀)。"""
+    emb = get_embedder()
+    dim = emb.dim if emb else None
+    store = BookStore(_db_path(), dim)
+    store.set_meta("embed", emb.name if emb else "none(fts5-only)")
+    if dim:
+        store.set_meta("dim", str(dim))
+    required = blc.load_required()
+    contents: List[str] = []
+    metas: List[tuple] = []
+    for ent in required.values():
+        title = ent["title"]
+        author = ent.get("author", "")
+        sc = ", ".join(sorted(ent.get("scenarios", [])))
+        db = ent.get("douban", "")
+        key = "card::" + blc._norm(title)
+        if not force and store.has_book(key, 1):
+            continue
+        c = f"《{title}》 作者:{author}。{sc} 场景的权威推荐专业书。" + (f"豆瓣评分 {db}。" if db and db != "—" else "")
+        contents.append(c)
+        metas.append((key, title, author, sc))
+    if not contents:
+        st = store.stats(); store.close()
+        return {"new_cards": 0, **st}
+    vecs = emb.encode(contents) if emb else None
+    for i, (key, title, author, sc) in enumerate(metas):
+        store.add_book(key, title, author, sc, "card", "booklist-card", 1,
+                       [contents[i]], [vecs[i]] if vecs else None, commit=False)
+    store.commit()  # 批量末尾一次提交(2610卡片只 commit 1 次,群晖上快得多)
+    st = store.stats(); store.close()
+    return {"new_cards": len(metas), **st}
+
+
 def retrieve_context(query: str, scenario: Optional[str] = None, k: int = 3,
                      max_chars: int = 1200) -> str:
     """给决策流用:检索命中书摘 → 拼成可注入 prompt 的文本块。
