@@ -40,6 +40,9 @@ services:
       - EXA_API_KEY=${EXA_API_KEY:-}
       # 兜底: 读后端 hub_settings.json (UI 填的搜索 key); 主路径是后端随请求带 key
       - BEE_HUB_SETTINGS=/hub/hub_settings.json
+      # 反爬熔断器(保命底)告警 + 阈值; webhook 空则只熔断不推送
+      - WECOM_WEBHOOK_URL=${WECOM_WEBHOOK_URL:-}
+      - GUARD_SCOPE=${GUARD_SCOPE:-platform}
     volumes:
       - ./backend/data:/hub:ro
     restart: unless-stopped
