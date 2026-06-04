@@ -80,8 +80,19 @@ class DeterministicEmbedder:
         return out
 
 
+_CACHED: list = []  # 单例缓存: 模型只加载一次, 常驻复用 (避免每次检索重载, 关键性能点)
+
+
 def get_embedder() -> Optional[Embedder]:
-    """按优先级返回嵌入器;返回 None 表示无可用嵌入器(走 FTS5 纯关键词)。"""
+    """按优先级返回嵌入器(单例缓存)。返回 None 表示无可用嵌入器(走 FTS5 纯关键词)。"""
+    if _CACHED:
+        return _CACHED[0]
+    emb = _build_embedder()
+    _CACHED.append(emb)  # 含 None 也缓存, 避免反复尝试加载失败的模型
+    return emb
+
+
+def _build_embedder() -> Optional[Embedder]:
     key = os.environ.get("BOOKS_EMBED_API_KEY", "").strip()
     if key:
         base = os.environ.get("BOOKS_EMBED_API_BASE", "https://dashscope.aliyuncs.com/compatible-mode/v1")
