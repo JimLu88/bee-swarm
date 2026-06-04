@@ -12,3 +12,7 @@ langgraph-checkpoint-sqlite>=2.0.0
 aiosqlite>=0.20.0
 PyYAML>=6.0.1
 apscheduler>=3.10.0
+# books_rag 语义向量库:sqlite-vec(向量) + pandas/pyarrow(读 MedRAG parquet 开放数据集)
+sqlite-vec>=0.1.6
+pandas>=2.0.0
+pyarrow>=15.0.0
