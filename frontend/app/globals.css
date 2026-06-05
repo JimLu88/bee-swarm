@@ -50,8 +50,8 @@
 
   /* ---- Foreground ---- */
   --fg-1: var(--gray-900);
-  --fg-2: var(--gray-600);
-  --fg-3: var(--gray-500);
+  --fg-2: var(--gray-700);   /* 正文加深: 原 gray-600 偏灰, 参照 Gemini 提到 ~80% 黑, 更清晰 */
+  --fg-3: var(--gray-600);   /* 次级文字同步加深一档 */
   --fg-4: var(--gray-400);
   --fg-on-accent: #FFFFFF;
   --fg-link: var(--blue-600);
@@ -586,8 +586,12 @@ body.rail-collapsed .rail { width: 0; margin-left: -1px; overflow: hidden; }
   .greet { font-size: 26px; line-height: 1.25; }
   .greet-sub { font-size: 15px; }
   .thread { padding: 16px 14px 150px; gap: 22px; }
-  .user-bubble { max-width: 92%; }
-  .answer { font-size: 15px; }
+  .user-bubble { max-width: 92%; font-size: 16.5px; }
+  /* 手机正文放大到接近 Gemini, 行距加大更好读 (原 15px 比桌面还小) */
+  .answer { font-size: 16.5px; }
+  .answer p, .answer .lead, .step-item .sx, .dept-say, .risk .rt { font-size: 16.5px; line-height: 1.75; }
+  .answer h3 { font-size: 22px; }
+  .answer h4 { font-size: 16.5px; }
   .composer { padding: 0 4px; }
 
   /* 指标/操作/建议 → 自适应窄屏 */

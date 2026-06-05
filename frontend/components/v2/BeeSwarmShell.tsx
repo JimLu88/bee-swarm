@@ -404,7 +404,7 @@ export function BeeSwarmShell() {
         const j = await res.json();
         const decisionId: string | undefined = j?.decision_id;
         if (!decisionId) throw new Error("AI 服务暂时没响应, 等一下再试");
-        clearTaskBackup(); setImages([]); setDocFiles([]);
+        setTask(""); clearTaskBackup(); setImages([]); setDocFiles([]);  // 发送后清空输入框(Gemini 式)
         attachStream(decisionId, turnId);
       } catch (e: unknown) {
         setError((e as Error).message ?? "出了点小问题, 等一下重试");
@@ -523,7 +523,7 @@ export function BeeSwarmShell() {
         const j = await res.json();
         const decisionId: string | undefined = j?.decision_id;
         if (!decisionId) throw new Error("AI 服务暂时没响应, 等一下再试");
-        clearTaskBackup(); setImages([]); setDocFiles([]);
+        setTask(""); clearTaskBackup(); setImages([]); setDocFiles([]);  // 发送后清空输入框(Gemini 式)
         attachStream(decisionId, turnId);
       } catch (e: unknown) {
         setError((e as Error).message ?? "出了点小问题, 等一下重试");
