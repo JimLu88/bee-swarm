@@ -1,110 +1,107 @@
 "use client";
 
+/** 意图澄清弹窗(clarify-only)。
+ *  发送前先 probe; 若 AI 判断有"会改变答案方向"的歧义 → 弹出结构化小问答
+ *  (标签/滑杆/分段/数值/排序/快捷追问 + 末尾自由补充), 收集后把答案拼进 task,
+ *  再交回上层走原有"阵容确认 → 开跑"流程。无歧义则自动放行, 不打扰。 */
+
 import { useEffect, useState, type CSSProperties } from "react";
 import { fetchWithTimeout, TIMEOUT_MS } from "../../lib/http";
+
+export type ClarifyQuestion = {
+  id: string;
+  type: "chips" | "slider" | "segmented" | "range" | "rank" | "quick" | "text";
+  prompt: string;
+  why?: string;
+  options?: string[];
+  multi?: boolean;
+  min?: number;
+  max?: number;
+  default?: number;
+  min_label?: string;
+  max_label?: string;
+  unit?: string;
+};
 
 type ProbeResp = {
   clarify: boolean;
   reason: string;
   session_id?: string;
-  questions?: string[];
-};
-
-export type Plan = {
-  mode: "single_opus" | "single_dept" | "multi_dept_parallel" | "multi_dept_debate";
-  depts: number;
-  rounds: number;
-  est_seconds: number;
-  est_cost_yuan: number;
+  questions?: ClarifyQuestion[];
 };
 
 type Props = {
   backendUrl: string;
   task: string;
-  modeId: string;
   open: boolean;
   onCancel: () => void;
-  onConfirm: (finalTask: string, plan: Plan) => void;
+  /** 澄清完成(或无需澄清/跳过)→ 回传最终 task 给上层继续跑 */
+  onConfirm: (finalTask: string) => void;
 };
+
+type Val = string | number | string[];
 
 const backdrop: CSSProperties = {
-  position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-  background: "var(--overlay)", zIndex: 300,
-  display: "flex", alignItems: "center", justifyContent: "center",
+  position: "fixed", inset: 0, background: "var(--overlay)", zIndex: 300,
+  display: "flex", alignItems: "center", justifyContent: "center", padding: 12,
 };
-
 const box: CSSProperties = {
-  width: "92vw", maxWidth: 620, maxHeight: "85vh", overflow: "auto",
-  background: "var(--bg-card)", borderRadius: 12, padding: 18,
-  borderWidth: 1, borderStyle: "solid", borderColor: "var(--border)",
-  display: "flex", flexDirection: "column", gap: 14,
+  width: "92vw", maxWidth: 600, maxHeight: "86vh", overflow: "auto",
+  background: "var(--bg-card)", borderRadius: 16, padding: 18,
+  border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 14,
 };
-
-const stepHeader: CSSProperties = {
-  fontSize: 13, fontWeight: 600, opacity: 0.85,
-};
-
 const inputStyle: CSSProperties = {
-  width: "100%", padding: "6px 10px", fontSize: 13,
-  background: "var(--bg-subtle)", color: "inherit",
-  borderWidth: 1, borderStyle: "solid", borderColor: "var(--border)",
-  borderRadius: 6,
+  width: "100%", boxSizing: "border-box", padding: "10px 12px", fontSize: 15,
+  background: "var(--bg-subtle)", color: "var(--text)",
+  border: "1px solid var(--border)", borderRadius: 10, outline: "none",
 };
-
 const btn = (primary: boolean): CSSProperties => ({
-  padding: "6px 14px", fontSize: 12, borderRadius: 6, cursor: "pointer",
-  borderWidth: 1, borderStyle: "solid",
-  borderColor: primary ? "var(--accent)" : "var(--border)",
-  background: primary ? "var(--accent-bg)" : "var(--bg-subtle)",
-  color: "inherit", fontWeight: primary ? 600 : 400,
+  padding: "9px 16px", fontSize: 14, borderRadius: 10, cursor: "pointer",
+  border: "1px solid " + (primary ? "var(--accent)" : "var(--border)"),
+  background: primary ? "var(--accent)" : "var(--bg-subtle)",
+  color: primary ? "#fff" : "var(--text)", fontWeight: primary ? 600 : 500,
+});
+const pill = (active: boolean): CSSProperties => ({
+  padding: "8px 14px", borderRadius: 999, fontSize: 14, cursor: "pointer",
+  border: "1px solid " + (active ? "var(--accent)" : "var(--border)"),
+  background: active ? "var(--accent-bg)" : "var(--bg-card)",
+  color: active ? "var(--accent)" : "var(--text)", fontWeight: active ? 600 : 400,
+  userSelect: "none",
 });
 
-const planCard = (active: boolean): CSSProperties => ({
-  padding: "10px 12px", borderRadius: 8, cursor: "pointer",
-  borderWidth: 1, borderStyle: "solid",
-  borderColor: active ? "var(--accent)" : "var(--border)",
-  background: active ? "var(--accent-bg)" : "var(--bg-subtle)",
-  display: "flex", flexDirection: "column", gap: 4,
-});
-
-function deriveDefaultPlan(task: string): Plan {
-  const len = task.length;
-  if (len < 60) {
-    return { mode: "single_opus", depts: 0, rounds: 0, est_seconds: 8, est_cost_yuan: 0.3 };
-  }
-  if (len < 200) {
-    return { mode: "multi_dept_parallel", depts: 4, rounds: 1, est_seconds: 30, est_cost_yuan: 0.8 };
-  }
-  return { mode: "multi_dept_debate", depts: 6, rounds: 2, est_seconds: 60, est_cost_yuan: 2.5 };
+function initVal(q: ClarifyQuestion): Val {
+  if (q.type === "chips") return [];
+  if (q.type === "rank") return [...(q.options || [])];
+  if (q.type === "slider" || q.type === "range") return q.default ?? q.min ?? 0;
+  return "";
 }
 
-const PRESETS: { id: Plan["mode"]; label: string; desc: string; mk: () => Plan }[] = [
-  { id: "single_opus", label: "⚡ 极速 (Opus 直出)", desc: "不开部门, 直接 CEO Opus; 最快最便宜",
-    mk: () => ({ mode: "single_opus", depts: 0, rounds: 0, est_seconds: 8, est_cost_yuan: 0.3 }) },
-  { id: "single_dept", label: "🎯 单部门精修", desc: "选 1 个最相关部门深入回答, 不开会; 适合垂直问题",
-    mk: () => ({ mode: "single_dept", depts: 1, rounds: 1, est_seconds: 12, est_cost_yuan: 0.5 }) },
-  { id: "multi_dept_parallel", label: "🐝 多部门并行 (默认)", desc: "4-6 部门同时给意见, CEO 综合; 性价比最好",
-    mk: () => ({ mode: "multi_dept_parallel", depts: 5, rounds: 1, est_seconds: 30, est_cost_yuan: 1.2 }) },
-  { id: "multi_dept_debate", label: "🔥 多部门辩论 (复杂)", desc: "部门间多轮辩论 + 红队挑刺; 慢但最严谨",
-    mk: () => ({ mode: "multi_dept_debate", depts: 6, rounds: 2, est_seconds: 65, est_cost_yuan: 2.8 }) },
-];
+function fmt(q: ClarifyQuestion, v: Val): string {
+  if (q.type === "chips" || q.type === "rank") {
+    const arr = (v as string[]) || [];
+    if (!arr.length) return "";
+    return q.type === "rank" ? arr.map((o, i) => `${i + 1}.${o}`).join(" ") : arr.join("、");
+  }
+  if (q.type === "slider") {
+    const n = v as number;
+    const lab = q.min_label || q.max_label ? ` (${q.min_label || q.min}↔${q.max_label || q.max})` : "";
+    return `${n}/${q.max ?? 100}${lab}`;
+  }
+  if (q.type === "range") return v === "" || v == null ? "" : `${q.unit || ""}${v}`;
+  return ((v as string) || "").trim();
+}
 
 export function ClarifyAndPlanModal(props: Props) {
   const { backendUrl, task, open, onCancel, onConfirm } = props;
-  const [step, setStep] = useState<"probe" | "clarify" | "plan" | "loading">("loading");
+  const [step, setStep] = useState<"loading" | "clarify">("loading");
   const [error, setError] = useState("");
   const [probeData, setProbeData] = useState<ProbeResp | null>(null);
-  const [answers, setAnswers] = useState<string[]>([]);
-  const [finalTask, setFinalTask] = useState(task);
-  const [plan, setPlan] = useState<Plan>(() => deriveDefaultPlan(task));
+  const [vals, setVals] = useState<Record<string, Val>>({});
+  const [extra, setExtra] = useState("");
 
   useEffect(() => {
     if (!open) return;
-    setStep("loading");
-    setError("");
-    setFinalTask(task);
-    setAnswers([]);
-    setPlan(deriveDefaultPlan(task));
+    setStep("loading"); setError(""); setVals({}); setExtra("");
     (async () => {
       try {
         const res = await fetchWithTimeout(
@@ -113,105 +110,156 @@ export function ClarifyAndPlanModal(props: Props) {
           TIMEOUT_MS.decisionStart,
         );
         const j = (await res.json()) as ProbeResp;
-        setProbeData(j);
         if (j.clarify && j.questions && j.questions.length > 0) {
-          setAnswers(Array(j.questions.length).fill(""));
+          setProbeData(j);
+          const init: Record<string, Val> = {};
+          j.questions.forEach((q) => { init[q.id] = initVal(q); });
+          setVals(init);
           setStep("clarify");
         } else {
-          setStep("plan");
+          onConfirm(task); // 无歧义 → 直接放行, 不打扰
         }
-      } catch (e) {
-        setError(`澄清探测失败: ${(e as Error).message}`);
-        setStep("plan");
+      } catch {
+        onConfirm(task); // 探测失败 → 不挡用户, 原样继续
       }
     })();
-  }, [open, backendUrl, task]);
+  }, [open, backendUrl, task, onConfirm]);
 
-  const resolveAndProceed = async () => {
-    if (!probeData?.session_id) {
-      setStep("plan"); return;
-    }
-    try {
-      const res = await fetchWithTimeout(
-        `${backendUrl}/api/intent/resolve`,
-        { method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ session_id: probeData.session_id, answers }) },
-        TIMEOUT_MS.default,
-      );
-      const j = await res.json();
-      setFinalTask(j.task_final || task);
-      setStep("plan");
-    } catch (e) {
-      setError(`澄清提交失败: ${(e as Error).message}`);
-      setStep("plan");
-    }
+  if (!open || step === "loading") {
+    return open ? (
+      <div style={backdrop}>
+        <div style={{ ...box, alignItems: "center", color: "var(--text-dim)" }}>正在分析你的问题…</div>
+      </div>
+    ) : null;
+  }
+
+  const setV = (id: string, v: Val) => setVals((p) => ({ ...p, [id]: v }));
+  const submit = () => {
+    const qs = probeData?.questions || [];
+    const answers = qs.map((q) => fmt(q, vals[q.id]));
+    if (!probeData?.session_id) { onConfirm(task); return; }
+    (async () => {
+      try {
+        const res = await fetchWithTimeout(
+          `${backendUrl}/api/intent/resolve`,
+          { method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ session_id: probeData.session_id, answers, extra }) },
+          TIMEOUT_MS.default,
+        );
+        const j = await res.json();
+        onConfirm(j.task_final || task);
+      } catch {
+        onConfirm(task);
+      }
+    })();
   };
 
-  if (!open) return null;
+  const renderWidget = (q: ClarifyQuestion) => {
+    const v = vals[q.id];
+    if (q.type === "chips" || q.type === "segmented") {
+      const sel = q.type === "chips" ? ((v as string[]) || []) : [];
+      const single = (v as string) || "";
+      return (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {(q.options || []).map((o) => {
+            const on = q.type === "chips" ? sel.includes(o) : single === o;
+            return (
+              <span key={o} style={pill(on)} onClick={() => {
+                if (q.type === "chips") setV(q.id, on ? sel.filter((x) => x !== o) : [...sel, o]);
+                else setV(q.id, on ? "" : o);
+              }}>{o}</span>
+            );
+          })}
+        </div>
+      );
+    }
+    if (q.type === "quick") {
+      const cur = (v as string) || "";
+      const opts = q.options || [];
+      return (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {opts.map((o) => (
+              <span key={o} style={pill(cur === o)} onClick={() => setV(q.id, cur === o ? "" : o)}>{o}</span>
+            ))}
+          </div>
+          <input style={inputStyle} placeholder="或自己补一句…"
+            value={opts.includes(cur) ? "" : cur} onChange={(e) => setV(q.id, e.target.value)} />
+        </div>
+      );
+    }
+    if (q.type === "slider" || q.type === "range") {
+      const n = (v as number) ?? (q.default ?? q.min ?? 0);
+      return (
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <input type="range" min={q.min ?? 0} max={q.max ?? 100} value={n}
+            onChange={(e) => setV(q.id, Number(e.target.value))}
+            style={{ width: "100%", accentColor: "var(--accent)" }} />
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--text-dim)" }}>
+            <span>{q.min_label || (q.type === "range" ? `${q.unit || ""}${q.min ?? 0}` : q.min ?? 0)}</span>
+            <b style={{ color: "var(--accent)", fontSize: 14 }}>
+              {q.type === "range" ? `${q.unit || ""}${n}` : `${n}/${q.max ?? 100}`}
+            </b>
+            <span>{q.max_label || (q.type === "range" ? `${q.unit || ""}${q.max ?? 100}` : q.max ?? 100)}</span>
+          </div>
+        </div>
+      );
+    }
+    if (q.type === "rank") {
+      const arr = (v as string[]) || [];
+      const move = (i: number, d: number) => {
+        const j = i + d;
+        if (j < 0 || j >= arr.length) return;
+        const a = [...arr]; const t = a[i]; a[i] = a[j]; a[j] = t; setV(q.id, a);
+      };
+      return (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {arr.map((o, i) => (
+            <div key={o} style={{ display: "flex", alignItems: "center", gap: 8,
+              padding: "8px 10px", borderRadius: 10, background: "var(--bg-subtle)", border: "1px solid var(--border)" }}>
+              <b style={{ color: "var(--accent)", width: 18 }}>{i + 1}</b>
+              <span style={{ flex: 1, color: "var(--text)" }}>{o}</span>
+              <button type="button" style={btn(false)} onClick={() => move(i, -1)} disabled={i === 0}>↑</button>
+              <button type="button" style={btn(false)} onClick={() => move(i, 1)} disabled={i === arr.length - 1}>↓</button>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    return (
+      <input style={inputStyle} placeholder="(可留空跳过这条)"
+        value={(v as string) || ""} onChange={(e) => setV(q.id, e.target.value)} />
+    );
+  };
 
   return (
     <div style={backdrop} onClick={onCancel}>
       <div style={box} onClick={(e) => e.stopPropagation()}>
-        <div style={{ fontSize: 15, fontWeight: 600 }}>
-          {step === "clarify" ? "🤔 先澄清几个问题" : "📋 选择决策方式"}
+        <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text)" }}>🤔 先帮我了解几点(点选即可)</div>
+        {error && <div style={{ color: "var(--danger)", fontSize: 13 }}>⚠ {error}</div>}
+
+        {(probeData?.questions || []).map((q, i) => (
+          <div key={q.id} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ fontSize: 14.5, fontWeight: 600, color: "var(--text)" }}>
+              {i + 1}. {q.prompt}
+              {q.why ? <span style={{ fontSize: 12, fontWeight: 400, color: "var(--text-faint)" }}>　({q.why})</span> : null}
+            </div>
+            {renderWidget(q)}
+          </div>
+        ))}
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, borderTop: "1px solid var(--divider)", paddingTop: 12 }}>
+          <div style={{ fontSize: 14.5, fontWeight: 600, color: "var(--text)" }}>
+            还有什么补充想告诉顾问的?<span style={{ fontSize: 12, fontWeight: 400, color: "var(--text-faint)" }}>　(选填)</span>
+          </div>
+          <input style={inputStyle} placeholder="例如:他最近迷上钓鱼 / 不要太贵 / 想要有面子…"
+            value={extra} onChange={(e) => setExtra(e.target.value)} />
         </div>
 
-        {error && <div style={{ color: "#f44336", fontSize: 12 }}>⚠ {error}</div>}
-
-        {step === "loading" && (
-          <div style={{ padding: 30, textAlign: "center", opacity: 0.55 }}>
-            正在分析任务意图...
-          </div>
-        )}
-
-        {step === "clarify" && probeData?.questions && (
-          <>
-            <div style={{ fontSize: 11, opacity: 0.55 }}>{probeData.reason}</div>
-            {probeData.questions.map((q, i) => (
-              <div key={i} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <div style={stepHeader}>Q{i + 1}. {q}</div>
-                <input
-                  style={inputStyle}
-                  placeholder="(可留空跳过这条)"
-                  value={answers[i] || ""}
-                  onChange={(e) => {
-                    const a = [...answers]; a[i] = e.target.value; setAnswers(a);
-                  }}
-                />
-              </div>
-            ))}
-            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 6 }}>
-              <button type="button" style={btn(false)} onClick={() => setStep("plan")}>跳过澄清</button>
-              <button type="button" style={btn(true)} onClick={resolveAndProceed}>提交答案 →</button>
-            </div>
-          </>
-        )}
-
-        {step === "plan" && (
-          <>
-            <div style={{ fontSize: 11, opacity: 0.55 }}>
-              选一档决策方式 (建议: {plan.mode}). 可点选切换:
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {PRESETS.map((p) => (
-                <div key={p.id} style={planCard(plan.mode === p.id)} onClick={() => setPlan(p.mk())}>
-                  <div style={{ fontSize: 13, fontWeight: 600 }}>{p.label}</div>
-                  <div style={{ fontSize: 11, opacity: 0.65 }}>{p.desc}</div>
-                </div>
-              ))}
-            </div>
-            <div style={{ fontSize: 11, opacity: 0.55, padding: "6px 4px" }}>
-              当前方案: <b>{plan.depts}</b> 个部门 · <b>{plan.rounds}</b> 轮辩论 ·
-              预估 <b>{plan.est_seconds}s</b> / <b>¥{plan.est_cost_yuan}</b>
-            </div>
-            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <button type="button" style={btn(false)} onClick={onCancel}>取消</button>
-              <button type="button" style={btn(true)} onClick={() => onConfirm(finalTask, plan)}>
-                确定 ▶ 开跑
-              </button>
-            </div>
-          </>
-        )}
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 4 }}>
+          <button type="button" style={btn(false)} onClick={() => onConfirm(task)}>跳过</button>
+          <button type="button" style={btn(true)} onClick={submit}>提交 →</button>
+        </div>
       </div>
     </div>
   );

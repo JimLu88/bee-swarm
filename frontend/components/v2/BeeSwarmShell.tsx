@@ -27,6 +27,7 @@ import { Icon } from "./Icon";
 import { Sidebar } from "./Sidebar";
 import { SceneSwitcher } from "./SceneSwitcher";
 import { Composer } from "./Composer";
+import { ClarifyAndPlanModal } from "./ClarifyAndPlanModal";
 import { SwarmStrip } from "./SwarmStrip";
 import { RouteFlow } from "./RouteFlow";
 
@@ -478,7 +479,13 @@ export function BeeSwarmShell() {
     })();
   }, [busy, planLoading, difficulty, mode, backendUrl, submitTask]);
 
-  const onComposerSend = useCallback(() => { proposePlan(task); }, [proposePlan, task]);
+  // 发送 → 先弹意图澄清(结构化标签/滑杆等; AI 判断无歧义会自动放行), 澄清完再进阵容/开跑
+  const [clarifyTask, setClarifyTask] = useState<string | null>(null);
+  const onComposerSend = useCallback(() => {
+    const t = task.trim();
+    if (!t) { setError("先写一句话告诉我你要什么"); return; }
+    setClarifyTask(t);
+  }, [task]);
 
   // RoutePlanner「我来挑部门/路线」→ 按指定 route/部门/轮数发起
   const runWithRoute = useCallback((p: RunParams) => {
@@ -913,6 +920,15 @@ export function BeeSwarmShell() {
         {view === "thread" && (
           <div className="composer-wrap">{composer}</div>
         )}
+
+        {/* 意图澄清弹窗: 发送后先结构化追问(标签/滑杆/分段/排序/补充), 答完拼进 task 再开跑 */}
+        <ClarifyAndPlanModal
+          backendUrl={backendUrl}
+          task={clarifyTask || ""}
+          open={clarifyTask != null}
+          onCancel={() => setClarifyTask(null)}
+          onConfirm={(ft) => { setClarifyTask(null); proposePlan(ft); }}
+        />
 
         {/* 设置 / 个人 整页 (覆盖 main; 隐藏顶栏场景 pill, 自带返回钮). 只换皮+绑现有状态, 逻辑不动 */}
         {(view === "settings" || view === "profile") && (
