@@ -255,10 +255,20 @@ async def mcp_probe(payload: dict[str, Any] = Body(default={})) -> dict[str, Any
     return await mcp_client.probe(sid)
 
 
+def _token_from_request(request: Request) -> str:
+    authz = request.headers.get("authorization", "")
+    if authz.lower().startswith("bearer "):
+        return authz[7:].strip()
+    return request.cookies.get("hsemas_token", "") or request.query_params.get("token", "")
+
+
 @app.get("/api/auth/status")
-def auth_status() -> dict[str, bool]:
-    """前端据此决定是否弹登录框 (enabled=false 时直接进主界面)."""
-    return {"enabled": auth_enabled()}
+def auth_status(request: Request) -> dict[str, bool]:
+    """前端据此决定是否弹登录框. authed=True 表示本次请求(cookie/Bearer)已通过 →
+    即使 localStorage 被清(手机 Safari 常见), 只要 30 天 cookie 还在就免再登录."""
+    enabled = auth_enabled()
+    authed = verify_token(_token_from_request(request)) if enabled else False
+    return {"enabled": enabled, "authed": authed}
 
 
 @app.post("/api/auth/login")
@@ -279,7 +289,13 @@ def auth_login(request: Request, payload: dict[str, Any] = Body(default={})) -> 
         _t.sleep(0.4)  # 失败再稍作延迟, 进一步拖慢爆破
         raise HTTPException(status_code=401, detail="密码错误")
     record_login_success(ip)
-    return {"token": make_token(), "enabled": True}
+    token = make_token()
+    # 同时下发 30 天 cookie(服务器下发, 不受 Safari ITP 7 天清除影响) → 记住设备一个月。
+    # 不设 Secure: 兼容局域网 http 访问; HttpOnly + SameSite=Lax 防 XSS/CSRF。Token 本身 HMAC 签名。
+    resp = JSONResponse({"token": token, "enabled": True})
+    resp.set_cookie("hsemas_token", token, max_age=30 * 86_400,
+                    httponly=True, samesite="lax", path="/")
+    return resp
 
 
 # ============ v6-D 七剑客工具 (BeeServiceClient) ============

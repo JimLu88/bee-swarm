@@ -38,8 +38,9 @@ export function AuthGate({ children }: { children: ReactNode }) {
         setPhase("ready"); // 未设密码 (或解析失败) → 直接进
         return;
       }
-      // 有 Token → 先进; 若已失效, 首个 API 请求 401 会把用户拉回登录.
-      setPhase(getAuthToken() ? "ready" : "login");
+      // 服务端确认已登录(30 天 cookie/Bearer 有效)或本地有 token → 直接进;
+      // 这样手机 Safari 清掉 localStorage 后, 只要 cookie 还在(同一网址)就免再登录。
+      setPhase((j.authed || getAuthToken()) ? "ready" : "login");
     } catch {
       // 后端暂时连不上时不挡用户 (避免白屏), 让主界面自行提示连接问题.
       setPhase("ready");
