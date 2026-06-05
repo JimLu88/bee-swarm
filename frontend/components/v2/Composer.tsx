@@ -133,6 +133,7 @@ export function Composer({
           <div style={{ position: "relative" }}>
             <button
               type="button"
+              className="comp-chip"
               onClick={() => { setEffOpen((v) => !v); setFwOpen(false); }}
               title="选模型档位 + 思考深度"
               style={{
@@ -143,8 +144,8 @@ export function Composer({
               }}
             >
               <Icon name="tune" />
-              思考深度
-              <Icon name={effOpen ? "expand_less" : "expand_more"} />
+              <span className="comp-chip-tx">思考深度</span>
+              <Icon name={effOpen ? "expand_less" : "expand_more"} className="comp-chip-chev" />
             </button>
             {effOpen && (
               <>
@@ -180,6 +181,7 @@ export function Composer({
             <div style={{ position: "relative" }}>
               <button
                 type="button"
+                className="comp-chip"
                 onClick={() => { setFwOpen((v) => !v); setEffOpen(false); }}
                 title="思维框架 (空=AI自动按任务选, 也可手动指定)"
                 style={{
@@ -191,8 +193,8 @@ export function Composer({
                   color: sel.length ? "var(--accent)" : "var(--text-dim)",
                 }}
               >
-                🧠 思维·{fwSummary}
-                <Icon name={fwOpen ? "expand_less" : "expand_more"} />
+                🧠<span className="comp-chip-tx"> 思维·{fwSummary}</span>
+                <Icon name={fwOpen ? "expand_less" : "expand_more"} className="comp-chip-chev" />
               </button>
               {fwOpen && (
                 <>

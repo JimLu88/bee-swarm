@@ -593,6 +593,14 @@ body.rail-collapsed .rail { width: 0; margin-left: -1px; overflow: hidden; }
   .answer h3 { font-size: 22px; }
   .answer h4 { font-size: 16.5px; }
   .composer { padding: 0 4px; }
+  /* 手机版输入框: 扁条不换行, 思考深度/思维 收成纯图标(点开仍是原弹层) */
+  .composer-wrap { padding: 8px 10px calc(12px + env(safe-area-inset-bottom)); }
+  .comp-box { padding: 6px; border-radius: 22px; }
+  .comp-input { font-size: 16px; padding: 8px 4px 2px 8px; }  /* 16px 防 iOS 聚焦自动放大 */
+  .comp-bottom { flex-wrap: nowrap; gap: 6px; }
+  .comp-chip { padding: 7px 9px !important; }
+  .comp-chip-tx, .comp-chip-chev { display: none !important; }
+  .comp-ico, .send { width: 38px; height: 38px; }
 
   /* 指标/操作/建议 → 自适应窄屏 */
   .kpis { grid-template-columns: repeat(2, 1fr) !important; }
