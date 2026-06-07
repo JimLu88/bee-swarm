@@ -4,7 +4,7 @@
 """
 from __future__ import annotations
 
-import sqlite3, time, uuid, importlib
+import sqlite3, time, uuid, importlib, json, os
 from pathlib import Path
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
@@ -38,6 +38,45 @@ EVOLVERS = [
     ("p18_capability_radar", "能力雷达 (扫前沿→差距分析→升级提案, 全部待审)", "L8"),
     ("p19_dev_evolve",     "开发模式自进化 (满8次→提议改dev_sop/晋升learnings, 全待审)", "L7"),
 ]
+
+
+# ===== 自演化跑动频率 (设置页可点选, 存挂载目录 → 改了实时生效, 不用重建镜像) =====
+def _sched_config_path() -> Path:
+    """优先存进挂载的 backend/data (实时/持久); 取不到则退回本模块 data 目录."""
+    try:
+        from ..runtime_paths import backend_data_dir
+        return backend_data_dir() / "schedule_config.json"
+    except Exception:
+        return DB_PATH.parent / "schedule_config.json"
+
+
+def _load_interval_days() -> int:
+    """读自动跑间隔(天). 优先 schedule_config.json, 再退环境变量, 默认 3. 夹在 1..30."""
+    p = _sched_config_path()
+    try:
+        if p.is_file():
+            n = int(json.loads(p.read_text(encoding="utf-8")).get("evolver_interval_days", 3))
+            return min(30, max(1, n))
+    except Exception:
+        pass
+    try:
+        return min(30, max(1, int(os.environ.get("BEE_EVOLVER_INTERVAL_DAYS", "3"))))
+    except Exception:
+        return 3
+
+
+def _save_interval_days(n: int) -> None:
+    p = _sched_config_path()
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps({"evolver_interval_days": int(n)}, ensure_ascii=False, indent=2),
+                 encoding="utf-8")
+
+
+def _interval_trigger(n: int):
+    """n=1 每天 02:00; n>1 每 n 天 02:00."""
+    from apscheduler.triggers.cron import CronTrigger
+    return (CronTrigger(hour=2, minute=0) if n <= 1
+            else CronTrigger(day=f"*/{n}", hour=2, minute=0))
 
 
 # v5-F 升级日志 + 一键回滚 端点 (在末尾追加, 避免循环 import)
@@ -195,12 +234,14 @@ def start_scheduler() -> dict:
         return {"started": False, "reason": "apscheduler_not_installed",
                 "hint": "pip install apscheduler"}
     sch = AsyncIOScheduler()
-    sch.add_job(_run_all_evolvers_serial, CronTrigger(hour=2, minute=0),
+    _days = _load_interval_days()   # 设置页可点选的频率(天), 默认每 3 天 02:00
+    sch.add_job(_run_all_evolvers_serial, _interval_trigger(_days),
                 id="ev_all_02", replace_existing=True)
     # v15: 已移除 20:00 知识梳理 cron (它用 LLM 把联网新知写进 bee-memory = 自动灌书, 有花费)。
     sch.start()
     _SCHEDULER = sch
-    return {"started": True, "cron": "evolvers@02:00",
+    return {"started": True, "cron": f"evolvers@02:00 每{_days}天",
+            "interval_days": _days,
             "evolvers": [e for e, _, _ in EVOLVERS]}
 
 
@@ -221,6 +262,47 @@ def scheduler_status() -> dict:
         "jobs": [{"id": j.id, "next_run": str(j.next_run_time)}
                  for j in (_SCHEDULER.get_jobs() if _SCHEDULER else [])],
     }
+
+
+def _ev_next_run() -> str | None:
+    if _SCHEDULER is None:
+        return None
+    for j in _SCHEDULER.get_jobs():
+        if j.id == "ev_all_02":
+            return str(j.next_run_time)
+    return None
+
+
+@coordinator_router.get("/schedule-config")
+def get_schedule_config() -> dict:
+    """设置页读取: 当前自动跑频率(天) + 下次时间 + 可选项."""
+    return {"interval_days": _load_interval_days(), "next_run": _ev_next_run(),
+            "options": [1, 3, 7], "hour_utc": 2}
+
+
+class ScheduleConfigIn(BaseModel):
+    interval_days: int
+
+
+@coordinator_router.post("/schedule-config")
+def set_schedule_config(req: ScheduleConfigIn) -> dict:
+    """设置页保存: 写配置 + 动态重排已运行的调度(立即生效, 不用重启容器)."""
+    n = min(30, max(1, int(req.interval_days)))
+    _save_interval_days(n)
+    rescheduled = False
+    if _SCHEDULER is not None:
+        try:
+            _SCHEDULER.reschedule_job("ev_all_02", trigger=_interval_trigger(n))
+            rescheduled = True
+        except Exception:
+            try:
+                _SCHEDULER.add_job(_run_all_evolvers_serial, _interval_trigger(n),
+                                   id="ev_all_02", replace_existing=True)
+                rescheduled = True
+            except Exception:
+                rescheduled = False
+    return {"saved": True, "interval_days": n, "rescheduled": rescheduled,
+            "next_run": _ev_next_run()}
 
 
 # v5-F 升级日志 + 一键回滚 端点

@@ -41,6 +41,7 @@ const HIGHLIGHT_EVOLVERS: Record<string, { emoji: string; cost_hint: string }> =
 export function CoordinatorPanel() {
   const [evolvers, setEvolvers] = useState<Evolver[]>([]);
   const [sched, setSched] = useState<SchedulerStatus | null>(null);
+  const [intervalDays, setIntervalDays] = useState<number>(3);
   const [running, setRunning] = useState<string | null>(null);
   const [lastResult, setLastResult] = useState<{ id: string; ok: boolean; msg: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -49,12 +50,14 @@ export function CoordinatorPanel() {
   const reload = useCallback(async () => {
     setError(null);
     try {
-      const [statusRes, schRes] = await Promise.all([
+      const [statusRes, schRes, cfgRes] = await Promise.all([
         fetchWithTimeout(`${backendUrl}/coordinator/status`, undefined, TIMEOUT_MS.default),
         fetchWithTimeout(`${backendUrl}/coordinator/scheduler-status`, undefined, TIMEOUT_MS.default),
+        fetchWithTimeout(`${backendUrl}/coordinator/schedule-config`, undefined, TIMEOUT_MS.default),
       ]);
       if (statusRes.ok) setEvolvers((await statusRes.json()).evolvers || []);
       if (schRes.ok) setSched(await schRes.json());
+      if (cfgRes.ok) setIntervalDays((await cfgRes.json()).interval_days ?? 3);
     } catch (e) {
       setError((e as Error).message);
     }
@@ -81,6 +84,27 @@ export function CoordinatorPanel() {
     }
   }, [backendUrl]);
 
+  const changeInterval = useCallback(async (n: number) => {
+    setIntervalDays(n);
+    setError(null);
+    try {
+      const res = await fetchWithTimeout(`${backendUrl}/coordinator/schedule-config`,
+        { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ interval_days: n }) }, TIMEOUT_MS.default);
+      if (res.ok) {
+        const j = await res.json();
+        if (j.next_run) {
+          setSched((s) => ({ running: s?.running ?? true,
+            jobs: [{ id: "ev_all_02", next_run: j.next_run }] }));
+        }
+      } else {
+        setError(`保存频率失败 ${res.status}`);
+      }
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, [backendUrl]);
+
   return (
     <div style={card}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -89,6 +113,18 @@ export function CoordinatorPanel() {
           {sched?.running ? "✅ Cron 运行中" : "⏸ Cron 未启动"}
           {sched?.jobs?.[0] && ` · 下次 ${sched.jobs[0].next_run.slice(0, 16)}`}
         </div>
+      </div>
+
+      <div style={row}>
+        <div style={{ fontSize: 12 }}>⏱ 自动跑频率 <span style={{ opacity: 0.55, fontSize: 10 }}>(改了即时生效)</span></div>
+        <select value={intervalDays} onChange={(e) => changeInterval(Number(e.target.value))}
+                style={{ fontSize: 12, padding: "3px 8px", borderRadius: 4, cursor: "pointer",
+                         borderWidth: 1, borderStyle: "solid", borderColor: "var(--border)",
+                         background: "var(--bg-subtle)", color: "inherit" }}>
+          <option value={1}>每天</option>
+          <option value={3}>每 3 天</option>
+          <option value={7}>每周</option>
+        </select>
       </div>
 
       {error && <div style={{ fontSize: 12, color: "#f44336" }}>⚠ {error}</div>}
@@ -124,7 +160,7 @@ export function CoordinatorPanel() {
       })}
 
       <div style={{ fontSize: 11, opacity: 0.55, marginTop: 4 }}>
-        💡 Cron 每天 02:00 串行跑 P0-P16。手动触发不影响 cron。
+        💡 Cron 每 {intervalDays} 天 02:00 串行跑 P0-P16。上方改频率即时生效、无需重启。手动触发不影响 cron。
       </div>
     </div>
   );
