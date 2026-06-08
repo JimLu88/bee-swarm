@@ -84,10 +84,15 @@ def _dining_head_model(dept: str, *, full_power: bool) -> str:
     全力档 → 50% opus-4.7 / 50% deepseek-pro; 中档 → 1/3 opus / 2/3 deepseek-pro.
     用强模型给一部分主管把关, 其余用高性价比 pro, 整体质量与成本平衡.
     """
+    import os as _os_hd
     opus = "openai/claude-opus-4-7"
     pro = "openai/deepseek-v4-pro"
     bucket = int(hashlib.md5(dept.encode("utf-8")).hexdigest(), 16) % 100
-    threshold = 50 if full_power else 34  # 全力 50% opus; 中档 ~1/3 opus
+    try:
+        _med = max(0, min(100, int(_os_hd.environ.get("BEE_DINING_OPUS_PCT", "50"))))
+    except Exception:
+        _med = 50
+    threshold = 60 if full_power else _med  # 全力 60% opus; 中档默认 50% (env BEE_DINING_OPUS_PCT 可调)
     return opus if bucket < threshold else pro
 
 
@@ -417,9 +422,12 @@ async def _run_dept(
                         f"可用工具(可选, 不需要也行):\n{tools_brief}\n\n"
                         "【输出铁律】consensus 必须是你作为本领域专家、针对用户问题给出的"
                         "直接、具体、可落地的答案本身(真实的名称/地点/做法/数字/步骤), 像当面回答客户。"
+                        "【篇幅要够】consensus 至少 500 字: 把每个推荐项展开讲透——具体名称/地址/人均/"
+                        "必点或关键做法/为什么/适合谁/什么场合, 给足干货密度, 严禁一两句话敷衍了事。"
                         "严禁任何过程性元话语——不要提'我的人设/RAG/知识库匹不匹配/要不要调用工具/"
                         "任务是否命中关键词/本部门职责'这类内部机制, 用户只看结论。"
-                        "conflicts 只写你与其他视角真正的分歧点(一句一条)。\n"
+                        "conflicts 可留空, 或一句话点出你与主流看法的关键不同即可"
+                        "(跨部门的真正分歧由 CEO 统一提炼, 这里不必展开、不要凑泛泛对立)。\n"
                         "请只输出 JSON, 格式如下:\n"
                         "{\n"
                         '  "consensus": "直接给具体答案本身, 不要写任何过程/机制的话",\n'
@@ -727,11 +735,14 @@ async def finalize_decision_bundle(
                     "严格按以下顺序输出, **把最重要的结论放最前面**, 让用户一眼看到核心:\n\n"
                     "## 一句话钦定\n先用 1 句给出你作为决策者的最终主张(今天就去哪/怎么选)。\n\n"
                     "## 总研判(放最前面)\n把所有建议直接分三档, 让用户秒懂:\n"
-                    "  - 🟢 强烈推荐: 3-5 个, 每个一行=名称 + 一句为什么 + **评分**(大众点评X分 / TripAdvisor Y / 小红书约N人推荐口碑Z)\n"
+                    "  - 🟢 强烈推荐: 3-5 个, 每个一行=名称 + 一句为什么 + **评分**(优先用上面「真实高德 POI 评分/人均」, 标来源「高德」; 高德没有的标「(评分待核实)」, 小红书/网络口碑作补充, 不要编)\n"
                     "  - 🟡 可选(看场景): 每个一句话点评 + 评分\n"
                     "  - 🔴 不建议: 每个一句话说清为什么别去\n\n"
                     "## 推荐方向详解 (5-8 条)\n每条 = 具体建议(店名/地址/人均/必点) + 为什么 + 适合谁/什么场合 + **三平台评分**(点评/TripAdvisor/小红书口碑: 约N人推荐、几条好评几条说踩雷); 其中至少 2-3 条要'不普通'(冷门/特色/反常规)。\n\n"
                     "## 我对各部门的研判\n对部门建议逐条/分组表态——采纳/反驳/加强/补充 + 一句理由(禁止只复述)。\n\n"
+                    "## ⚖ 关键分歧\n只写部门之间**真正互相矛盾**的点(如 A 部门力荐某店、B 部门说别去, 或"
+                    "'图便宜实惠'vs'重体验氛围'的实质对立), 并给出你的裁决与理由。没有真冲突就写"
+                    "'各部门方向一致, 无重大分歧'。**不要罗列泛泛的'成本vs质量'套话。**\n\n"
                     "## 补充(部门没提但重要的)\n1-3 点。\n\n"
                     "## ⚠ 风险避雷 (3-5 条)\n踩雷店/预制菜/性价比虚高/排队/卫生/已关店等。\n\n"
                     "评分查不到标'(评分待核实)'不要编; 会过期的事实(营业/价格)标「(需最新核实)」。要有干货密度和你的主观判断, 不要流水账。\n"
@@ -740,7 +751,7 @@ async def finalize_decision_bundle(
                 ceo_output_spec = (
                     "现在按上面 SOP, 直接输出最终回答 (中文, markdown 可用).\n"
                     "- 若部门意见一致 → 综合成一段\n"
-                    "- 若有重要冲突 → 指出冲突并给推荐方案 (附 1-2 句理由)\n"
+                    "- ⚖ 关键分歧: 若部门之间有真正互相矛盾的主张, 单列一段点明并给你的裁决; 无真冲突则不写此段 (不要凑泛泛对立)\n"
                     "- 红队风险单独最后一段 ⚠ 标出 (无风险则省略此段)\n"
                 )
             # v13 #2 长期记忆: 注入用户画像 (让 CEO 认识你, 建议更贴合; 关开关/为空则不注入)
@@ -749,6 +760,23 @@ async def finalize_decision_bundle(
                 _user_profile_block = _fmt_profile()
             except Exception:
                 _user_profile_block = ""
+            # v3 餐饮/地点真实评分: CEO 综合前取高德 POI 评分/人均注入, 让 CEO 按真分排序而非编造 (best-effort)
+            _amap_ratings_block = ""
+            try:
+                from .geocoder import GEO_SCENES as _geo_scenes, gather_ratings_brief as _grb
+                if mode_id in _geo_scenes:
+                    from .media_aggregator import gather_media_cards as _gmc_pre
+                    _pre_cards = await _gmc_pre(task, mode_id, decision_id=decision_id)  # 命中缓存, 不重爬
+                    _amap_ratings_block = await _grb(mode_id=mode_id, media_cards=_pre_cards)
+            except Exception:
+                _amap_ratings_block = ""
+            # v? 技能复用: 把 p3 蒸馏的历史 SOP 中命中当前任务的注入 CEO, 闭合"沉淀→复用"回路 (best-effort)
+            _skills_block = ""
+            try:
+                from .skills_store import match_skills as _msk, format_skills_brief as _fsk
+                _skills_block = _fsk(_msk(task, mode_id, k=3))
+            except Exception:
+                _skills_block = ""
             ceo_prompt = (
                 (sop_section + "\n---\n\n" if sop_section else "")
                 + (ceo_framework_brief + "\n" if ceo_framework_brief else "")
@@ -756,6 +784,8 @@ async def finalize_decision_bundle(
                 + (_user_profile_block + "\n" if _user_profile_block else "")
                 + f"用户任务: {task}\n\n"
                 + f"以下是 {len(reports)} 个部门的独立意见:\n\n{dept_views}\n\n"
+                + (_amap_ratings_block + "\n\n" if _amap_ratings_block else "")
+                + (_skills_block + "\n\n" if _skills_block else "")
                 + ceo_output_spec
             )
             # v13 复杂题 (算账/比合同/多步推导) → 切推理模型, 原 CEO 模型留作 fallback (失败自动退回).

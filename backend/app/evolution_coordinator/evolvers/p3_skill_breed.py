@@ -8,7 +8,7 @@ from ._utils import (
 
 SKILLS_FILE = DATA_ROOT / "skills_registry.jsonl"
 GOOD_CONF = 0.75
-MAX_DISTILL = 3
+MAX_DISTILL = 8  # 每轮蒸馏上限 (技能现已被 skills_store 接进决策路由, 放宽产出)
 
 
 def run() -> dict:

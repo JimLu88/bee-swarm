@@ -54,6 +54,9 @@ class BeeServiceClient:
         self.input_url = os.environ.get("BEE_INPUT_URL", "http://127.0.0.1:8008")
         self.ledger_url = os.environ.get("BEE_LEDGER_URL", "http://127.0.0.1:8001")
         self.memory_url = os.environ.get("BEE_MEMORY_URL", "http://127.0.0.1:8004")
+        self.wechat_url = os.environ.get("BEE_WECHAT_URL", "http://127.0.0.1:8010")
+        self.supervisor_url = os.environ.get("BEE_SUPERVISOR_URL", "http://127.0.0.1:8410")
+        self.media_url = os.environ.get("BEE_MEDIA_URL", "http://127.0.0.1:8009")
         self.timeout = DEFAULT_TIMEOUT
 
     def _post(self, service: str, base: str, path: str,
@@ -154,6 +157,62 @@ class BeeServiceClient:
 
     def input_type(self, text: str) -> dict[str, Any]:
         return self._post("input", self.input_url, "/input/type", {"text": str(text)})
+
+    # input 总闸 (8008): 紧急 kill-switch, off 时所有真实点击/输入被拦
+    def input_master_get(self) -> dict[str, Any]:
+        return self._get("input", self.input_url, "/input/master")
+
+    def input_master_set(self, enabled: bool) -> dict[str, Any]:
+        return self._post("input", self.input_url, "/input/master", {"enabled": bool(enabled)})
+
+    # vision locate (8006): 一句话 → 可点击屏幕坐标 (OCR 优先 → 视觉 grounding)
+    def locate(self, target: str, *, image_b64: str = "", monitor: int = 1,
+               model: str = "", try_ocr_first: bool = True) -> dict[str, Any]:
+        return self._post("vision", self.vision_url, "/vision/locate",
+                          {"target": target, "image_b64": image_b64, "monitor": int(monitor),
+                           "model": model, "try_ocr_first": bool(try_ocr_first)}, timeout=120)
+
+    # input UIA (8008): 读原生程序控件树, 按 名字/类型 定位/点击 (不靠 OCR, 最准)
+    def uia_find(self, title_contains: str, *, name: str = "",
+                 control_type: str = "") -> dict[str, Any]:
+        return self._post("input", self.input_url, "/input/uia_find",
+                          {"title_contains": title_contains, "name": name,
+                           "control_type": control_type})
+
+    def uia_click(self, title_contains: str, *, name: str = "", control_type: str = "",
+                  button: str = "left", double: bool = False) -> dict[str, Any]:
+        return self._post("input", self.input_url, "/input/uia_click",
+                          {"title_contains": title_contains, "name": name,
+                           "control_type": control_type, "button": button, "double": bool(double)})
+
+    # light-exec 浏览器自动化 (8007): Playwright DOM 优先 + 视觉兜底
+    def web_automation(self, spec: dict[str, Any]) -> dict[str, Any]:
+        return self._post("light_exec", self.light_url, "/light_exec/run",
+                          {"ability": "web_template", "spec": spec}, timeout=180)
+
+    # wechat — 微信自动聊天 (8010, 跑在 PC 桌面). NAS 仅转发: 配置/启停/状态/待确认。
+    def wechat_get(self, path: str, timeout: float | None = None) -> dict[str, Any]:
+        return self._get("wechat", self.wechat_url, path, timeout=timeout)
+
+    def wechat_post(self, path: str, body: dict[str, Any] | None = None,
+                    timeout: float | None = None) -> dict[str, Any]:
+        return self._post("wechat", self.wechat_url, path, body or {}, timeout=timeout)
+
+    # supervisor — PC 管家 (8410, 跑在 PC). NAS 仅转发: 看 PC 手脚/爬虫服务状态 + 一键启停。
+    def sup_get(self, path: str, timeout: float | None = None) -> dict[str, Any]:
+        return self._get("supervisor", self.supervisor_url, path, timeout=timeout)
+
+    def sup_post(self, path: str, body: dict[str, Any] | None = None,
+                 timeout: float | None = None) -> dict[str, Any]:
+        return self._post("supervisor", self.supervisor_url, path, body or {}, timeout=timeout)
+
+    # media — 媒体爬虫 (8009, 跑在 PC). NAS 仅转发: cookie 读写 (填 cookie 界面共用单一数据源)。
+    def media_get(self, path: str, timeout: float | None = None) -> dict[str, Any]:
+        return self._get("media", self.media_url, path, timeout=timeout)
+
+    def media_post(self, path: str, body: dict[str, Any] | None = None,
+                   timeout: float | None = None) -> dict[str, Any]:
+        return self._post("media", self.media_url, path, body or {}, timeout=timeout)
 
     # ledger (8001)
     def ledger_status(self) -> dict[str, Any]:
