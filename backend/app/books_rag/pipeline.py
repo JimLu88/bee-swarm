@@ -42,9 +42,7 @@ def extract_text(path: Path) -> str:
         if ext in ("txt", "md", "log"):
             return path.read_text(encoding="utf-8", errors="replace")
         if ext == "pdf":
-            from pypdf import PdfReader
-            rdr = PdfReader(str(path))
-            return "\n".join((p.extract_text() or "") for p in rdr.pages)
+            return _extract_pdf(path)
         if ext == "docx":
             from docx import Document
             doc = Document(str(path))
@@ -54,6 +52,27 @@ def extract_text(path: Path) -> str:
     except Exception:  # noqa: BLE001  坏文件不挂整批
         return ""
     return ""
+
+
+def _extract_pdf(path: Path) -> str:
+    """PDF 解析:优先 PyMuPDF(fitz,快且极少死循环),逐页容错;失败回退 pypdf。"""
+    try:
+        import fitz  # PyMuPDF
+        out: List[str] = []
+        with fitz.open(str(path)) as doc:
+            for page in doc:
+                try:
+                    out.append(page.get_text())
+                except Exception:
+                    continue
+        return "\n".join(out)
+    except Exception:
+        try:
+            from pypdf import PdfReader
+            rdr = PdfReader(str(path))
+            return "\n".join((p.extract_text() or "") for p in rdr.pages)
+        except Exception:
+            return ""
 
 
 def _extract_epub(path: Path) -> str:

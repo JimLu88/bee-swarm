@@ -17,6 +17,18 @@ _CODE_MODEL = os.environ.get("BEE_DEV_CODE_MODEL", "")  # 空=用 claude CLI 默
 _POLL_INTERVAL = 6.0
 _MAX_WAIT = float(os.environ.get("BEE_DEV_CODE_MAX_WAIT", "900"))  # claude 最长等待秒
 
+# 配额信号兜底(agent_hands 已透传 quota_hit; 这里再按文本兜一层, 兼容旧服务)
+_QUOTA_MARKERS = (
+    "usage limit", "rate limit", "rate_limit", "quota", "429", "exceeded your",
+    "try again later", "too many requests", "weekly limit", "5-hour limit",
+    "4-hour limit", "reached your", "upgrade your plan", "limit reached", "overloaded",
+)
+
+
+def _looks_like_quota(text: str) -> bool:
+    t = (text or "").lower()
+    return any(m in t for m in _QUOTA_MARKERS)
+
 
 def _build_prompt(*, spec: str, sop_hint: str, constraint_text: str) -> str:
     parts = []
@@ -31,8 +43,15 @@ def _build_prompt(*, spec: str, sop_hint: str, constraint_text: str) -> str:
 
 
 async def run_task(*, spec: str, sop_hint: str = "", constraint_text: str = "",
-                   workdir: str, model: str = "") -> dict[str, Any]:
-    """让 claude 在 workdir 写码。返回 {ok, claude_status, output, error}。"""
+                   workdir: str, model: str = "", dev_id: str = "") -> dict[str, Any]:
+    """让 claude 在 workdir 写码。返回 {ok, paused, stopped, claude_status, output, error}。
+
+    - STOP: 提交前/轮询中检测 dev_state.is_stopped() → agent_cancel 真杀 + 返回 stopped。
+    - 配额: agent_hands 透传 quota_hit(或 stderr 像配额)→ 返回 paused(上游存档暂停, 不算失败)。
+    """
+    from . import dev_state
+    if dev_state.is_stopped():
+        return {"ok": False, "stopped": True, "error": "已停止(STOP)"}
     prompt = _build_prompt(spec=spec, sop_hint=sop_hint, constraint_text=constraint_text)
     try:
         sub = await asyncio.to_thread(
@@ -44,27 +63,43 @@ async def run_task(*, spec: str, sop_hint: str = "", constraint_text: str = "",
     if not task_id:
         return {"ok": False, "error": f"agent_task 无 task_id: {str(sub)[:200]}"}
 
-    waited = 0.0
-    last: dict[str, Any] = {}
-    while waited < _MAX_WAIT:
-        await asyncio.sleep(_POLL_INTERVAL)
-        waited += _POLL_INTERVAL
-        try:
-            last = await asyncio.to_thread(bee_clients.agent_status, task_id)
-        except Exception:
-            continue
-        status = str(last.get("status") or "")
-        if status in ("done", "failed", "error"):
-            break
-    status = str(last.get("status") or "timeout")
-    output = (last.get("stdout_tail") or "")
-    return {
-        "ok": status == "done",
-        "task_id": task_id,
-        "claude_status": status,
-        "output": output[-8000:],
-        "error": (last.get("error") or last.get("stderr_tail") or "")[:1000] if status != "done" else "",
-    }
+    dev_state.register_task(dev_id, task_id)
+    try:
+        waited = 0.0
+        last: dict[str, Any] = {}
+        while waited < _MAX_WAIT:
+            await asyncio.sleep(_POLL_INTERVAL)
+            waited += _POLL_INTERVAL
+            if dev_state.is_stopped():
+                try:
+                    await asyncio.to_thread(bee_clients.agent_cancel, task_id)
+                except Exception:
+                    pass
+                return {"ok": False, "stopped": True, "task_id": task_id,
+                        "claude_status": "cancelled", "error": "已停止(STOP)"}
+            try:
+                last = await asyncio.to_thread(bee_clients.agent_status, task_id)
+            except Exception:
+                continue
+            status = str(last.get("status") or "")
+            if status in ("done", "failed", "error", "cancelled"):
+                break
+        status = str(last.get("status") or "timeout")
+        output = (last.get("stdout_tail") or "")
+        quota = status != "done" and (
+            bool(last.get("quota_hit"))
+            or _looks_like_quota((last.get("stderr_tail") or "") + "\n" + (last.get("error") or "")))
+        return {
+            "ok": status == "done",
+            "paused": quota,
+            "reason": "quota" if quota else "",
+            "task_id": task_id,
+            "claude_status": status,
+            "output": output[-8000:],
+            "error": (last.get("error") or last.get("stderr_tail") or "")[:1000] if status != "done" else "",
+        }
+    finally:
+        dev_state.unregister_task(dev_id, task_id)
 
 
 async def run_tests(*, workdir: str, test_cmd: list[str] | None) -> dict[str, Any]:

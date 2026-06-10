@@ -141,6 +141,11 @@ class BeeServiceClient:
         return self._post("agent_hands", self.hands_url,
                           f"/agent_hands/hitl/{task_id}/approve")
 
+    def agent_cancel(self, task_id: str) -> dict[str, Any]:
+        """硬取消一个 agent 任务(真杀 claude 子进程)。开发模式 STOP 键用。"""
+        return self._post("agent_hands", self.hands_url,
+                          f"/agent_hands/task/{task_id}/cancel")
+
     def agent_exec(self, command: list[str], *, workdir: str = "", timeout: int = 180) -> dict[str, Any]:
         """白名单命令直执行 (跑测试 / git worktree): 开发模式用. claude shell 被拦时走这个."""
         return self._post("agent_hands", self.hands_url, "/agent_hands/exec",

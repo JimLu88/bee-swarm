@@ -96,6 +96,23 @@ from .runtime_paths import backend_data_dir
 _DATA_DIR = backend_data_dir()
 
 
+async def _quota_probe_loop() -> None:
+    """配额自动探针: 周期检查暂停的 dev session, 距上次撞配额超过阈值就乐观续跑(又撞会自动再暂停)。
+    零探测成本(不额外发 claude 调用), 纯时间推断 claude 周/4-5小时配额窗口已过。"""
+    import time as _t
+    interval = int(os.environ.get("BEE_DEV_PROBE_INTERVAL", "1800"))
+    retry_after = int(os.environ.get("BEE_DEV_QUOTA_RETRY_AFTER", "5400"))
+    while True:
+        await asyncio.sleep(interval)
+        try:
+            from .dev_mode import dev_state, session as dev_session
+            for d in dev_state.list_paused():
+                if _t.time() - int(d.get("paused_ts", 0) or 0) >= retry_after:
+                    asyncio.create_task(dev_session.resume_dev_session(str(d.get("dev_id", ""))))
+        except Exception:
+            pass
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     # v6 修脱节 #2: 启 APScheduler 让 P0-P16 evolvers 02:00 每天自动跑
@@ -105,6 +122,11 @@ async def lifespan(_app: FastAPI):
     except Exception:
         pass
     # v15: 已移除启动自动灌库 —— 知识库一律由人工撰写后离线导入, 程序绝不自动灌书。
+    # 开发模式配额自动探针(暂停的 dev session 到点自动续跑)
+    try:
+        asyncio.create_task(_quota_probe_loop())
+    except Exception:
+        pass
     yield
     try:
         from .evolution_coordinator.coordinator import stop_scheduler
@@ -1025,7 +1047,7 @@ async def decision_start(req: DecisionStartRequest) -> dict[str, str]:
     decision_id = "dec-" + uuid.uuid4().hex[:12]
 
     async def _bg() -> None:
-        await run_decision(decision_id=decision_id, task=req.task, mode_id=req.mode_id, debate_rounds=req.debate_rounds, thinking_frameworks=req.thinking_frameworks, tier=req.tier, images=req.images, files=[f.model_dump() for f in req.files], route=req.route, departments_override=req.departments_override)
+        await run_decision(decision_id=decision_id, task=req.task, mode_id=req.mode_id, debate_rounds=req.debate_rounds, thinking_frameworks=req.thinking_frameworks, tier=req.tier, images=req.images, files=[f.model_dump() for f in req.files], route=req.route, departments_override=req.departments_override, lane=req.lane)
 
     asyncio.create_task(_bg())
     return {"decision_id": decision_id}
@@ -1055,6 +1077,35 @@ def decision_feedback(req: DecisionFeedbackRequest) -> dict[str, Any]:
         reward=req.reward,
     )
     return {"ok": True, "recorded": result}
+
+
+@app.post("/api/decision/refine")
+async def decision_refine(payload: dict = Body(default={})) -> dict[str, str]:
+    """#3 结果修正: 基于上一轮(问题+AI答案)+ 用户的纠正, 快速重出修正版。
+    默认走 ceo_only 轻量路线 (不重新全员辩论), 省时省钱。"""
+    p = payload or {}
+    correction = str(p.get("correction") or "").strip()
+    if not correction:
+        raise HTTPException(422, "correction 不能为空")
+    mode_id = str(p.get("mode_id") or "").strip() or "generic_consulting"
+    prior_task = str(p.get("prior_task") or "").strip()
+    prior_answer = str(p.get("prior_answer") or "").strip()
+    route = str(p.get("route") or "ceo_only").strip() or "ceo_only"
+    refine_task = (
+        (f"我之前的问题:\n{prior_task[:1500]}\n\n" if prior_task else "")
+        + (f"上一轮 AI 给出的答案:\n{prior_answer[:3500]}\n\n" if prior_answer else "")
+        + f"我的修正/补充要求:\n{correction}\n\n"
+        "请基于上一轮答案 + 我的修正, 直接给出修正后、更贴合我需求的答案"
+        "(针对我指出的问题改进, 不要简单复述原答案)。"
+    )
+    decision_id = "dec-" + uuid.uuid4().hex[:12]
+
+    async def _bg() -> None:
+        await run_decision(decision_id=decision_id, task=refine_task,
+                           mode_id=mode_id, route=route)
+
+    asyncio.create_task(_bg())
+    return {"decision_id": decision_id}
 
 
 @app.get("/api/sop/bandit/{mode_id}")
@@ -1245,6 +1296,52 @@ async def dev_human_test(payload: dict = Body(default={})) -> dict[str, Any]:
     return await human_tester.run_human_test(test_points=points, dev_id=dev_id, max_steps=max_steps)
 
 
+@app.post("/api/dev/stop")
+async def dev_stop(payload: dict = Body(default={})) -> dict[str, Any]:
+    """STOP 键: 置全局停止信号 + 真杀所有在途 claude 任务(agent-hands /cancel)。立即生效。"""
+    from .dev_mode import dev_state
+    from .tools.seven_clients import bee_clients
+    dev_state.request_stop()
+    cancelled: list[str] = []
+    for _d_id, t_id in dev_state.active_task_ids():
+        try:
+            await asyncio.to_thread(bee_clients.agent_cancel, t_id)
+            cancelled.append(t_id)
+        except Exception:
+            pass
+    return {"stopped": True, "cancelled_tasks": cancelled, "count": len(cancelled)}
+
+
+@app.post("/api/dev/{dev_id}/resume")
+async def dev_resume(dev_id: str) -> dict[str, Any]:
+    """续跑一个配额暂停的 dev session(后台跑, 前端连原 WS 看进度)。"""
+    from .dev_mode import session as dev_session, dev_state
+    if not dev_state.load_pause(dev_id):
+        raise HTTPException(status_code=404, detail={"error": "no_paused_session", "dev_id": dev_id})
+
+    async def _bg() -> None:
+        try:
+            await dev_session.resume_dev_session(dev_id)
+        except Exception as e:
+            try:
+                bus.publish(StreamEvent(type="dev_error", decision_id=dev_id, payload={"error": repr(e)}))
+            except Exception:
+                pass
+
+    asyncio.create_task(_bg())
+    return {"dev_id": dev_id, "resuming": True}
+
+
+@app.get("/api/dev/paused")
+def dev_paused() -> dict[str, Any]:
+    """列出所有配额暂停、待续跑的 dev session(前端给手动继续按钮)。"""
+    from .dev_mode import dev_state
+    items = dev_state.list_paused()
+    return {"paused": [{"dev_id": d.get("dev_id"), "paused_at": d.get("paused_at"),
+                        "remaining": len(d.get("remaining_task_ids", [])),
+                        "raw_request": (d.get("raw_request", "") or "")[:120]} for d in items]}
+
+
 # ============================================================
 # v4-B  /api/decision/estimate  + /api/llm/price-card  (新增)
 # ============================================================
@@ -1359,6 +1456,18 @@ app.include_router(learning_router)
 # v6-RAG 书库管理 (/api/books/*): 扫描/灌库/导出书单/合法书源下载
 from .books_api import router as books_router  # noqa: E402
 app.include_router(books_router)
+
+# 微信自动聊天循环代理 (/api/wechat/**) — 转发到 PC 桌面 bee-wechat 服务 (8010)
+from .wechat_api import router as wechat_router  # noqa: E402
+app.include_router(wechat_router)
+
+# 服务运行状态 + 一键启停 (/api/services/**) — 群晖容器只读探活 + 转发 PC 管家 (8410) 启停
+from .services_api import router as services_router  # noqa: E402
+app.include_router(services_router)
+
+# 爬虫 Cookie 管理 (/api/cookies/**) — 转发到 PC 媒体爬虫 (8009), 与 PC 自带页共用同一份 cookie 文件
+from .cookies_api import router as cookies_router  # noqa: E402
+app.include_router(cookies_router)
 
 
 # ============ v6-O bee-memory 代理 (解决前端跨域 + bearer 问题) ============
