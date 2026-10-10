@@ -23,6 +23,9 @@ KINDS = ["feature", "bugfix", "refactor", "test"]
 _EPSILON = 0.08      # 探索率
 _DECAY = 0.99        # 旧数据时间衰减
 _PRIOR = 1.0         # Beta(1,1) 均匀先验
+# 进化层#3 冷启动: 该 kind 的总样本 < 此阈值时, bandit 还是噪声 → 固定用稳健默认变体, 不乱推荐
+_COLD_START_MIN = 10
+_DEFAULT_VARIANT = "fix_loop"  # 冷启动期最稳的打法(改→测→修循环)
 
 
 def _path() -> Path:
@@ -60,16 +63,22 @@ def recommend(kind: str) -> dict[str, Any]:
     stats: list[dict[str, Any]] = []
     best_v, best_sample = SOP_VARIANTS[0], -1.0
     explore = random.random() < _EPSILON
+    total_n = 0
     for v in SOP_VARIANTS:
         a = arms.get(_arm_key(kind, v), {})
         alpha = float(a.get("alpha", _PRIOR))
         beta = float(a.get("beta", _PRIOR))
         n = int(a.get("n", 0))
+        total_n += n
         sample = random.random() if explore else random.betavariate(max(alpha, 1e-6), max(beta, 1e-6))
         mean = alpha / (alpha + beta) if (alpha + beta) > 0 else 0.5
         stats.append({"variant": v, "mean": round(mean, 3), "n": n})
         if sample > best_sample:
             best_sample, best_v = sample, v
+    # 冷启动: 样本不足时 bandit 是噪声, 固定用稳健默认变体(仍照常 record 攒数据)
+    if total_n < _COLD_START_MIN:
+        return {"variant": _DEFAULT_VARIANT, "kind": kind, "explore": False,
+                "cold_start": True, "samples": total_n, "arms": stats}
     return {"variant": best_v, "kind": kind, "explore": explore, "arms": stats}
 
 

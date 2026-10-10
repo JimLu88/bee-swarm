@@ -191,20 +191,38 @@ def _write_ingested(store: BookStore, titles: set[str]) -> None:
 
 
 # ---------- 检索 ----------
+_STORE_CACHE: list = []  # 缓存 BookStore 单例: 9.36GB 库 + sqlite_vec 只开一次, 后续 retrieve 复用
+
+
+def invalidate_store_cache() -> None:
+    """替换 books.sqlite / 重灌后调用: 关旧连接并清缓存, 下次 retrieve 重新打开新库。"""
+    while _STORE_CACHE:
+        try:
+            _STORE_CACHE.pop().close()
+        except Exception:
+            pass
+
+
+def _get_cached_store() -> BookStore:
+    """返回常驻 BookStore(按建库 dim 开, 已加载 sqlite_vec)。避免每次 retrieve 重开大库(主要延迟来源)。"""
+    if _STORE_CACHE:
+        return _STORE_CACHE[0]
+    probe = BookStore(_db_path(), None)
+    row = probe.db.execute("SELECT v FROM meta WHERE k='dim'").fetchone()
+    probe.close()
+    dim = int(row["v"]) if row else None
+    store = BookStore(_db_path(), dim)
+    _STORE_CACHE.append(store)
+    return store
+
+
 def retrieve(query: str, scenario: Optional[str] = None, k: int = 5) -> List[dict]:
     emb = get_embedder()
-    # 用建库时的 dim 打开(读 meta),保证 vec 扩展正确加载
-    probe = BookStore(_db_path(), None)
-    stored_dim = probe.db.execute("SELECT v FROM meta WHERE k='dim'").fetchone()
-    probe.close()
-    dim = int(stored_dim["v"]) if stored_dim else None
-    store = BookStore(_db_path(), dim)
+    store = _get_cached_store()  # 常驻连接, 不每次重开 9.36GB 库
     q_emb = None
-    if emb and dim and emb.dim == dim:
+    if emb and store.dim and emb.dim == store.dim:
         q_emb = emb.encode([query])[0]
-    res = store.hybrid_search(query, q_emb, k=k, scenario=scenario)
-    store.close()
-    return res
+    return store.hybrid_search(query, q_emb, k=k, scenario=scenario)
 
 
 def ingest_cards(force: bool = False) -> dict:
@@ -243,19 +261,21 @@ def ingest_cards(force: bool = False) -> dict:
     return {"new_cards": len(metas), **st}
 
 
-def retrieve_context(query: str, scenario: Optional[str] = None, k: int = 3,
-                     max_chars: int = 1200) -> str:
-    """给决策流用:检索命中书摘 → 拼成可注入 prompt 的文本块。
-    库不存在或无命中 → 返回空串(绝不影响决策)。"""
+def retrieve_context_with_refs(query: str, scenario: Optional[str] = None, k: int = 3,
+                               max_chars: int = 1200) -> tuple[str, List[dict]]:
+    """给决策流用:检索命中书摘 → (可注入 prompt 的文本块, 结构化引用列表)。
+    引用列表给前端「📚 引用书目」面板: [{title, author, scenario, snippet, score}]。
+    库不存在或无命中 → ("", [])(绝不影响决策)。"""
     try:
         if not _db_path().exists():
-            return ""
+            return "", []
         hits = retrieve(query, scenario=scenario, k=k)
     except Exception:
-        return ""
+        return "", []
     if not hits:
-        return ""
+        return "", []
     lines = ["[书库检索 — 来自已灌入的真实书籍, 请优先据此作答, 并在结论中标注引用的书名]"]
+    refs: List[dict] = []
     used = 0
     for h in hits:
         seg = " ".join((h.get("content") or "").split())[:400]
@@ -264,7 +284,17 @@ def retrieve_context(query: str, scenario: Optional[str] = None, k: int = 3,
             break
         lines.append(piece)
         used += len(piece)
-    return "\n".join(lines)
+        refs.append({"title": h.get("title", ""), "author": h.get("author", ""),
+                     "scenario": h.get("scenario", ""), "snippet": seg[:200],
+                     "score": h.get("score", 0)})
+    return "\n".join(lines), refs
+
+
+def retrieve_context(query: str, scenario: Optional[str] = None, k: int = 3,
+                     max_chars: int = 1200) -> str:
+    """向后兼容包装: 只要文本块。"""
+    text, _refs = retrieve_context_with_refs(query, scenario=scenario, k=k, max_chars=max_chars)
+    return text
 
 
 # ---------- CLI ----------
@@ -282,7 +312,12 @@ def main():
         for r in retrieve(a.query, a.scenario, a.k):
             print(f"[{r['score']}] 《{r['title']}》{r['scenario']}\n  {r['content'][:120]}...\n")
     elif a.cmd == "stats":
-        s = BookStore(_db_path(), None); print(json.dumps(s.stats(), ensure_ascii=False)); s.close()
+        # 代码层#3: 先读建库 dim 再开, 否则 dim=None 永远报 vector:false(误导)
+        _probe = BookStore(_db_path(), None)
+        _row = _probe.db.execute("SELECT v FROM meta WHERE k='dim'").fetchone()
+        _probe.close()
+        _dim = int(_row["v"]) if _row else None
+        s = BookStore(_db_path(), _dim); print(json.dumps(s.stats(), ensure_ascii=False)); s.close()
 
 
 if __name__ == "__main__":

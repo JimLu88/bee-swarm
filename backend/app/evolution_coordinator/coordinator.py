@@ -11,7 +11,12 @@ from pydantic import BaseModel
 
 coordinator_router = APIRouter()
 
-DB_PATH = Path(__file__).parent / "data" / "evolution_history.sqlite"
+# v16: 进化日志挪到挂载卷(backend/data) — 原先在镜像内, 每次 rebuild 历史清零(仪表盘数据被抹)
+try:
+    from ..runtime_paths import backend_data_dir as _bdd
+    DB_PATH = _bdd() / "evolution_history.sqlite"
+except Exception:
+    DB_PATH = Path(__file__).parent / "data" / "evolution_history.sqlite"
 DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 
 
@@ -51,18 +56,18 @@ def _sched_config_path() -> Path:
 
 
 def _load_interval_days() -> int:
-    """读自动跑间隔(天). 优先 schedule_config.json, 再退环境变量, 默认 3. 夹在 1..30."""
+    """读自动跑间隔(天). 优先 schedule_config.json, 再退环境变量, 默认 7(每周). 夹在 1..30."""
     p = _sched_config_path()
     try:
         if p.is_file():
-            n = int(json.loads(p.read_text(encoding="utf-8")).get("evolver_interval_days", 3))
+            n = int(json.loads(p.read_text(encoding="utf-8")).get("evolver_interval_days", 7))
             return min(30, max(1, n))
     except Exception:
         pass
     try:
-        return min(30, max(1, int(os.environ.get("BEE_EVOLVER_INTERVAL_DAYS", "3"))))
+        return min(30, max(1, int(os.environ.get("BEE_EVOLVER_INTERVAL_DAYS", "7"))))
     except Exception:
-        return 3
+        return 7
 
 
 def _save_interval_days(n: int) -> None:
@@ -103,15 +108,56 @@ def _conn() -> sqlite3.Connection:
     return c
 
 
+def _evolver_stats() -> dict[str, dict]:
+    """从 evolution_log 聚合每个 evolver 的真实运行情况(仪表盘数据源)。"""
+    out: dict[str, dict] = {}
+    try:
+        with _conn() as c:
+            c.row_factory = sqlite3.Row
+            cutoff = int(time.time()) - 30 * 86400
+            for r in c.execute(
+                "SELECT evolver, MAX(ts) last_ts, COUNT(*) n, "
+                "SUM(CASE WHEN status='error' THEN 1 ELSE 0 END) n_err, "
+                "SUM(CASE WHEN status='skipped' THEN 1 ELSE 0 END) n_skip, "
+                "SUM(CASE WHEN summary LIKE '%proposal%' OR summary LIKE '%pending%' "
+                "         OR summary LIKE '%提案%' THEN 1 ELSE 0 END) n_prop "
+                "FROM evolution_log WHERE ts>=? GROUP BY evolver", (cutoff,)):
+                out[r["evolver"]] = {
+                    "last_run": time.strftime("%Y-%m-%d %H:%M", time.localtime(r["last_ts"])),
+                    "runs_30d": int(r["n"]), "errors_30d": int(r["n_err"] or 0),
+                    "skipped_30d": int(r["n_skip"] or 0), "proposals_30d": int(r["n_prop"] or 0),
+                }
+    except Exception:
+        pass
+    return out
+
+
+def _is_low_yield(evolver: str, st: dict | None) -> bool:
+    """降频淘汰: 最近30天跑过>=4次、零提案、非全错 → 低产出, 自动降为每月一跑。"""
+    if not st:
+        return False
+    real_runs = int(st.get("runs_30d", 0)) - int(st.get("skipped_30d", 0))
+    return real_runs >= 4 and int(st.get("proposals_30d", 0)) == 0
+
+
 @coordinator_router.get("/status")
 def status() -> dict:
-    """各 evolver 状态 + 最近运行."""
+    """各 evolver 状态 + 最近运行(真实数据, 供进化器仪表盘)."""
+    stats = _evolver_stats()
+    days = _load_interval_days()
     return {
         "evolvers": [
-            {"id": e, "label": label, "layer": layer, "last_run": None, "budget_yuan": 30}
+            {"id": e, "label": label, "layer": layer, "budget_yuan": 30,
+             "last_run": (stats.get(e) or {}).get("last_run"),
+             "runs_30d": (stats.get(e) or {}).get("runs_30d", 0),
+             "errors_30d": (stats.get(e) or {}).get("errors_30d", 0),
+             "proposals_30d": (stats.get(e) or {}).get("proposals_30d", 0),
+             "low_yield": _is_low_yield(e, stats.get(e))}
             for e, label, layer in EVOLVERS
         ],
-        "schedule": "daily 02:00 (cron)",
+        "schedule": f"every {days}d 02:00 (cron)",
+        "interval_days": days,
+        "low_yield_policy": "30天内真实跑>=4次且零提案 → 降为每月一跑(每月1-7日才执行)",
         "priority_order": "宪法 > 架构 > 技能 > 记忆 > Prompt",
         "shadow_validation": "60 任务 A/B + SWE-bench-mini + 24h KPI",
     }
@@ -177,9 +223,18 @@ _SCHEDULER = None
 
 
 def _run_all_evolvers_serial() -> None:
-    """02:00 cron 调用. 串行 P0→P16, 间隔 60 秒, 失败不影响下一个."""
+    """02:00 cron 调用. 串行 P0→P19, 间隔 60 秒, 失败不影响下一个.
+    降频淘汰: low_yield(30天>=4次零提案)的 evolver 只在每月 1-7 日那轮跑."""
     import importlib, time as _t
+    stats = _evolver_stats()
+    day_of_month = int(_t.strftime("%d"))
     for evolver, _label, _layer in EVOLVERS:
+        if _is_low_yield(evolver, stats.get(evolver)) and day_of_month > 7:
+            with _conn() as c:
+                c.execute("INSERT INTO evolution_log VALUES (?,?,?,?,?,?,?)",
+                          ("ev-skip-" + uuid.uuid4().hex[:10], int(_t.time()), evolver,
+                           "skipped", "low_yield 降频: 仅每月1-7日运行", "cron", ""))
+            continue
         try:
             mod = importlib.import_module(f"app.evolution_coordinator.evolvers.{evolver}")
             out = mod.run()
@@ -277,7 +332,7 @@ def _ev_next_run() -> str | None:
 def get_schedule_config() -> dict:
     """设置页读取: 当前自动跑频率(天) + 下次时间 + 可选项."""
     return {"interval_days": _load_interval_days(), "next_run": _ev_next_run(),
-            "options": [1, 3, 7], "hour_utc": 2}
+            "options": [1, 3, 7, 14], "hour_utc": 2}
 
 
 class ScheduleConfigIn(BaseModel):

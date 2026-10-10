@@ -9,7 +9,7 @@ import time
 import uuid
 from typing import Any
 
-from .thinking_frameworks import build_framework_brief
+from .thinking_frameworks import build_framework_brief, resolve_framework_ids, render_framework_brief
 
 # v8 思维框架: run_decision 把用户显式选的框架放进 contextvar, _run_dept/finalize 读出来;
 # 没显式选则按 task 关键词自动选 (见 thinking_frameworks.select_framework_ids).
@@ -331,7 +331,7 @@ async def _run_dept(
     differential_brief = build_differential_brief(mode_id, dept)
 
     # v8: 思维框架 (第一性原理/逆向/六顶帽 等) 真注入. 用户显式选优先, 否则按 task 关键词自动选.
-    framework_brief = build_framework_brief(task, _active_frameworks.get() or None)
+    framework_brief = render_framework_brief(_active_frameworks.get())
 
     # v6-D 真工具: 把 BeeServiceClient 工具清单露给 LLM, 让它可选择性 tool_calls
     bee_tools_safe = list_bee_tools(include_sensitive=False)
@@ -642,6 +642,7 @@ async def finalize_decision_bundle(
     reports: list[DeptLeadReport],
 ) -> DecisionSummary:
     """CEO 汇总、执行包、落盘与 decision_done 事件（供 LangGraph finalize 节点与单测复用）。"""
+    books_refs_used: list[dict[str, Any]] = []  # v16 书库引用留痕(CEO 召回命中) → summary.books_refs
     depts = [r.dept for r in reports]
     heatmap = [
         HeatmapCell(
@@ -703,7 +704,7 @@ async def finalize_decision_bundle(
             except Exception:
                 sop_section = ""
 
-            ceo_framework_brief = build_framework_brief(task, _active_frameworks.get() or None)
+            ceo_framework_brief = render_framework_brief(_active_frameworks.get())
             # v8: CEO 综合阶段也召回知识库 (CEO 那 80 本: 决策/战略/沟通管理), 之前完全没接.
             ceo_kb_section = ""
             try:
@@ -712,12 +713,14 @@ async def finalize_decision_bundle(
                 ceo_kb_section = _fmt_kb(_ceo_bundle)
             except Exception:
                 ceo_kb_section = ""
-            # v6-RAG: CEO 也接书库向量检索 (跨部门真书), 追加到知识段
+            # v6-RAG: CEO 也接书库向量检索 (跨部门真书), 追加到知识段; v16 引用留痕给前端
             try:
-                from .books_rag.pipeline import retrieve_context as _books_ctx
-                _ceo_books = _books_ctx(task, scenario=mode_id, k=4)
+                from .books_rag.pipeline import retrieve_context_with_refs as _books_ctx_refs
+                _ceo_books, _refs = _books_ctx_refs(task, scenario=mode_id, k=4)
                 if _ceo_books:
                     ceo_kb_section = f"{ceo_kb_section}\n\n{_ceo_books}" if ceo_kb_section else _ceo_books
+                if _refs:
+                    books_refs_used.extend(_refs)
             except Exception:
                 pass
             # v6-RAG #2: CEO 也接联网实时增强(env 开关)
@@ -753,6 +756,8 @@ async def finalize_decision_bundle(
                     "- 若部门意见一致 → 综合成一段\n"
                     "- ⚖ 关键分歧: 若部门之间有真正互相矛盾的主张, 单列一段点明并给你的裁决; 无真冲突则不写此段 (不要凑泛泛对立)\n"
                     "- 红队风险单独最后一段 ⚠ 标出 (无风险则省略此段)\n"
+                    "- 末尾固定加一行「**置信度: X.X/10** — 前提: ①… ②… ③…」: 给出你对本结论的置信分(0-10)\n"
+                    "  和最多三个**一旦不成立结论就会改变**的关键前提; 若证据明显薄弱(信源少/相互矛盾), 置信度必须 ≤5 并注明「⚠ 证据薄弱」.\n"
                 )
             # v13 #2 长期记忆: 注入用户画像 (让 CEO 认识你, 建议更贴合; 关开关/为空则不注入)
             try:
@@ -936,6 +941,7 @@ async def finalize_decision_bundle(
         media_cards=media_cards,
         map_places=map_places,
         source_consensus=source_consensus,
+        books_refs=books_refs_used,
     )
 
     bus.publish(StreamEvent(type="decision_done", decision_id=decision_id, payload={"summary": summary.model_dump()}))
@@ -1107,7 +1113,7 @@ async def ceo_preflight(*, task: str, mode_id: str, images: list[str] | None = N
     }
 
 
-async def run_decision(*, decision_id: str, task: str, mode_id: str, debate_rounds: int = 1, thinking_frameworks: list[str] | None = None, tier: str = "A", images: list[str] | None = None, files: list[dict[str, Any]] | None = None, route: str = "all", departments_override: list[str] | None = None) -> DecisionSummary:
+async def run_decision(*, decision_id: str, task: str, mode_id: str, debate_rounds: int = 1, thinking_frameworks: list[str] | None = None, tier: str = "A", images: list[str] | None = None, files: list[dict[str, Any]] | None = None, route: str = "all", departments_override: list[str] | None = None, lane: str = "auto") -> DecisionSummary:
     """决策主链路：LangGraph 三节点编排（dispatcher → 并行部门 → finalize）.
 
     v6-W: tier=A 高档旗舰 / B 便宜云 / C 本地 ollama (限并发 2)
@@ -1125,7 +1131,46 @@ async def run_decision(*, decision_id: str, task: str, mode_id: str, debate_roun
 
     # v8: 把用户显式选的思维框架放进 contextvar, 供 _run_dept/finalize 注入 prompt;
     # 空列表时 _run_dept 会按 task 关键词自动选 (trigger_keywords).
-    _active_frameworks.set(list(thinking_frameworks or []))
+    # 三态: None=按关键词自动选 / []=用户明确不用 / [..]=手动指定 (一次性解析, 下游 render 不再二次选)
+    _active_frameworks.set(resolve_framework_ids(task, thinking_frameworks))
+
+    # 车道分流(多入口): 轻车道 chat/answer/act → CEO 直答(ceo_only); deliberate → 保持传入 route;
+    # auto → 默认偏轻(只有战略性长任务才升级到审议, 其余走联网快答 answer). act 暂等同 answer 路由(Phase C 接管前兜底).
+    requested_lane = (lane or "auto").lower()
+    lane = requested_lane
+    if lane == "auto":
+        try:
+            from .dispatcher import classify_task as _classify
+            lane = "deliberate" if _classify(task).get("level") == "strategic" else "answer"
+        except Exception:
+            lane = "answer"
+    # 决策层#1 lane 分类留痕: 记录 requested(用户/auto) vs resolved, 供每周复盘错分率
+    # (用户手动改道=requested!=auto; 轻答后点「深入」=同 task 再来一条 requested=deliberate)
+    try:
+        import json as _json, time as _time
+        from .runtime_paths import backend_data_dir
+        with (backend_data_dir() / "lane_audit.jsonl").open("a", encoding="utf-8") as _f:
+            _f.write(_json.dumps({"ts": _time.strftime("%Y-%m-%dT%H:%M:%S"),
+                                  "decision_id": decision_id, "task": task[:200],
+                                  "requested": requested_lane, "resolved": lane,
+                                  "route": route, "mode_id": mode_id},
+                                 ensure_ascii=False) + "\n")
+    except Exception:
+        pass
+    if lane == "act":
+        # 执行车道: 走单 agent 工具执行环, 不进决策管道(不爬虫/不开部门)
+        from .action_lane import run_action
+        return await run_action(decision_id=decision_id, task=task,
+                                mode_id=mode.mode_id, mode_label=mode.label)
+    if lane == "answer":
+        # 问答车道: 联网搜索 → 带引用直答, 比 ceo_only 更轻
+        from .answer_lane import run_answer
+        return await run_answer(decision_id=decision_id, task=task,
+                                mode_id=mode.mode_id, mode_label=mode.label)
+    if lane == "chat":
+        route = "ceo_only"
+    bus.publish(StreamEvent(type="lane_resolved", decision_id=decision_id,
+                            payload={"lane": lane, "route": route}))
     _full_power_cv.set(int(debate_rounds or 1) >= 3)  # 全力档(3轮) → 真·三派; 其余 → prompt 版
 
     # v6-Y 文档附件: 解析成文字拼到 task 前面 (内部 task 字符串无 20k 限制).

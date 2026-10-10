@@ -20,7 +20,7 @@ class BookStore:
     def __init__(self, db_path: str | Path, dim: Optional[int] = None):
         self.path = str(db_path)
         Path(self.path).parent.mkdir(parents=True, exist_ok=True)
-        self.db = sqlite3.connect(self.path)
+        self.db = sqlite3.connect(self.path, check_same_thread=False)  # 允许缓存连接跨线程读
         self.db.row_factory = sqlite3.Row
         self.vector_enabled = bool(dim)
         if self.vector_enabled:
@@ -99,21 +99,37 @@ class BookStore:
     def hybrid_search(self, query: str, query_emb: Optional[List[float]] = None,
                       k: int = 5, scenario: Optional[str] = None, pool: int = 30) -> List[dict]:
         ranks: dict[int, float] = {}
-        # 1) 向量召回
+        # scenario 前置过滤: 先用 SQL 缩小候选 rowid 集(百万级→万级), KNN/FTS 都在子集里跑, 快一个量级
+        id_sub = ""
+        sub_arg: tuple = ()
+        if scenario:
+            id_sub = " AND rowid IN (SELECT id FROM chunks WHERE scenario LIKE ?)"
+            sub_arg = (f"%{scenario}%",)
+        # 1) 向量召回 (sqlite-vec 支持 rowid IN 下推预过滤)
         if self.vector_enabled and query_emb is not None:
             try:
                 rows = self.db.execute(
-                    "SELECT rowid, distance FROM vec_chunks WHERE embedding MATCH ? ORDER BY distance LIMIT ?",
-                    (serialize_f32(query_emb), pool)).fetchall()
+                    f"SELECT rowid, distance FROM vec_chunks WHERE embedding MATCH ?{id_sub} "
+                    "ORDER BY distance LIMIT ?",
+                    (serialize_f32(query_emb), *sub_arg, pool)).fetchall()
                 for rank, r in enumerate(rows):
                     ranks[r["rowid"]] = ranks.get(r["rowid"], 0.0) + 1.0 / (RRF_K + rank)
             except Exception:
-                pass
-        # 2) 关键词召回
+                # 老版 sqlite-vec 不支持 rowid IN → 回退全量 KNN(靠下方事后过滤兜底)
+                try:
+                    rows = self.db.execute(
+                        "SELECT rowid, distance FROM vec_chunks WHERE embedding MATCH ? ORDER BY distance LIMIT ?",
+                        (serialize_f32(query_emb), pool)).fetchall()
+                    for rank, r in enumerate(rows):
+                        ranks[r["rowid"]] = ranks.get(r["rowid"], 0.0) + 1.0 / (RRF_K + rank)
+                except Exception:
+                    pass
+        # 2) 关键词召回 (FTS5 同样支持 rowid 约束)
         try:
             rows = self.db.execute(
-                "SELECT rowid, rank FROM fts_chunks WHERE fts_chunks MATCH ? ORDER BY rank LIMIT ?",
-                (self._fts_query(query), pool)).fetchall()
+                f"SELECT rowid, rank FROM fts_chunks WHERE fts_chunks MATCH ?{id_sub} "
+                "ORDER BY rank LIMIT ?",
+                (self._fts_query(query), *sub_arg, pool)).fetchall()
             for rank, r in enumerate(rows):
                 ranks[r["rowid"]] = ranks.get(r["rowid"], 0.0) + 1.0 / (RRF_K + rank)
         except Exception:

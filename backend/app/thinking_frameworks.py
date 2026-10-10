@@ -62,6 +62,33 @@ def select_framework_ids(task: str, explicit: list[str] | None = None,
     return [fid for _, fid in scored[:max_n]]
 
 
+def resolve_framework_ids(task: str, requested: list[str] | None) -> list[str]:
+    """三态解析(一次性, 决策入口调用):
+      requested is None  → 用户未指定 → 按 task 关键词自动选 (≤MAX_FRAMEWORKS)
+      requested == []    → 用户明确"不用" → 返回空(不注入任何框架)
+      requested == [..]  → 用户手动指定 → 校验存在后用之
+    """
+    if requested is None:
+        return select_framework_ids(task, None)
+    fw = _load_all()
+    return [fid for fid in requested if fid in fw][:MAX_FRAMEWORKS]
+
+
+def render_framework_brief(ids: list[str]) -> str:
+    """按已解析好的 id 列表渲染注入文字(不再二次自动选). 空列表 → 空串."""
+    fw = _load_all()
+    blocks: list[str] = []
+    for fid in ids or []:
+        data = fw.get(fid) or {}
+        name = data.get("name") or fid
+        sp = (data.get("system_prompt") or "").strip()
+        if sp:
+            blocks.append(f"【{name}】{sp}")
+    if not blocks:
+        return ""
+    return "【思维框架要求 (本题适用, 请在分析中显式运用)】\n" + "\n".join(blocks) + "\n"
+
+
 def build_framework_brief(task: str, explicit: list[str] | None = None) -> str:
     """拼成注入文字. 没选中任何框架 → 返回空串 (普通任务不啰嗦)."""
     fw = _load_all()

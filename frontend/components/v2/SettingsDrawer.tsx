@@ -16,6 +16,9 @@ import { ScenarioYamlAuthor } from "./advanced/ScenarioYamlAuthor";
 import { SandboxPanel } from "./engineer/SandboxPanel";
 import { ShadowABPanel } from "./engineer/ShadowABPanel";
 import { CoordinatorPanel } from "./engineer/CoordinatorPanel";
+import { WeChatPanel } from "./engineer/WeChatPanel";
+import { ServicePanel } from "./engineer/ServicePanel";
+import { CookiePanel } from "./engineer/CookiePanel";
 import { LogsPanel } from "./LogsPanel";
 import { PendingChangesDrawer } from "./PendingChangesDrawer";
 import { ModePicker, BUILTIN_MODES } from "./ModePicker";
@@ -24,7 +27,7 @@ import { ModelBadgeBar } from "./ModelBadgeBar";
 import { ScenarioWizard } from "./ScenarioWizard";
 import { BooksPanel } from "./BooksPanel";
 
-type Tab = "scenario" | "ai" | "mcp" | "dev" | "memory" | "books" | "advanced" | "tech";
+type Tab = "scenario" | "ai" | "thinking" | "mcp" | "dev" | "wechat" | "services" | "cookie" | "memory" | "books" | "advanced" | "tech";
 
 const TAB_LS_KEY = "h-semas:settings:tab";
 const DETAILS_LS_KEY = "h-semas:settings:details";
@@ -52,6 +55,8 @@ type Props = {
   frameworks: string[];
   aiFrameworks: string[];
   onToggleFramework: (id: string) => void;
+  frameworkMode: "auto" | "custom";
+  onSetFrameworkMode: (m: "auto" | "custom") => void;
   /** v6-S/C 父级要求强制打开某个 tab (如点"复习"→memory) */
   initialTab?: Tab;
   /** v7 场景 tab: 当前场景 + 切换回调 */
@@ -113,11 +118,11 @@ function Wrap({ children }: { children: ReactNode }) {
 }
 
 export function SettingsDrawer(props: Props) {
-  const { open, onClose, backendUrl, frameworks, aiFrameworks, onToggleFramework, initialTab, mode, onSelectMode } = props;
+  const { open, onClose, backendUrl, frameworks, aiFrameworks, onToggleFramework, frameworkMode, onSetFrameworkMode, initialTab, mode, onSelectMode } = props;
   const [tab, setTab] = useState<Tab>(() => {
     if (typeof window === "undefined") return "scenario";
     const saved = window.localStorage.getItem(TAB_LS_KEY) as Tab | null;
-    return saved && ["scenario", "ai", "memory", "books", "advanced", "tech"].includes(saved) ? saved : "scenario";
+    return saved && ["scenario", "ai", "thinking", "memory", "books", "advanced", "tech"].includes(saved) ? saved : "scenario";
   });
   const [details, setDetails] = useState<DetailsState>(loadDetails);
   const [wizardOpen, setWizardOpen] = useState(false);
@@ -162,11 +167,23 @@ export function SettingsDrawer(props: Props) {
           <button type="button" style={tabBtn(tab === "ai")} onClick={() => setTab("ai")}>
             🧠 AI 大脑
           </button>
+          <button type="button" style={tabBtn(tab === "thinking")} onClick={() => setTab("thinking")}>
+            🧩 思维模式
+          </button>
           <button type="button" style={tabBtn(tab === "mcp")} onClick={() => setTab("mcp")}>
             🔌 工具 (MCP)
           </button>
           <button type="button" style={tabBtn(tab === "dev")} onClick={() => setTab("dev")}>
             🛠 开发模式
+          </button>
+          <button type="button" style={tabBtn(tab === "wechat")} onClick={() => setTab("wechat")}>
+            💬 微信
+          </button>
+          <button type="button" style={tabBtn(tab === "services")} onClick={() => setTab("services")}>
+            🚀 服务
+          </button>
+          <button type="button" style={tabBtn(tab === "cookie")} onClick={() => setTab("cookie")}>
+            🍪 Cookie
           </button>
           <button type="button" style={tabBtn(tab === "memory")} onClick={() => setTab("memory")}>
             💾 记忆 & 备份
@@ -247,32 +264,76 @@ export function SettingsDrawer(props: Props) {
             </Wrap>
           )}
 
+          {tab === "wechat" && (
+            <Wrap>
+              <div style={sectionTitle}>让蜂群替你自动聊微信 (跑在登录了微信的 PC 上; 默认"建议确认"最稳)</div>
+              <WeChatPanel backendUrl={backendUrl} />
+            </Wrap>
+          )}
+
+          {tab === "services" && (
+            <Wrap>
+              <div style={sectionTitle}>看群晖蜂群 + PC 手脚爬虫的运行状态; PC 侧可隔着网页一键启停 (不用登录 PC)</div>
+              <ServicePanel backendUrl={backendUrl} />
+            </Wrap>
+          )}
+
+          {tab === "cookie" && (
+            <Wrap>
+              <div style={sectionTitle}>爬虫各平台 cookie 在这里改 (失效了直接换); 和 PC 爬虫自带页同一份</div>
+              <CookiePanel backendUrl={backendUrl} />
+            </Wrap>
+          )}
+
+          {tab === "thinking" && (
+            <Wrap>
+              <div style={sectionTitle}>🧩 思维模式</div>
+              <div style={{ fontSize: 12, color: "var(--text-dim)", lineHeight: 1.6, marginBottom: 12 }}>
+                给顾问/CEO 注入特定"思考方法"(第一性原理 / 逆向 / 六顶帽 / 预死亡分析 …)。
+                默认让 AI 按每次任务自动选最合适的;也可固定指定,或完全不用。
+              </div>
+              <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+                {(["auto", "custom"] as const).map((m) => (
+                  <button key={m} type="button" onClick={() => onSetFrameworkMode(m)}
+                    style={{
+                      flex: 1, padding: "8px 10px", borderRadius: 8, cursor: "pointer", fontSize: 13,
+                      borderWidth: 1, borderStyle: "solid",
+                      borderColor: frameworkMode === m ? "var(--accent)" : "var(--border)",
+                      background: frameworkMode === m ? "var(--accent-bg)" : "var(--bg-card)",
+                      color: frameworkMode === m ? "var(--accent)" : "var(--text)",
+                      fontWeight: frameworkMode === m ? 600 : 400,
+                    }}>
+                    {m === "auto" ? "🤖 AI 自动 (默认)" : "✋ 自定义"}
+                  </button>
+                ))}
+              </div>
+              {frameworkMode === "auto" ? (
+                <div style={{ fontSize: 12, color: "var(--text-dim)", lineHeight: 1.6, padding: 10, borderRadius: 8, background: "var(--info-bg)" }}>
+                  AI 蜂枢会根据每次任务自动选 0–2 个最合适的思维方法,无需你操心。
+                  {aiFrameworks && aiFrameworks.length > 0 && (
+                    <div style={{ marginTop: 6, color: "var(--accent)" }}>
+                      💡 当前输入它倾向于: {aiFrameworks.join("、")}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <div style={{ fontSize: 12, color: "var(--text-dim)", lineHeight: 1.6, marginBottom: 8 }}>
+                    勾选要<b>强制使用</b>的思维方法;<b>全不勾 = 本次不使用任何思维方法</b>(发给 AI 时按"无"处理)。
+                  </div>
+                  <ThinkingFrameworksPanel
+                    enabled={frameworks} aiPicked={aiFrameworks}
+                    onToggle={onToggleFramework} />
+                </>
+              )}
+            </Wrap>
+          )}
+
           {tab === "advanced" && (
             <Wrap>
               <div style={sectionTitle}>3 个"想干预 AI 时才用"的工具</div>
 
-              <details open={details.think} onToggle={onToggleDetails("think")} style={{
-                padding: 12, borderRadius: 8,
-                background: "var(--bg-subtle)",
-                borderWidth: 1, borderStyle: "solid",
-                borderColor: "var(--border)",
-              }}>
-                <summary style={{ cursor: "pointer", fontSize: 13, fontWeight: 600, color: "var(--info)" }}>
-                  🧠 思考方法 (默认 AI 自己选, 一般不用动)
-                </summary>
-                <div style={{
-                  fontSize: 11, color: "var(--text-dim)", marginTop: 8, marginBottom: 10,
-                  lineHeight: 1.6, padding: 8, borderRadius: 4,
-                  background: "var(--info-bg)",
-                }}>
-                  <b>这是什么:</b> 8 套思考方法 (Chain-of-Thought / Tree-of-Thoughts / Self-Ask / Reflexion ...).
-                  AI 蜂枢会根据你的任务自动选 0-2 个最合适的, 不需要你操心.
-                  <br/><b>什么时候动手:</b> 你想强制让 AI 用某个特定方法时.
-                </div>
-                <ThinkingFrameworksPanel
-                  enabled={frameworks} aiPicked={aiFrameworks}
-                  onToggle={onToggleFramework} />
-              </details>
+              {/* 🧠 思考方法 已挪到独立的「🧩 思维模式」tab, 此处不再重复 */}
 
               <details open={details.gene} onToggle={onToggleDetails("gene")} style={{
                 padding: 12, borderRadius: 8,

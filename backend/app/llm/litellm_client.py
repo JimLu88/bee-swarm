@@ -125,6 +125,7 @@ class LiteLlmClient:
         fallbacks: list[str] | None = None,
         system: str | None = None,
         images: list[str] | None = None,
+        caller: str = "",
     ) -> LlmResponse:
         """v6-X: ``images`` 非空时按 OpenAI 多模态格式拼 user content.
         调方 (decision_engine._run_dept) 负责确保 model 在 vision_capable 里, 否则模型会报错."""
@@ -154,15 +155,20 @@ class LiteLlmClient:
         if not models:
             models = [model]
 
+        from .usage_tracker import record, record_from_litellm
+        import time as _time
+
         last_err: Exception | None = None
         for m in models:
             is_local = m.lower().startswith(("ollama", "local"))
             for attempt in range(llm_rag_settings.litellm_max_retries + 1):
+                _t0 = _time.monotonic()
                 try:
                     # v10: 本地 ollama 直接走原生 /api/chat — litellm 的 ollama 封装会丢 num_ctx/
                     # 乱用默认温度, 导致长 prompt 被截断 + 模型乱答兜底。直连稳定可控。
                     if is_local:
                         text = await self._ollama_chat(m, sys_msg, prompt, images)
+                        record(model=m, latency_ms=int((_time.monotonic() - _t0) * 1000), caller=caller)
                         return LlmResponse(text=text, raw={"model": m, "via": "ollama_native"})
                     resp = await acompletion(
                         model=m,
@@ -180,6 +186,7 @@ class LiteLlmClient:
                         text = resp["choices"][0]["message"]["content"]  # type: ignore[index]
                     except Exception:
                         text = str(resp)
+                    record_from_litellm(resp, model=m, latency_ms=int((_time.monotonic() - _t0) * 1000), caller=caller)
                     return LlmResponse(text=text, raw={"model": m, "resp": resp})  # type: ignore[arg-type]
                 except Exception as e:
                     last_err = e

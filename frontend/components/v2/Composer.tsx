@@ -38,7 +38,20 @@ type Props = {
   frameworks?: string[];
   aiFrameworks?: string[];
   onToggleFramework?: (id: string) => void;
+  /** 车道/模式: auto|chat|answer|deliberate; 空=不显示选择器 */
+  lane?: string;
+  onLaneChange?: (l: string) => void;
 };
+
+// 车道(多入口): 与后端 DecisionStartRequest.lane 对齐 (act 执行车道 Phase C 上线)
+// 图标统一用 Material Symbols (与全站一致, 不用 emoji)
+const LANES: { id: string; label: string; icon: string; hint: string }[] = [
+  { id: "auto", label: "自动", icon: "auto_awesome", hint: "AI 判断走哪条 · 默认偏轻 · 拿不准就快答" },
+  { id: "chat", label: "闲聊", icon: "bolt", hint: "CEO 直接答 · 不联网不开部门 · 最快" },
+  { id: "answer", label: "问答", icon: "search", hint: "联网快答 · 带资料 · 不绕多轮" },
+  { id: "act", label: "执行", icon: "build", hint: "动手做: 网页操作/找文件/生成文件 · 副作用先确认" },
+  { id: "deliberate", label: "审议", icon: "groups", hint: "多顾问会诊 · 配合下方思考深度" },
+];
 
 // 讨论深度: 名称 + 一句话 (Gemini 风格双行)
 const EFFORTS: { lv: Difficulty; label: string; hint: string }[] = [
@@ -58,10 +71,12 @@ const TIERS: { v: Tier; label: string; hint: string }[] = [
 export function Composer({
   value, onChange, effort, onEffortChange, tier, onTierChange, onSend, onStop, onAttach, busy, error, placeholder, attachSlot,
   frameworks, aiFrameworks, onToggleFramework,
+  lane, onLaneChange,
 }: Props) {
   const taRef = useRef<HTMLTextAreaElement>(null);
   const [fwOpen, setFwOpen] = useState(false);
   const [effOpen, setEffOpen] = useState(false);
+  const [laneOpen, setLaneOpen] = useState(false);
   // SSR/hydration 安全: 首次渲染(服务端+客户端首帧)一律未就绪, 挂载后再按 value 计算,
   // 避免 task 从 localStorage 恢复导致 send 按钮 className 服务端/客户端不一致 (hydration mismatch).
   const [mounted, setMounted] = useState(false);
@@ -125,8 +140,63 @@ export function Composer({
         <div className="comp-bottom">
           {onAttach && (
             <button type="button" className="comp-ico" onClick={onAttach} title="添加图片 / 文档" aria-label="添加图片或文档">
-              <Icon name="add_circle" />
+              <Icon name="add" />
             </button>
+          )}
+
+          {/* 车道/模式选择器 (多入口快速切换) */}
+          {onLaneChange && (
+            <div style={{ position: "relative" }}>
+              <button type="button" className="comp-chip"
+                onClick={() => { setLaneOpen((v) => !v); setEffOpen(false); setFwOpen(false); }}
+                title="选择模式 / 车道"
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 4,
+                  padding: "5px 10px", borderRadius: 999, fontSize: 12, cursor: "pointer",
+                  borderWidth: 1, borderStyle: "solid",
+                  borderColor: (lane && lane !== "auto") ? "var(--accent)" : "var(--border)",
+                  background: (lane && lane !== "auto") ? "var(--accent-bg)" : "var(--bg-card)",
+                  color: (lane && lane !== "auto") ? "var(--accent)" : "var(--text-dim)",
+                }}>
+                <Icon name={(LANES.find((l) => l.id === (lane || "auto")) ?? LANES[0]).icon} />
+                <span className="comp-chip-tx">{(LANES.find((l) => l.id === (lane || "auto")) ?? LANES[0]).label}</span>
+                <Icon name={laneOpen ? "expand_less" : "expand_more"} className="comp-chip-chev" />
+              </button>
+              {laneOpen && (
+                <>
+                  <div onClick={() => setLaneOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
+                  <div style={{
+                    position: "absolute", bottom: "calc(100% + 8px)", left: 0, zIndex: 41,
+                    width: 280, padding: 6, borderRadius: 14,
+                    background: "var(--bg-card)", boxShadow: "var(--shadow-lg)",
+                    borderWidth: 1, borderStyle: "solid", borderColor: "var(--border)",
+                  }}>
+                    {LANES.map((l) => {
+                      const on = (lane || "auto") === l.id;
+                      return (
+                        <button key={l.id} type="button" onClick={() => { onLaneChange(l.id); setLaneOpen(false); }}
+                          style={{
+                            display: "flex", alignItems: "center", gap: 10, width: "100%",
+                            padding: "8px 10px", borderRadius: 10, cursor: "pointer", textAlign: "left",
+                            border: "none", background: on ? "var(--accent-bg)" : "transparent",
+                            color: on ? "var(--accent)" : "var(--text)",
+                          }}>
+                          <Icon name={l.icon} size={19} />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 13.5, fontWeight: 600 }}>{l.label}</div>
+                            <div style={{ fontSize: 11.5, color: "var(--text-dim)", marginTop: 1 }}>{l.hint}</div>
+                          </div>
+                          {on && <Icon name="check" size={18} />}
+                        </button>
+                      );
+                    })}
+                    <div style={{ fontSize: 10.5, color: "var(--text-faint)", padding: "6px 10px 4px", lineHeight: 1.5 }}>
+                      拿不准就用「自动」。轻车道(闲聊/问答/执行)不绕多轮、直接做;执行类有副作用的动作会先列出来等你确认。
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           )}
 
           {/* v10 努力程度下拉: 模型档位 + 思考深度 (Gemini 风格) */}
@@ -134,7 +204,7 @@ export function Composer({
             <button
               type="button"
               className="comp-chip"
-              onClick={() => { setEffOpen((v) => !v); setFwOpen(false); }}
+              onClick={() => { setEffOpen((v) => !v); setFwOpen(false); setLaneOpen(false); }}
               title="选模型档位 + 思考深度"
               style={{
                 display: "inline-flex", alignItems: "center", gap: 4,

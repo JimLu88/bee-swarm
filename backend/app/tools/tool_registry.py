@@ -92,6 +92,48 @@ def _h_healthcheck(_: dict) -> dict:
     return {"services": bee_clients.healthcheck()}
 
 
+# ===== Computer Use: 看屏定位 (safe) + 真实动手 (sensitive/HITL) =====
+def _h_locate(args: dict) -> dict:
+    return bee_clients.locate(
+        target=str(args.get("target", "")),
+        image_b64=str(args.get("image_b64", "")),
+        monitor=int(args.get("monitor", 1)),
+        try_ocr_first=bool(args.get("try_ocr_first", True)),
+    )
+
+
+def _h_uia_find(args: dict) -> dict:
+    return bee_clients.uia_find(
+        title_contains=str(args.get("title_contains", "")),
+        name=str(args.get("name", "")),
+        control_type=str(args.get("control_type", "")),
+    )
+
+
+def _h_web_automation(args: dict) -> dict:
+    return bee_clients.web_automation(spec=dict(args.get("spec") or {}))
+
+
+def _h_ui_click(args: dict) -> dict:
+    return bee_clients.input_click(
+        x=int(args.get("x", 0)), y=int(args.get("y", 0)),
+        button=str(args.get("button", "left")), double=bool(args.get("double", False)),
+    )
+
+
+def _h_ui_type(args: dict) -> dict:
+    return bee_clients.input_type(text=str(args.get("text", "")))
+
+
+def _h_uia_click(args: dict) -> dict:
+    return bee_clients.uia_click(
+        title_contains=str(args.get("title_contains", "")),
+        name=str(args.get("name", "")),
+        control_type=str(args.get("control_type", "")),
+        button=str(args.get("button", "left")), double=bool(args.get("double", False)),
+    )
+
+
 TOOL_REGISTRY: dict[str, ToolSpec] = {
     "scrape": ToolSpec(
         name="scrape",
@@ -141,6 +183,44 @@ TOOL_REGISTRY: dict[str, ToolSpec] = {
         args_schema={},
         safety=SAFE, handler=_h_healthcheck,
     ),
+    # —— Computer Use 看屏定位 (safe: 只读不动手) ——
+    "locate": ToolSpec(
+        name="locate",
+        description="给一句话(如'登录按钮')在截图上定位界面元素, 返回可点击的 screen_x/screen_y。OCR命中文字优先, 否则视觉grounding。image_b64 留空则自动截当前屏",
+        args_schema={"target": "要找的元素(自然语言)", "image_b64": "截图base64(可留空)", "monitor": "显示器编号"},
+        safety=SAFE, handler=_h_locate,
+    ),
+    "uia_find": ToolSpec(
+        name="uia_find",
+        description="读原生Windows程序控件树, 按 名字/类型 定位控件并返回精确像素中心点(不靠OCR/截图, 最准/最快/免费)。Qt/浏览器渲染区可能读不到→改用 locate",
+        args_schema={"title_contains": "窗口标题含", "name": "控件名含(可选)", "control_type": "控件类型如ButtonControl/EditControl(可选)"},
+        safety=SAFE, handler=_h_uia_find,
+    ),
+    # —— Computer Use 真实动手 (sensitive: 需人工 approve) ——
+    "web_automation": ToolSpec(
+        name="web_automation",
+        description="浏览器自动化(Playwright)。actions: goto/click(选择器)/fill/type/press/scroll/click_text(按可见文字点)/click_vision(按一句话描述点)/screenshot/extract_text。填表/签到/网页抓取操作。优先DOM, 够不到才视觉",
+        args_schema={"spec": "{url, headless?, actions:[{type:goto|click|fill|type|press|click_text|click_vision|screenshot|extract_text, ...}]}"},
+        safety=SENSITIVE, handler=_h_web_automation,
+    ),
+    "ui_click": ToolSpec(
+        name="ui_click",
+        description="在屏幕绝对坐标(x,y)真实点击(win32光标)。坐标通常来自 locate / uia_find",
+        args_schema={"x": "屏幕x", "y": "屏幕y", "button": "left/right/middle", "double": "true=双击"},
+        safety=SENSITIVE, handler=_h_ui_click,
+    ),
+    "ui_type": ToolSpec(
+        name="ui_type",
+        description="向当前聚焦窗口真实键入文字(win32, 支持中英文)。一般先 ui_click/uia_click 点中输入框再键入",
+        args_schema={"text": "要输入的文字"},
+        safety=SENSITIVE, handler=_h_ui_type,
+    ),
+    "uia_click": ToolSpec(
+        name="uia_click",
+        description="按控件名/类型直接点击原生程序控件(读控件树→精确点击, 最稳, 不靠OCR/坐标)",
+        args_schema={"title_contains": "窗口标题含", "name": "控件名含", "control_type": "控件类型(可选)"},
+        safety=SENSITIVE, handler=_h_uia_click,
+    ),
 }
 
 
@@ -160,6 +240,28 @@ def list_tools(include_sensitive: bool = False) -> list[dict[str, Any]]:
     return out
 
 
+# 执行层#3 频率限制: 滑动窗口(60s), 防误循环连发(尤其 SENSITIVE 发消息/点击类)
+import os as _os
+import time as _time
+
+_RATE_WINDOW = 60.0
+_RATE_CAP_SAFE = int(_os.environ.get("BEE_TOOL_RATE_SAFE", "30"))
+_RATE_CAP_SENSITIVE = int(_os.environ.get("BEE_TOOL_RATE_SENSITIVE", "6"))
+_rate_hits: dict[str, list[float]] = {}
+
+
+def _rate_ok(name: str, safety: str) -> bool:
+    now = _time.time()
+    lst = [t for t in _rate_hits.get(name, []) if now - t < _RATE_WINDOW]
+    cap = _RATE_CAP_SENSITIVE if safety == SENSITIVE else _RATE_CAP_SAFE
+    if len(lst) >= cap:
+        _rate_hits[name] = lst
+        return False
+    lst.append(now)
+    _rate_hits[name] = lst
+    return True
+
+
 def execute_tool(name: str, args: dict[str, Any] | None,
                  allow_sensitive: bool = False) -> dict[str, Any]:
     spec = TOOL_REGISTRY.get(name)
@@ -173,6 +275,10 @@ def execute_tool(name: str, args: dict[str, Any] | None,
         return {"ok": False, "tool": name, "args": args or {},
                 "safety": spec.safety,
                 "error": "sensitive tool requires user approval"}
+    if not _rate_ok(name, spec.safety):
+        return {"ok": False, "tool": name, "args": args or {},
+                "safety": spec.safety, "rate_limited": True,
+                "error": f"rate limited: {name} 超过每分钟上限, 稍后再试"}
     try:
         result = spec.handler(args or {})
         return {"ok": True, "tool": name, "args": args or {},

@@ -27,8 +27,8 @@ class DecisionStartRequest(BaseModel):
     reject_unknown_mode: bool = False
     # v1.2 N-round debate (1-5). Default 1 == single pass, backward-compatible.
     debate_rounds: int = Field(default=1, ge=1, le=5)
-    # v1.5 / L-infinity thinking frameworks (optional)
-    thinking_frameworks: list[str] = Field(default_factory=list)
+    # v1.5 / L-infinity thinking frameworks. 三态: None(未传)=按关键词自动选 / []=明确不用 / [..]=手动指定
+    thinking_frameworks: list[str] | None = None
     # v6-W 3 档降级: A=高档旗舰, B=中档便宜云, C=离线本地 (并发限 2)
     tier: str = Field(default="A", pattern=r"^[ABC]$")
     # v6-X 多模态: data URL (data:image/png;base64,...) 或 https URL, 最多 4 张.
@@ -39,6 +39,9 @@ class DecisionStartRequest(BaseModel):
     files: list[AttachedFile] = Field(default_factory=list, max_length=5)
     # v6-Z 路线: all=全部门 / multi=CEO选多部门 / key=重点部门 / single=单部门 / ceo_only=CEO单答
     route: str = Field(default="all", pattern=r"^(all|multi|key|single|ceo_only)$")
+    # 车道(多入口): auto=自动分流(默认偏轻) / chat=闲聊直答 / answer=联网快答 / act=执行 / deliberate=多顾问审议
+    # 轻车道(chat/answer/act)后端会覆盖 route=ceo_only; deliberate 保持上面的 route
+    lane: str = Field(default="auto", pattern=r"^(auto|chat|answer|act|deliberate)$")
     # v6-Z route!=all 时, 前端传 CEO/用户选定的部门子集 (route=single 则 1 个)
     departments_override: list[str] = Field(default_factory=list, max_length=40)
     # v6-Z 难度桶 (light/medium/heavy), 供 sop_bandit 记录; 空则后端自算
@@ -257,6 +260,8 @@ class DecisionSummary(BaseModel):
     source_consensus: dict[str, Any] = Field(default_factory=dict)
     # v13 #4 事后复盘笔记 (用户在复盘看板里写, 持久化到 decisions.jsonl)
     retro_note: str = ""
+    # v16 书库引用可见: CEO 综合时命中的真书 [{title,author,scenario,snippet,score}] → 前端「📚引用书目」
+    books_refs: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class StreamEvent(BaseModel):

@@ -207,6 +207,28 @@ export function BeeSwarmShell() {
   // thinking frameworks (AI 自动选; SettingsDrawer 可手动改)
   const [frameworks, setFrameworks] = useState<string[]>([]);
   const [aiFrameworks, setAiFrameworks] = useState<string[]>([]);
+  // 思维模式: 'auto'=AI 按任务自动选(默认) / 'custom'=用户自定义(空=不用任何框架). 持久化.
+  const [frameworkMode, setFrameworkMode] = useState<"auto" | "custom">("auto");
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const m = window.localStorage.getItem("h-semas:fwmode");
+    if (m === "custom" || m === "auto") setFrameworkMode(m);
+  }, []);
+  const updateFrameworkMode = useCallback((m: "auto" | "custom") => {
+    setFrameworkMode(m);
+    try { window.localStorage.setItem("h-semas:fwmode", m); } catch { /* ignore */ }
+  }, []);
+  // 车道/模式 (多入口): auto(默认偏轻) / chat / answer / deliberate. 持久化; 手动选=最高优先级.
+  const [lane, setLane] = useState<string>("auto");
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const l = window.localStorage.getItem("h-semas:lane");
+    if (l) setLane(l);
+  }, []);
+  const updateLane = useCallback((l: string) => {
+    setLane(l);
+    try { window.localStorage.setItem("h-semas:lane", l); } catch { /* ignore */ }
+  }, []);
 
   // backend URL
   const backendUrl = useMemo(() => resolveBackendHttpBase(), []);
@@ -261,9 +283,8 @@ export function BeeSwarmShell() {
     return () => { if (estTimer.current) window.clearTimeout(estTimer.current); };
   }, [task, mode, difficulty, backendUrl]);
 
-  useEffect(() => {
-    if (frameworks.length === 0 && aiFrameworks.length > 0) setFrameworks(aiFrameworks);
-  }, [aiFrameworks, frameworks.length]);
+  // (已移除"AI 建议自动塞入已选"的副作用 — 它在用户清空后立即重填, 导致框架"取消不掉";
+  //  现在 AI 建议仅作提示, 用户在设置→思维模式里手动勾选才生效)
 
   const toggleFramework = useCallback((id: string) => {
     setFrameworks((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
@@ -367,7 +388,7 @@ export function BeeSwarmShell() {
     if (!t) { setError("先写一句话告诉我你要什么"); return; }
     if (busy) return;
     setError(null);
-    const runMode = modeOverride || (mode === AUTO_MODE ? autoResolved : mode);
+    const runMode = modeOverride || (mode === AUTO_MODE ? autoResolved : mode) || "program_management";
 
     const eff = difficulty;
     const m = EFFORT_MAP[eff];
@@ -394,9 +415,10 @@ export function BeeSwarmShell() {
             body: JSON.stringify({
               task: t, mode_id: runMode,
               debate_rounds: Math.max(m.rounds, 1),
-              thinking_frameworks: frameworks.length > 0 ? frameworks : undefined,
+              thinking_frameworks: frameworkMode === "auto" ? undefined : frameworks,
               tier, images: curImages, files: curDocs,
               route: m.route, departments_override: [], difficulty_bucket: m.diff,
+              lane,
             }),
           },
           TIMEOUT_MS.decisionStart,
@@ -413,7 +435,49 @@ export function BeeSwarmShell() {
         setTurns((prev) => prev.map((tt) => tt.id === turnId ? { ...tt, status: "error" } : tt));
       }
     })();
-  }, [busy, difficulty, images, docFiles, mode, autoResolved, frameworks, tier, backendUrl, clearTaskBackup, attachStream]);
+  }, [busy, difficulty, images, docFiles, mode, autoResolved, frameworks, frameworkMode, lane, tier, backendUrl, clearTaskBackup, attachStream]);
+
+  // --- #3 结果修正: 基于上一轮(问题+答案)+ 用户纠正, 走轻量快速路线(ceo_only)重出修正版 ---
+  const refineTask = useCallback((correction: string, prior: { user: string; summary?: DecisionSummary | null }) => {
+    const c = correction.trim();
+    if (!c || busy) return;
+    setError(null);
+    const runMode = prior.summary?.mode_id || (mode === AUTO_MODE ? autoResolved : mode);
+    const turnId = makeId();
+    setTurns((prev) => [...prev, {
+      id: turnId, user: "（修正）" + c, effort: difficulty, status: "running", summary: null, rounds: 1,
+    }]);
+    setView("thread");
+    setActiveId(turnId);
+    setBusy(true); setHeats([]); setProgress(0);
+    (async () => {
+      try {
+        const res = await fetchWithTimeout(
+          `${backendUrl}/api/decision/refine`,
+          {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              mode_id: runMode,
+              correction: c,
+              prior_task: prior.user,
+              prior_answer: prior.summary?.ceo_decision || "",
+            }),
+          },
+          TIMEOUT_MS.decisionStart,
+        );
+        if (!res.ok) throw new Error(`refine ${res.status}`);
+        const j = await res.json();
+        const decisionId: string | undefined = j?.decision_id;
+        if (!decisionId) throw new Error("AI 服务暂时没响应, 等一下再试");
+        setTask(""); clearTaskBackup();
+        attachStream(decisionId, turnId);
+      } catch (e: unknown) {
+        setError((e as Error).message ?? "出了点小问题, 等一下重试");
+        setBusy(false);
+        setTurns((prev) => prev.map((tt) => tt.id === turnId ? { ...tt, status: "error" } : tt));
+      }
+    })();
+  }, [busy, difficulty, mode, autoResolved, backendUrl, clearTaskBackup, attachStream]);
 
   // v10 C: 提问 → 调 preflight 得到建议部门 → 弹确认阵容卡 (简单档=ceo_only 直接跑, 不弹)
   const proposePlan = useCallback((text: string) => {
@@ -484,8 +548,10 @@ export function BeeSwarmShell() {
   const onComposerSend = useCallback(() => {
     const t = task.trim();
     if (!t) { setError("先写一句话告诉我你要什么"); return; }
+    // 轻车道(非"审议"): 不绕意图澄清/多轮询问, 直接开跑; 只有"审议"才走澄清+阵容确认
+    if (lane !== "deliberate") { submitTask(t); return; }
     setClarifyTask(t);
-  }, [task]);
+  }, [task, lane, submitTask]);
 
   // RoutePlanner「我来挑部门/路线」→ 按指定 route/部门/轮数发起
   const runWithRoute = useCallback((p: RunParams) => {
@@ -519,9 +585,10 @@ export function BeeSwarmShell() {
             body: JSON.stringify({
               task: t, mode_id: (mode === AUTO_MODE ? autoResolved : mode),
               debate_rounds: Math.max(p.rounds, 1),
-              thinking_frameworks: frameworks.length > 0 ? frameworks : undefined,
+              thinking_frameworks: frameworkMode === "auto" ? undefined : frameworks,
               tier, images: curImages, files: curDocs,
               route: p.route, departments_override: p.departments, difficulty_bucket: p.difficulty,
+              lane: "deliberate",
             }),
           },
           TIMEOUT_MS.decisionStart,
@@ -539,6 +606,46 @@ export function BeeSwarmShell() {
       }
     })();
   }, [task, busy, images, docFiles, mode, autoResolved, frameworks, tier, backendUrl, clearTaskBackup, attachStream]);
+
+  // B4 三纠错: 轻车道(闲聊/问答/执行)答完"深入分析" → 同一问题转多顾问审议重跑 (route=all + lane=deliberate)
+  const escalateTask = useCallback((userText: string) => {
+    const t = (userText || "").trim();
+    if (!t || busy) return;
+    setError(null);
+    const rounds = Math.max(EFFORT_MAP[difficulty].rounds, 2);
+    const turnId = makeId();
+    setTurns((prev) => [...prev, {
+      id: turnId, user: t, effort: (Math.max(difficulty, 3) as Difficulty), status: "running", summary: null, rounds,
+    }]);
+    setView("thread"); setActiveId(turnId);
+    setBusy(true); setHeats([]); setProgress(0);
+    setRunMeta({ route: "all", rounds_band: EFFORT_MAP[difficulty].band, difficulty: EFFORT_MAP[difficulty].diff });
+    (async () => {
+      try {
+        const res = await fetchWithTimeout(
+          `${backendUrl}/api/decision/start`,
+          {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              task: t, mode_id: (mode === AUTO_MODE ? autoResolved : mode) || "program_management",
+              debate_rounds: rounds, thinking_frameworks: frameworkMode === "auto" ? undefined : frameworks,
+              tier, route: "all", departments_override: [], lane: "deliberate",
+            }),
+          },
+          TIMEOUT_MS.decisionStart,
+        );
+        if (!res.ok) throw new Error(`decision/start ${res.status}`);
+        const j = await res.json();
+        const decisionId: string | undefined = j?.decision_id;
+        if (!decisionId) throw new Error("AI 服务暂时没响应, 等一下再试");
+        attachStream(decisionId, turnId);
+      } catch (e: unknown) {
+        setError((e as Error).message ?? "出了点小问题, 等一下重试");
+        setBusy(false);
+        setTurns((prev) => prev.map((tt) => tt.id === turnId ? { ...tt, status: "error" } : tt));
+      }
+    })();
+  }, [busy, difficulty, mode, autoResolved, frameworks, frameworkMode, tier, backendUrl, attachStream]);
 
   // v10 路线图「重新会诊」: 用调整后的部门集重跑同一个问题 (route=multi + departments_override)
   const rerunWithDepts = useCallback((userText: string, depts: string[]) => {
@@ -561,9 +668,10 @@ export function BeeSwarmShell() {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               task: t, mode_id: (mode === AUTO_MODE ? autoResolved : mode), debate_rounds: rounds,
-              thinking_frameworks: frameworks.length > 0 ? frameworks : undefined,
+              thinking_frameworks: frameworkMode === "auto" ? undefined : frameworks,
               tier, route: "multi", departments_override: depts,
               difficulty_bucket: EFFORT_MAP[difficulty].diff,
+              lane: "deliberate",
             }),
           },
           TIMEOUT_MS.decisionStart,
@@ -777,10 +885,10 @@ export function BeeSwarmShell() {
         busy={busy}
         error={error}
         attachSlot={attachSlot}
-        frameworks={frameworks}
-        aiFrameworks={aiFrameworks}
-        onToggleFramework={toggleFramework}
+        lane={lane}
+        onLaneChange={updateLane}
       />
+      {/* 思维模式已移入 设置→🧠思维模式; 输入框不再放, 减负 */}
       {/* v10 移除首页"我来挑部门/路线"预选 — 部门调整统一在提问后的路线图上做 */}
     </>
   );
@@ -905,6 +1013,12 @@ export function BeeSwarmShell() {
                             rerunningDept={rerunningDept}
                             onFeedback={isLast && runMeta ? sendFeedback : undefined}
                             onRegenerate={isLast ? () => submitTask(turn.user) : undefined}
+                            onRefine={isLast ? (c: string) => refineTask(c, turn) : undefined}
+                            onEscalate={(() => {
+                              const d = (turn.summary as unknown as { dispatcher?: Record<string, unknown> | null })?.dispatcher;
+                              const light = !!d && (d.lane === "answer" || d.lane === "act" || d.level === "ceo_only");
+                              return isLast && light ? () => escalateTask(turn.user) : undefined;
+                            })()}
                           />
                         )}
                       </div>
@@ -984,6 +1098,8 @@ export function BeeSwarmShell() {
         frameworks={frameworks}
         aiFrameworks={aiFrameworks}
         onToggleFramework={toggleFramework}
+        frameworkMode={frameworkMode}
+        onSetFrameworkMode={updateFrameworkMode}
         initialTab={settingsInitialTab}
         mode={mode}
         onSelectMode={setMode}

@@ -26,6 +26,12 @@ router = APIRouter(prefix="/api/intent", tags=["intent"])
 SHORT_THRESHOLD = int(os.environ.get("BEE_CLARIFY_MIN_CHARS", "12"))  # 短问题也常值得澄清(如"父亲节送啥礼物"); 真无歧义 LLM 会返空
 SESSION_TTL = 30 * 60
 CHEAP_MODEL = os.environ.get("BEE_CLARIFY_MODEL", "deepseek/deepseek-chat")
+# 反问数量 (5-8 可调) + 提示词优化模型 (把澄清回答重写成精炼提示词)
+try:
+    CLARIFY_COUNT = max(3, min(8, int(os.environ.get("BEE_CLARIFY_COUNT", "6"))))
+except Exception:
+    CLARIFY_COUNT = 6
+PROMPT_OPT_MODEL = os.environ.get("BEE_PROMPT_OPT_MODEL", CHEAP_MODEL)
 
 _SIMPLE_PATTERNS = (
     "查一下", "查下", "帮我看下", "简单问", "一句话", "直接说",
@@ -62,6 +68,12 @@ _FALLBACK_QUESTIONS: list[dict[str, Any]] = [
     {"id": "prefs", "type": "chips", "prompt": "有哪些偏好或限制?(可多选)",
      "why": "缩小范围", "options": ["预算有限", "时间紧", "新手友好", "追求品质", "越简单越好"],
      "multi": True},
+    {"id": "budget", "type": "range", "prompt": "大概预算范围?",
+     "why": "框定方案档位", "min": 0, "max": 5000, "default": 500, "unit": "¥"},
+    {"id": "timeline", "type": "segmented", "prompt": "时间上多急?",
+     "why": "影响方案取舍", "options": ["不急, 想做好", "尽快", "马上就要"]},
+    {"id": "experience", "type": "segmented", "prompt": "你对这件事的熟悉程度?",
+     "why": "决定讲解深浅", "options": ["新手", "有点了解", "比较懂"]},
     {"id": "depth", "type": "segmented", "prompt": "想要的回答形式?",
      "why": "控制深度", "options": ["快速结论", "详细方案"]},
 ]
@@ -122,7 +134,7 @@ async def _gen_questions(task: str) -> list[dict[str, Any]]:
                 "- rank: 优先级排序(给 options) — 让用户排重要度\n"
                 "- quick: 开放追问+建议答(给 options 当快捷答, 用户也可自填)\n\n"
                 "原则:\n"
-                "- 只问【会显著改变答案方向】的; 默认 3 个, 最多 5 个; 完全没歧义则空数组\n"
+                f"- 只问【会显著改变答案方向】的; 默认 {CLARIFY_COUNT} 个 (5-8 个, 把意图问透); 完全没歧义则空数组\n"
                 "- 每条配最贴合的控件; chips/quick 给 4-7 个 options; slider 给两端 label\n"
                 "- options 用中文短词; 每条加 why(为什么问, 一句话)\n\n"
                 "严格输出 JSON(无 markdown): "
@@ -141,7 +153,7 @@ async def _gen_questions(task: str) -> list[dict[str, Any]]:
         if not isinstance(raw_qs, list):
             return _FALLBACK_QUESTIONS
         out: list[dict[str, Any]] = []
-        for i, rq in enumerate(raw_qs[:5]):
+        for i, rq in enumerate(raw_qs[:8]):
             nq = _normalize_q(rq, i)
             if nq:
                 out.append(nq)
@@ -185,6 +197,36 @@ class ResolveRequest(BaseModel):
 class ResolveResponse(BaseModel):
     task_final: str
     used: int
+    task_raw: str = ""        # 未优化的原始拼接 (供前端"查看原始问题"可选展示)
+    optimized: bool = False   # task_final 是否经 LLM 优化过
+
+
+async def _optimize_prompt(task: str, qa: str, raw: str) -> tuple[str, bool]:
+    """#2: 把 原问题+澄清问答 整合重写成一段精炼、结构化的提示词, 再喂给顾问团。
+    best-effort: 没澄清内容 / LLM 失败 → 回退原始拼接 (raw)。"""
+    if not (qa or "").strip():
+        return raw, False
+    try:
+        from .llm.litellm_client import litellm_client
+        resp = await litellm_client.complete(
+            model=PROMPT_OPT_MODEL,
+            system="你是提示词工程师。只输出改写后的提问正文, 不要解释、不要标题、不要 markdown 代码块。",
+            prompt=(
+                "把下面用户的【原始问题】和【澄清问答】整合改写成一段清晰、具体、结构化的提问, "
+                "供一组 AI 顾问深入回答。要求: 用第一人称; 保留所有关键信息/偏好/约束/数字; "
+                "把澄清回答自然融进正文(不要再用 Q/A 格式); 适度补全隐含背景但绝不编造事实; "
+                "去掉口语冗余, 让意图一目了然。\n\n"
+                f"【原始问题】\n{task[:1500]}\n\n【澄清问答】\n{qa[:2500]}"
+            ),
+        )
+        out = (resp.text or "").strip()
+        if out.startswith("```"):  # 去掉可能的代码块包裹
+            out = out.strip("`").strip()
+            if out[:4].lower() == "text":
+                out = out[4:].strip()
+        return (out, True) if len(out) >= 10 else (raw, False)
+    except Exception:
+        return raw, False
 
 
 @router.post("/resolve", response_model=ResolveResponse)
@@ -206,6 +248,7 @@ async def resolve(req: ResolveRequest) -> ResolveResponse:
     if extra:
         parts.append(f"补充: {extra}")
     qa = "\n".join(parts)
-    final = f"{s['task']}\n\n[澄清回答]\n{qa}" if qa else s["task"]
+    raw = f"{s['task']}\n\n[澄清回答]\n{qa}" if qa else s["task"]
+    final, opt = await _optimize_prompt(s["task"], qa, raw)  # #2 提示词优化
     _sessions.pop(req.session_id, None)
-    return ResolveResponse(task_final=final, used=len(parts))
+    return ResolveResponse(task_final=final, used=len(parts), task_raw=raw, optimized=opt)

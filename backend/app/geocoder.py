@@ -203,6 +203,59 @@ async def _geocode_one(client: httpx.AsyncClient, key: str, name: str, city: str
     return {**rec, "name": name}
 
 
+async def gather_ratings_brief(
+    *, mode_id: str, media_cards: list[dict[str, Any]] | None = None, max_n: int = 10
+) -> str:
+    """决策【CEO 综合前】调用: 从媒体卡标题抽店名 → 高德取真实评分/人均 → 压成清单注入 CEO prompt,
+    让 CEO 用真实高德分排序打分, 而不是凭空编"大众点评X分"。
+
+    best-effort: 非地点场景 / 无 Key / 抽取失败 → 返回 ""。复用 _geocode_one 的内存缓存,
+    finalize 再调 gather_map_places 时同名店命中缓存、不重复调高德。
+    """
+    if os.environ.get("BEE_MAP_PINS", "1") == "0" or mode_id not in GEO_SCENES:
+        return ""
+    key = _amap_key()
+    if not key:
+        return ""
+    try:
+        titles = [str(c.get("title") or "").strip() for c in (media_cards or []) if c.get("title")]
+        if not titles:
+            return ""
+        places = (await _extract_places("", titles))[:max_n]
+        if not places:
+            return ""
+        async with httpx.AsyncClient(timeout=_GEOCODE_TIMEOUT) as client:
+            results = await asyncio.gather(
+                *[_geocode_one(client, key, p["name"], p["city"]) for p in places],
+                return_exceptions=True,
+            )
+        lines: list[str] = []
+        for r in results:
+            if not isinstance(r, dict):
+                continue
+            rating = r.get("rating")
+            cost = r.get("cost")
+            if rating is None and cost is None:
+                continue  # 无评分无人均 → 不值得列
+            nm = r.get("poi_name") or r.get("name") or ""
+            seg = f"- {nm}"
+            cat = r.get("category")
+            if cat:
+                seg += f"({cat})"
+            seg += ": 高德评分 " + (f"{rating}/5" if rating is not None else "无")
+            seg += " · 人均 " + (f"¥{cost}" if cost is not None else "无")
+            addr = r.get("address")
+            if addr:
+                seg += f" · {addr}"
+            lines.append(seg)
+        if not lines:
+            return ""
+        return ("[真实高德 POI 评分/人均 — CEO 排序与打分请优先用这些真实数据并标注来源「高德」; "
+                "下面没列到的店, 评分写「(评分待核实)」不要编造]\n" + "\n".join(lines))
+    except Exception:
+        return ""
+
+
 async def gather_map_places(
     *, mode_id: str, ceo_text: str, media_cards: list[dict[str, Any]] | None = None
 ) -> list[dict[str, Any]]:

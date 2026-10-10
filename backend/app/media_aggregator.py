@@ -105,9 +105,37 @@ _DEFAULT_PLATFORMS = ["zhihu", "wikipedia", "reddit"]
 _VIDEO_DOMAINS = ("youtube.com", "youtu.be", "bilibili.com", "douyin.com", "tiktok.com", "v.qq.com", "vimeo.com")
 _IMAGE_EXTS = (".jpg", ".jpeg", ".png", ".webp", ".gif")
 
+# 无关/装饰类图片 URL 特征 (logo/头像/图标/占位/广告等) → 命中则丢图只留文字, 防"图片插入大量无关内容"
+_JUNK_IMG_TOKENS = (
+    "avatar", "logo", "favicon", "icon", "sprite", "placeholder",
+    "blank", "spacer", "pixel", "qrcode", "loading", "watermark",
+    "default_", "/ads/", "/ad/", "banner", "thumb_default",
+)
+
+
+def _is_junk_image(url: str) -> bool:
+    """判断图片是否为装饰/无关图 (应丢)。data URI 小图标、命中特征词、黑名单域名 → True。"""
+    if not url:
+        return True
+    u = url.lower()
+    if u.startswith("data:"):
+        return True
+    if any(tok in u for tok in _JUNK_IMG_TOKENS):
+        return True
+    if _is_denied(url):
+        return True
+    return False
+
 # ---- 方向1: 域名黑名单 (内容农场 / SEO 站群 / AI 水文站, 命中即丢) ----
+# 可用 env BEE_DOMAIN_DENY 追加 (逗号分隔), 无需改代码。
 _DOMAIN_DENY: tuple[str, ...] = (
-    "zhjsw.cn", "zhjsw.com",  # 用户实测企业站群, 全 AI 水文
+    "zhjsw.cn", "zhjsw.com",     # 用户实测企业站群, 全 AI 水文
+    "baijiahao.baidu.com",       # 百家号 (自媒体批量水文重灾区)
+    "dy.163.com",                # 网易号自媒体批量页
+    "so.com", "haosou.com",      # 搜索聚合垃圾页
+)
+_DOMAIN_DENY = _DOMAIN_DENY + tuple(
+    d.strip().lower() for d in os.environ.get("BEE_DOMAIN_DENY", "").split(",") if d.strip()
 )
 
 # ---- 方向4: 来源权威度权重 (越高越靠前; 真实 UGC / 权威站加权) ----
@@ -124,9 +152,13 @@ _AUTHORITY: dict[str, int] = {
 # 方向5: 兜底 LLM 质检模型 (最便宜的快模型)
 _QUALITY_MODEL = "openai/deepseek-v4-flash"
 _QUALITY_PROMPT = (
-    "你是内容质检员。下面是为「{task}」聚合的资料条目 (序号|来源|标题摘要)。\n"
-    "请挑出**低质应丢弃**的条目序号: AI 水文/SEO 站群软文/纯广告/与任务无关/无信息量/标题党。\n"
-    "保留: 真实点评、有具体信息(数字/地址/亲历)、权威或 UGC 优质内容。\n"
+    "你是严格的内容质检员。下面是为「{task}」聚合的资料条目 (序号|来源|标题摘要)。\n"
+    "请挑出**低质应丢弃**的条目序号, 命中任一即丢:\n"
+    "- AI 自动生成水文 / 新媒体号(百家号/搜狐号/网易号/大鱼号/企鹅号)批量产文, 内容空泛无实质\n"
+    "- SEO 站群软文 / 伪原创洗稿 / 关键词堆砌 / 同质化模板文\n"
+    "- 纯广告导购 / 标题党 / 与任务无关 / 无任何具体信息量\n"
+    "保留: 真实点评、含具体信息(数字/地址/型号/亲历经验)、权威机构或高质 UGC 内容。\n"
+    "宁可对自媒体批量号从严, 但有具体干货的就留。\n"
     '严格只输出 JSON: {"drop":[序号,...]}; 没有要丢的输出 {"drop":[]}。\n\n{items}\n'
 )
 
@@ -163,6 +195,8 @@ def _classify(item: dict[str, Any]) -> dict[str, Any]:
                   or item.get("description") or "").strip()
     image_url = str(item.get("image_url") or item.get("cover") or item.get("thumbnail")
                     or item.get("pic") or "").strip()
+    if image_url and _is_junk_image(image_url):  # 丢装饰/无关图, 卡片降级为 link/text 仍保留文字
+        image_url = ""
     video_url = str(item.get("video_url") or "").strip()
     source = str(item.get("source") or "") or _domain(url)
 
@@ -223,8 +257,8 @@ def _collect_sync(task: str, mode_id: str) -> list[dict[str, Any]]:
 
     # 2) 场景垂直平台 (每个少量, 控制总耗时). v14: 4→6 平台 × 4→6 条, 配合 MAX_CARDS=60 凑满选择墙
     platforms = SCENE_PLATFORMS.get(mode_id, _DEFAULT_PLATFORMS)
-    per = 6
-    for plat in platforms[:6]:
+    per = max(4, min(20, int(os.environ.get("BEE_MEDIA_PER", "10"))))  # 每平台条数 (默认 6→10)
+    for plat in platforms[:8]:
         try:
             resp = bee_clients.scrape(plat, keyword=query, limit=per)
             items = resp.get("items") or []
@@ -261,8 +295,8 @@ def _collect_sync(task: str, mode_id: str) -> list[dict[str, Any]]:
 
 async def _llm_quality_gate(task: str, cards: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """方向5: flash 一次性批量质检, 丢掉 AI 水文/广告/无关项. best-effort, 失败/误杀则原样返回."""
-    if os.environ.get("BEE_MEDIA_QUALITY", "1") == "0" or len(cards) <= 6:
-        return cards  # 条目太少不值得过滤
+    if os.environ.get("BEE_MEDIA_QUALITY", "1") == "0" or len(cards) < 3:
+        return cards  # 条目过少 (<3) 不值得过滤; 否则始终质检, 过滤水文
     try:
         from .llm.litellm_client import litellm_client
         from .llm.parsing import _extract_json

@@ -99,6 +99,7 @@ _DATA_DIR = backend_data_dir()
 async def _quota_probe_loop() -> None:
     """配额自动探针: 周期检查暂停的 dev session, 距上次撞配额超过阈值就乐观续跑(又撞会自动再暂停)。
     零探测成本(不额外发 claude 调用), 纯时间推断 claude 周/4-5小时配额窗口已过。"""
+    import os
     import time as _t
     interval = int(os.environ.get("BEE_DEV_PROBE_INTERVAL", "1800"))
     retry_after = int(os.environ.get("BEE_DEV_QUOTA_RETRY_AFTER", "5400"))
@@ -1340,6 +1341,13 @@ def dev_paused() -> dict[str, Any]:
     return {"paused": [{"dev_id": d.get("dev_id"), "paused_at": d.get("paused_at"),
                         "remaining": len(d.get("remaining_task_ids", [])),
                         "raw_request": (d.get("raw_request", "") or "")[:120]} for d in items]}
+
+
+@app.get("/api/llm/usage")
+def llm_usage(days: int = 7) -> dict[str, Any]:
+    """LLM 用量记账: 最近 N 天总成本/调用数 + 按天/按模型聚合(估算 USD)。"""
+    from .llm.usage_tracker import summary
+    return summary(days=max(1, min(int(days or 7), 90)))
 
 
 # ============================================================

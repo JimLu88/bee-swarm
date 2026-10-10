@@ -34,6 +34,8 @@ export type DecisionSummary = {
   map_places?: MapPlace[];
   /** v12 信源可信度引擎汇总 (前台12场景) */
   source_consensus?: { headline?: string; summary?: string };
+  /** v16 书库引用: CEO 综合时命中的真书 */
+  books_refs?: { title?: string; author?: string; scenario?: string; snippet?: string; score?: number }[];
 };
 
 type Props = {
@@ -45,6 +47,10 @@ type Props = {
   onFeedback?: (reward: number) => void;
   /** 重新生成整次决策 */
   onRegenerate?: () => void;
+  /** #3 结果修正: 基于上一轮(问题+答案)+ 用户的纠正, 快速重出修正版 */
+  onRefine?: (correction: string) => void;
+  /** B4 三纠错: 轻车道(闲聊/问答/执行)答完后"深入分析"→ 同一问题转多顾问审议重跑; 仅轻结果传入 */
+  onEscalate?: () => void;
   /** 操作条元信息: 努力程度 1-4 */
   effort?: number;
   /** 部门 id → 中文名 (来自 /api/modes department_labels, 含横切部门); 没有则回退 id */
@@ -67,11 +73,14 @@ function dissentLabel(v: number): string {
   return v >= 0.7 ? "高" : v >= 0.4 ? "中" : "低";
 }
 
-export function ResultPanel({ summary, onRerunDept, rerunningDept, onFeedback, onRegenerate, effort, labels, backendUrl }: Props) {
+export function ResultPanel({ summary, onRerunDept, rerunningDept, onFeedback, onRegenerate, onRefine, onEscalate, effort, labels, backendUrl }: Props) {
   const [acOpen, setAcOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [fb, setFb] = useState<null | "up" | "down">(null);
   const [traceOpen, setTraceOpen] = useState(false);
+  const [refineOpen, setRefineOpen] = useState(false);
+  const [refineText, setRefineText] = useState("");
+  const [booksOpen, setBooksOpen] = useState(false);
 
   if (!summary) return null;
 
@@ -85,6 +94,7 @@ export function ResultPanel({ summary, onRerunDept, rerunningDept, onFeedback, o
   const riskCount = risks.length;
   const mediaCards = summary.media_cards ?? [];
   const mapPlaces = summary.map_places ?? [];
+  const booksRefs = summary.books_refs ?? [];
   const kbTotal = reports.reduce((s, r) => s + (r.kb_used ?? 0), 0);
 
   // 「全屏情报站」: 数据写 localStorage 交接 → 新标签页打开 /intel 独立全屏 (视觉更整)
@@ -195,11 +205,8 @@ export function ResultPanel({ summary, onRerunDept, rerunningDept, onFeedback, o
                   <div className="dept-say">
                     <SmartResultRenderer text={r.consensus ?? ""} />
                   </div>
-                  {r.conflicts && r.conflicts.length > 0 && (
-                    <div className="dept-conflict">
-                      <b>⚡ 分歧：</b>{r.conflicts.join("；")}
-                    </div>
-                  )}
+                  {/* v2.x 分歧改由 CEO 层统一提炼跨部门真冲突 (见 ceo_decision 的「⚖ 关键分歧」段);
+                      部门内的泛泛 conflicts 不再单独显眼渲染, 避免"短consensus+抢镜分歧"的信息倒挂 */}
                   {onRerunDept && r.dept && (
                     <button
                       type="button"
@@ -237,6 +244,31 @@ export function ResultPanel({ summary, onRerunDept, rerunningDept, onFeedback, o
         </div>
       )}
 
+      {/* v16 📚 引用书目 (书库命中的真书, 有才显示) */}
+      {booksRefs.length > 0 && (
+        <div className="accord">
+          <button type="button" className="accord-head" onClick={() => setBooksOpen((v) => !v)}>
+            <Icon name="menu_book" className="lead-i" />
+            <span className="t">引用书目</span>
+            <span className="c">{booksRefs.length} 本</span>
+            <Icon name={booksOpen ? "expand_less" : "expand_more"} />
+          </button>
+          {booksOpen && (
+            <div className="accord-body" style={{ display: "block", padding: "8px 12px" }}>
+              {booksRefs.map((b, i) => (
+                <div key={i} style={{ padding: "7px 0", borderBottom: i < booksRefs.length - 1 ? "1px solid var(--border)" : "none" }}>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>
+                    《{b.title || "?"}》{b.author ? <span style={{ fontWeight: 400, color: "var(--text-dim)" }}> · {b.author}</span> : null}
+                    {b.scenario ? <span style={{ fontSize: 11, color: "var(--text-faint)", marginLeft: 6 }}>{b.scenario}</span> : null}
+                  </div>
+                  {b.snippet && <div style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 3, lineHeight: 1.6 }}>{b.snippet}…</div>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* 操作条 */}
       <div className="actions">
         <button type="button" className="act" onClick={copy} title={copied ? "已复制" : "复制"} aria-label="复制">
@@ -245,6 +277,17 @@ export function ResultPanel({ summary, onRerunDept, rerunningDept, onFeedback, o
         {onRegenerate && (
           <button type="button" className="act" onClick={onRegenerate} title="重新生成" aria-label="重新生成">
             <Icon name="refresh" />
+          </button>
+        )}
+        {onRefine && (
+          <button type="button" className={`act${refineOpen ? " on-up" : ""}`} onClick={() => setRefineOpen((v) => !v)} title="修正 / 追问" aria-label="修正 / 追问">
+            <Icon name="edit" />
+          </button>
+        )}
+        {onEscalate && (
+          <button type="button" className="act" onClick={onEscalate}
+                  title="深入分析(转多顾问审议重跑)" aria-label="深入分析">
+            <Icon name="groups" /><span style={{ fontSize: 12.5, marginLeft: 4 }}>深入</span>
           </button>
         )}
         {onFeedback && (
@@ -275,6 +318,28 @@ export function ResultPanel({ summary, onRerunDept, rerunningDept, onFeedback, o
           {effort != null && EFFORT_LABELS[effort] ? <span>· 努力程度 {EFFORT_LABELS[effort]}</span> : null}
         </span>
       </div>
+      {onRefine && refineOpen && (
+        <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+          <input
+            value={refineText}
+            onChange={(e) => setRefineText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                const c = refineText.trim();
+                if (c) { onRefine(c); setRefineText(""); setRefineOpen(false); }
+              }
+            }}
+            placeholder="指出哪里不对 / 想补充什么 → 基于上一轮答案快速重出修正版"
+            autoFocus
+            style={{ flex: 1, padding: "8px 12px", borderRadius: 8, borderWidth: 1, borderStyle: "solid", borderColor: "var(--border)", background: "var(--bg-subtle)", color: "inherit", fontSize: 13 }}
+          />
+          <button type="button" className="act"
+            onClick={() => { const c = refineText.trim(); if (c) { onRefine(c); setRefineText(""); setRefineOpen(false); } }}
+            title="提交修正" aria-label="提交修正">
+            <Icon name="arrow_upward" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
