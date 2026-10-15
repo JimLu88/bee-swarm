@@ -1034,6 +1034,34 @@ def shadow_status(mode_id: str, dept: str, shadow_version: int, trials: int = 3)
     return {"verdict": {"promote": verdict.promote, "reason": verdict.reason, "shadow_version": verdict.shadow_version}, "scores": scores}
 
 
+@app.get("/api/decision/recipes")
+def decision_recipes() -> dict:
+    from .batch_recipes import RECIPES
+    return {"recipes": [{"id": key, **value} for key, value in RECIPES.items()]}
+
+
+@app.post("/api/decision/batch")
+async def decision_batch(payload: dict = Body(...)) -> dict:
+    from .batch_recipes import expand_recipe
+    items = payload.get("items") or []
+    if not isinstance(items, list) or not 1 <= len(items) <= 20:
+        raise HTTPException(400, "items must contain 1 to 20 parameter objects")
+    try:
+        tasks = expand_recipe(payload.get("recipe_id", ""), items, payload.get("common") or {})
+        requests = [DecisionStartRequest(**{**(payload.get("options") or {}), "task": task}) for task in tasks]
+    except (KeyError, ValueError, TypeError) as exc:
+        raise HTTPException(400, f"Cannot expand recipe: {exc}") from exc
+    batch_id = "batch-" + uuid.uuid4().hex[:12]
+    results = []
+    for index, request in enumerate(requests):
+        try:
+            result = await decision_start(request)
+            results.append({"index": index, **result})
+        except HTTPException as exc:
+            results.append({"index": index, "error": exc.detail, "status_code": exc.status_code})
+    return {"batch_id": batch_id, "items": results, "count": len(results)}
+
+
 @app.post("/api/decision/start")
 async def decision_start(req: DecisionStartRequest) -> dict[str, str]:
     if req.reject_unknown_mode:
